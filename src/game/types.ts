@@ -96,7 +96,7 @@ export type Phase =
   | "year-end"
   | "ending";
 
-export type ResultView = { text: string; deltas: Delta[]; skills: string[] };
+export type ResultView = { text: string; deltas: Delta[]; skills: string[]; lean?: string };
 
 export type State = {
   phase: Phase;
@@ -121,6 +121,7 @@ export type State = {
   battleTries: number;
   battle: BattleOutcome | null;
   offeredExplore: boolean;
+  name: string;
 };
 
 export const INITIAL_PRIMARY: Primary = {

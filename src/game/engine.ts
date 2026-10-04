@@ -100,6 +100,7 @@ export function freshState(seed = 198401): State {
     battleTries: 0,
     battle: null,
     offeredExplore: false,
+    name: "",
   };
 }
 
@@ -110,6 +111,7 @@ export function loadState(): State | null {
     if (!raw) return null;
     const data = JSON.parse(raw) as State;
     if (!data || typeof data.phase !== "string" || !data.derived || !data.primary) return null;
+    if (typeof data.name !== "string") data.name = "";
     return data;
   } catch {
     return null;
@@ -124,7 +126,7 @@ export function saveState(state: State) {
 export type Action =
   | { type: "hydrate"; state: State }
   | { type: "begin" }
-  | { type: "gender"; gender: Gender }
+  | { type: "gender"; gender: Gender; name: string }
   | { type: "toActivities" }
   | { type: "activity"; id: string }
   | { type: "ack" }
@@ -144,7 +146,7 @@ export function reducer(state: State, action: Action): State {
     case "begin":
       return { ...state, phase: "gender" };
     case "gender":
-      return openYear({ ...state, gender: action.gender, yearIndex: 0 });
+      return openYear({ ...state, gender: action.gender, name: action.name.trim().slice(0, 8), yearIndex: 0 });
     case "toActivities":
       return { ...state, phase: "activities" };
     case "activity":
@@ -215,6 +217,13 @@ function pickActivity(state: State, id: string): State {
   };
 }
 
+const LEAN_AFTER = {
+  dream: "你今日偏向跟住想做嘅事。",
+  reality: "你今日偏向跟住要做嘅事。",
+  balance: "你今日兩邊都拖住少少。",
+  think: "你今日停低諗咗一句。",
+} as const;
+
 function choose(state: State, choice: Choice): State {
   const variant = state.eventId ? variantOf(state.eventId, state) : "base";
   const applied = applyEffect(state, choice.effect);
@@ -237,13 +246,13 @@ function choose(state: State, choice: Choice): State {
       approach: choice.battle,
       battleTries: 0,
       battle: null,
-      result: { text: choice.result, deltas: applied.deltas, skills: applied.skills },
+      result: { text: choice.result, deltas: applied.deltas, skills: applied.skills, lean: LEAN_AFTER[choice.tendency] },
     };
   }
   if (choice.repair) {
-    return { ...next, phase: "repair", result: { text: choice.result, deltas: applied.deltas, skills: applied.skills } };
+    return { ...next, phase: "repair", result: { text: choice.result, deltas: applied.deltas, skills: applied.skills, lean: LEAN_AFTER[choice.tendency] } };
   }
-  return { ...next, phase: "result", result: { text: choice.result, deltas: applied.deltas, skills: applied.skills } };
+  return { ...next, phase: "result", result: { text: choice.result, deltas: applied.deltas, skills: applied.skills, lean: LEAN_AFTER[choice.tendency] } };
 }
 
 function onBattleEnd(state: State, outcome: BattleOutcome): State {
@@ -312,22 +321,45 @@ function repair(state: State, talk: boolean): State {
 }
 
 function exploreOffer(state: State, go: boolean): State {
-  let next: State = { ...state, offeredExplore: true };
-  let deltas: Delta[] = [];
-  let text = "你留喺屋企。走廊盡頭嗰件事未發生。";
-  if (go) {
-    const applied = applyEffect(next, {
-      counter: { COUNTER_EXPLORE: 1 },
-      derived: { STATE_MOOD: 2, STATE_STRESS: 1 },
-    });
-    next = { ...applied.state, offeredExplore: true };
-    deltas = applied.deltas;
-    text =
-      next.counter.COUNTER_EXPLORE >= 2
-        ? "你再落咗一次平台。你行到邨口，件事先至發生。"
-        : "你落咗一次平台。次數仍然未夠，走廊盡頭今日未發生。";
+  if (!go) {
+    const applied = applyEffect(state, { flags: ["FLAG_GATE_DECLINED"] });
+    const year = yearOf(state);
+    const record: MemoryRecord = {
+      id: "MEM_FIRST_INDEPENDENCE",
+      eventId: "EVT_1986_ECHO_08",
+      choiceId: "skip",
+      variant: "declined",
+      year: year.year,
+      age: year.age,
+      npc: "NPC_MOM_01",
+      emotion: "stay",
+      weight: 2,
+      echo: "十年後你記得自己可以去，但你留喺屋企。",
+      snapshot: snapshotOf(applied.state),
+    };
+    return {
+      ...applied.state,
+      memories: upsertMemory(applied.state.memories, record),
+      offeredExplore: true,
+      phase: "result",
+      result: { text: "你留喺屋企。走廊盡頭嗰件事，你自己揀咗唔去。", deltas: applied.deltas, skills: [] },
+    };
   }
-  return { ...next, phase: "result", result: { text, deltas, skills: [] } };
+  const applied = applyEffect(state, {
+    counter: { COUNTER_EXPLORE: 1 },
+    derived: { STATE_MOOD: 2, STATE_STRESS: 1 },
+  });
+  const enough = applied.state.counter.COUNTER_EXPLORE >= 2;
+  return {
+    ...applied.state,
+    offeredExplore: false,
+    phase: "result",
+    result: {
+      text: enough ? "你再落咗一次平台。你行到邨口，件事先至發生。" : "你落咗一次平台。仲差一次，先至行到邨口。冇人逼你再去。",
+      deltas: applied.deltas,
+      skills: [],
+    },
+  };
 }
 
 function openNext(state: State): State {
@@ -335,7 +367,8 @@ function openNext(state: State): State {
   while (queue.length) {
     const id = queue[0];
     if (id === "EVT_1986_ECHO_08" && state.counter.COUNTER_EXPLORE < 2) {
-      if (!state.offeredExplore) {
+      const declined = state.flags.includes("FLAG_GATE_DECLINED") || state.memories.some((item) => item.id === "MEM_FIRST_INDEPENDENCE" && item.choiceId === "skip");
+      if (!declined) {
         return { ...state, phase: "explore-offer", queue, eventId: null, result: null, note: null };
       }
       queue.shift();

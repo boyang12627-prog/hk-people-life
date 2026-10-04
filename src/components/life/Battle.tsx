@@ -9,6 +9,7 @@ type Props = {
   tidy: boolean;
   see: boolean;
   ask: boolean;
+  practiced: boolean;
   onEnd: (outcome: BattleOutcome) => void;
 };
 
@@ -16,9 +17,9 @@ const INK = "#241c14";
 const AMBER = "#c9843a";
 const PAPER = "#f3ead7";
 
-export function Battle({ approach, hp, sp, tidy, see, ask, onEnd }: Props) {
+export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const simRef = useRef<BattleSim>(createBattle({ approach, hp, sp, tidy, see, ask }));
+  const simRef = useRef<BattleSim>(createBattle({ approach, hp, sp, tidy, see, ask, practiced }));
   const onEndRef = useRef(onEnd);
   onEndRef.current = onEnd;
   const hintRef = useRef<HTMLParagraphElement>(null);
@@ -36,7 +37,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, onEnd }: Props) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const sim = createBattle({ approach, hp, sp, tidy, see, ask });
+    const sim = createBattle({ approach, hp, sp, tidy, see, ask, practiced });
     simRef.current = sim;
     const image = new Image();
     image.src = "/scenes/kindy.jpg";
@@ -99,7 +100,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, onEnd }: Props) {
       dead = true;
       cancelAnimationFrame(raf);
     };
-  }, [approach, ask, hp, see, sp, tidy]);
+  }, [approach, ask, hp, practiced, see, sp, tidy]);
 
   const press = (name: BattleAction, enabled = true) => {
     actBattle(simRef.current, name, enabled);
@@ -140,7 +141,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, onEnd }: Props) {
         />
         <BattleButton
           label="跟讀"
-          detail="幹勁 6，老師教過"
+          detail={practiced ? "幹勁 6，你跟得熟" : "幹勁 6，未跟熟，效用弱"}
           buttonRef={(node) => {
             buttons.current.read = node;
           }}
@@ -168,7 +169,8 @@ export function Battle({ approach, hp, sp, tidy, see, ask, onEnd }: Props) {
         ) : null}
       </div>
       <p className="text-sm text-pretty text-paper/70">
-        精神力由毅力同體質計。幹勁係另一條，唔係毅力。今日入唔到，都可以再試，唔會完。
+        {practiced ? "你識跟讀。跟住講，壓力會落得多啲。" : "你未跟熟。跟住講都得，但個聲好細。"}
+        精神力由毅力同體質計。幹勁係另一條。今日入唔到，都可以再試，唔會完。
       </p>
     </div>
   );

@@ -23,6 +23,7 @@ export type BattleSim = {
   pressure: number;
   see: boolean;
   ask: boolean;
+  practiced: boolean;
   regen: number;
 };
 
@@ -41,6 +42,7 @@ export function createBattle(input: {
   tidy: boolean;
   see: boolean;
   ask: boolean;
+  practiced: boolean;
 }): BattleSim {
   const startX = input.approach === "social" ? 16 : input.approach === "curious" ? 11 : 9;
   let stress = input.approach === "safe" ? 10 : input.approach === "curious" ? 22 : 16;
@@ -70,6 +72,7 @@ export function createBattle(input: {
     pressure: input.approach === "curious" ? 2 : 0,
     see: input.see,
     ask: input.ask,
+    practiced: input.practiced,
     regen: 0,
   };
 }
@@ -160,10 +163,11 @@ export function actBattle(sim: BattleSim, name: BattleAction, enabled: boolean) 
     sim.cd.guard = 0.95;
     sim.hint = "你停低呼吸。";
   } else if (name === "read") {
-    sim.x = Math.min(100, sim.x + 2);
-    sim.stress = Math.max(0, sim.stress - 10);
-    sim.cd.read = 2.1;
-    sim.hint = "你跟住老師教過嘅字。聲細，但你有聲。";
+    const practiced = sim.practiced;
+    sim.x = Math.min(100, sim.x + (practiced ? 2 : 1));
+    sim.stress = Math.max(0, sim.stress - (practiced ? 10 : 4));
+    sim.cd.read = practiced ? 2.1 : 2.6;
+    sim.hint = practiced ? "你跟住老師教過嘅字。聲細，但你有聲。" : "你未跟熟。只係出到半個字，聲細少少。";
   } else if (name === "see") {
     sim.dodge = true;
     sim.cd.see = 3.6;

@@ -11,7 +11,6 @@ import {
   PRIMARY_LABEL,
   recallLine,
   SKILL_NAME,
-  TENDENCY_LABEL,
   yearOf,
 } from "@/game/content";
 import { canRetry, freshState, loadState, reducer, saveState } from "@/game/engine";
@@ -46,9 +45,9 @@ export function LifeApp() {
       {state.phase === "title" ? <Title onStart={() => { tap(); dispatch({ type: "begin" }); }} /> : null}
       {state.phase === "gender" ? (
         <GenderPick
-          onPick={(gender) => {
+          onPick={(gender, name) => {
             tap();
-            dispatch({ type: "gender", gender });
+            dispatch({ type: "gender", gender, name });
           }}
         />
       ) : null}
@@ -77,6 +76,7 @@ export function LifeApp() {
           tidy={state.skills.includes("SKL_07")}
           see={state.skills.includes("SKL_02")}
           ask={state.skills.includes("SKL_04")}
+          practiced={state.skills.includes("SKL_01")}
           onEnd={(outcome) => {
             playTone(outcome.kind === "fail" || outcome.kind === "bad" ? "hit" : "good");
             dispatch({ type: "battleEnd", outcome });
@@ -112,7 +112,7 @@ export function LifeApp() {
       ) : null}
       {state.phase === "explore-offer" ? (
         <Paper scene="estate" kicker="1986 · 年尾" title="要唔要再落一次平台">
-          <p className="text-pretty text-base leading-7">你自己出過門嘅次數未夠。走廊盡頭有件事，要你行過平台先會發生。冇人逼你。</p>
+          <p className="text-pretty text-base leading-7">你自己出過門嘅次數未夠兩次。落一次平台會計一次。夠數，走廊盡頭先會發生。你亦可以留低，呢個係你自己揀。</p>
           <ChoiceButton label="落一次平台" hint="唔使再扣今年嗰兩次" onClick={() => { tap(); dispatch({ type: "explore", go: true }); }} />
           <ChoiceButton label="留喺屋企" hint="件事就未發生" onClick={() => { tap("soft"); dispatch({ type: "explore", go: false }); }} />
         </Paper>
@@ -147,15 +147,27 @@ function Title({ onStart }: { onStart: () => void }) {
   );
 }
 
-function GenderPick({ onPick }: { onPick: (gender: Gender) => void }) {
+function GenderPick({ onPick }: { onPick: (gender: Gender, name: string) => void }) {
+  const [name, setName] = useState("");
+  const clean = name.trim().slice(0, 8);
   return (
     <Paper scene="home" kicker="開始之前" title="你係？">
-      <p className="text-pretty text-base leading-7">故事唔會因為你係仔定女而少一段。稱呼會跟你。</p>
+      <p className="text-pretty text-base leading-7">故事唔會因為你係仔定女而少一段。稱呼會跟你。年份仍然係一九八四。</p>
+      <label className="mt-4 block text-sm text-ink/70">
+        人哋點叫你
+        <input
+          value={name}
+          maxLength={8}
+          placeholder="可留空"
+          onChange={(event) => setName(event.target.value)}
+          className="mt-1 min-h-12 w-full rounded-xl border border-line bg-paper px-3 text-base text-ink"
+        />
+      </label>
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => onPick("boy")} className="min-h-12 rounded-xl bg-amber text-base font-medium text-ink">
+        <button type="button" onClick={() => onPick("boy", clean)} className="min-h-12 rounded-xl bg-amber text-base font-medium text-ink">
           仔
         </button>
-        <button type="button" onClick={() => onPick("girl")} className="min-h-12 rounded-xl bg-amber text-base font-medium text-ink">
+        <button type="button" onClick={() => onPick("girl", clean)} className="min-h-12 rounded-xl bg-amber text-base font-medium text-ink">
           女
         </button>
       </div>
@@ -170,6 +182,7 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
     <Paper scene={year.scene} kicker={String(year.year)} title={title}>
       <p className="text-pretty text-base leading-7">{year.era}</p>
       <p className="mt-3 text-pretty text-base leading-7">{year.open}</p>
+      {state.name ? <p className="mt-3 text-pretty text-base leading-7">人哋叫你{state.name}。</p> : null}
       <p className="mt-3 text-sm text-pretty text-ink/70">今年你有兩次時間，用嚟陪人、玩、或者休息。之後嘅事會自己嚟，唔使你預留。</p>
       <LifeNow state={state} />
       <Primary onClick={onNext}>用呢兩次時間</Primary>
@@ -222,7 +235,6 @@ function EventCard({ state, onChoose }: { state: State; onChoose: (choice: Retur
           <ChoiceButton
             key={choice.id}
             label={choice.label}
-            hint={TENDENCY_LABEL[choice.tendency]}
             onClick={() => onChoose(choice)}
           />
         ))}
@@ -250,7 +262,8 @@ function YearEnd({ state, onNext }: { state: State; onNext: () => void }) {
   const year = yearOf(state);
   const memories = state.memories.filter((item) => item.year === year.year);
   const last = state.yearIndex >= 2;
-  const missedGate = last && state.counter.COUNTER_EXPLORE < 2;
+  const hasGate = memories.some((item) => item.id === "MEM_FIRST_INDEPENDENCE");
+  const missedGate = last && !hasGate && state.counter.COUNTER_EXPLORE < 2;
   return (
     <Paper scene="home" kicker={`${year.year} 完`} title="你記住咗">
       {memories.length === 0 ? <p className="text-base leading-7">呢一年好靜。</p> : null}
@@ -272,7 +285,7 @@ function Ending({ state, onRestart }: { state: State; onRestart: () => void }) {
   const skills = state.skills.map((id) => SKILL_NAME[id] ?? id);
   return (
     <Paper scene="home" kicker="十年後" title="同一個屋邨">
-      <p className="font-serif text-pretty text-xl leading-9">{lifeVoice(state.memories)}</p>
+      <p className="font-serif text-pretty text-xl leading-9">{lifeVoice(state.memories, state.name)}</p>
       <p className="mt-3 text-pretty text-base leading-7">{orientationLine(state.derived.VALUE_DREAM, state.derived.VALUE_REALITY)}</p>
       <details className="mt-4">
         <summary className="min-h-11 text-sm text-ink/70">其他你記住嘅句</summary>
@@ -302,17 +315,23 @@ function LifeNow({ state }: { state: State }) {
       <details className="mt-3">
         <summary className="min-h-11 text-sm text-ink/70">人生檔案</summary>
         <p className="text-sm text-pretty text-ink/70">
-          心情 {state.derived.STATE_MOOD} · 壓力 {state.derived.STATE_STRESS} · 心安 {state.derived.STATE_PEACE} · 家庭 {state.derived.STATE_FAMILY_HARMONY}
+          心情 {state.derived.STATE_MOOD} · 壓力 {state.derived.STATE_STRESS} · 家庭 {state.derived.STATE_FAMILY_HARMONY}
         </p>
         <p className="mt-2 text-sm text-pretty text-ink/70">
-          夢想 {state.derived.VALUE_DREAM} · 現實 {state.derived.VALUE_REALITY} · 獨立思考 {state.derived.INDEPENDENT_THOUGHT} · 健康 {state.derived.STATE_HEALTH}
+          夢想 {state.derived.VALUE_DREAM} · 現實 {state.derived.VALUE_REALITY} · 獨立思考 {state.derived.INDEPENDENT_THOUGHT}
         </p>
-        <p className="mt-2 text-sm text-pretty text-ink/70">
-          {Object.entries(PRIMARY_LABEL)
-            .map(([key, label]) => `${label} ${state.primary[key as keyof typeof state.primary]}`)
-            .join(" · ")}
-        </p>
-        <p className="mt-2 text-sm text-pretty text-ink/70">心安係你同自己夾唔夾。戰鬥用精神力同幹勁。精確數字留喺檔案，唔係畫面主角。</p>
+        <details className="mt-2">
+          <summary className="min-h-11 text-sm text-ink/60">其餘</summary>
+          <p className="text-sm text-pretty text-ink/60">
+            心安 {state.derived.STATE_PEACE} · 健康 {state.derived.STATE_HEALTH} · 人脈 {state.derived.STATE_GLOBAL_NETWORK}
+          </p>
+          <p className="mt-2 text-sm text-pretty text-ink/60">
+            {Object.entries(PRIMARY_LABEL)
+              .map(([key, label]) => `${label} ${state.primary[key as keyof typeof state.primary]}`)
+              .join(" · ")}
+          </p>
+        </details>
+        <p className="mt-2 text-sm text-pretty text-ink/60">心安唔係戰鬥血量。戰鬥用精神力同幹勁。</p>
       </details>
     </div>
   );
@@ -345,6 +364,7 @@ function ResultBody({ result }: { result: NonNullable<State["result"]> }) {
     <>
       <p className="text-pretty text-base leading-7">{result.text}</p>
       {result.skills.length > 0 ? <p className="mt-3 text-sm text-ink/70">識咗：{result.skills.join("、")}</p> : null}
+      {result.lean ? <p className="mt-3 text-sm text-ink/50">{result.lean}</p> : null}
       {result.deltas.length > 0 ? (
         <details className="mt-3">
           <summary className="min-h-11 text-sm text-ink/70">檔案記低咗</summary>
@@ -361,11 +381,11 @@ function ResultBody({ result }: { result: NonNullable<State["result"]> }) {
   );
 }
 
-function ChoiceButton({ label, hint, onClick }: { label: string; hint: string; onClick: () => void }) {
+function ChoiceButton({ label, hint, onClick }: { label: string; hint?: string; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className="mt-2 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl bg-bg px-4 py-3 text-left">
       <span className="min-w-0 flex-1 text-base font-medium text-pretty text-paper">{label}</span>
-      <span className="shrink-0 text-xs text-amber">{hint}</span>
+      {hint ? <span className="shrink-0 text-xs text-paper/60">{hint}</span> : null}
     </button>
   );
 }
