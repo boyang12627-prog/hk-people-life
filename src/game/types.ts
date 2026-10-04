@@ -28,7 +28,8 @@ export type DerivedKey =
 
 export type CounterKey =
   | "NPC_MOM_STRESS"
-  | "NPC_DAD_OVERTIME_COUNT"
+  | "WORLD_DAD_WORK_OCCURRENCES"
+  | "PLAYER_DAD_CHOICE_RESPONSE"
   | "REL_LOCAL_MARKET"
   | "COUNTER_EXPLORE"
   | "ART_PROGRESS"
@@ -122,6 +123,7 @@ export type State = {
   battle: BattleOutcome | null;
   offeredExplore: boolean;
   name: string;
+  schemaVersion: 2;
 };
 
 export const INITIAL_PRIMARY: Primary = {
@@ -148,7 +150,8 @@ export const INITIAL_DERIVED: Derived = {
 
 export const INITIAL_COUNTERS: Counters = {
   NPC_MOM_STRESS: 25,
-  NPC_DAD_OVERTIME_COUNT: 0,
+  WORLD_DAD_WORK_OCCURRENCES: 0,
+  PLAYER_DAD_CHOICE_RESPONSE: 0,
   REL_LOCAL_MARKET: 15,
   COUNTER_EXPLORE: 0,
   ART_PROGRESS: 0,

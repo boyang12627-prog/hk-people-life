@@ -106,8 +106,8 @@ export function LifeApp() {
         <Paper scene="home" kicker="1986 · 夜晚" title="阿媽問你">
           <p className="text-pretty text-base leading-7">{state.result.text}</p>
           <p className="mt-3 text-pretty text-base leading-7">今晚佢問你點解行到門口。你可以講，亦都可以唔講。</p>
-          <ChoiceButton label="同阿媽講" hint="講咗，今晚就停喺度" onClick={() => { tap(); dispatch({ type: "repair", talk: true }); }} />
-          <ChoiceButton label="唔講，自己瞓" hint="少咗一句" onClick={() => { tap("soft"); dispatch({ type: "repair", talk: false }); }} />
+          <ChoiceButton label="同阿媽講" hint="屋企近，個心會緊" onClick={() => { tap(); dispatch({ type: "repair", talk: true }); }} />
+          <ChoiceButton label="唔講，自己瞓" hint="少句鬧，自己吞" onClick={() => { tap("soft"); dispatch({ type: "repair", talk: false }); }} />
         </Paper>
       ) : null}
       {state.phase === "explore-offer" ? (
@@ -287,6 +287,8 @@ function Ending({ state, onRestart }: { state: State; onRestart: () => void }) {
     <Paper scene="home" kicker="十年後" title="同一個屋邨">
       <p className="font-serif text-pretty text-xl leading-9">{lifeVoice(state.memories, state.name)}</p>
       <p className="mt-3 text-pretty text-base leading-7">{orientationLine(state.derived.VALUE_DREAM, state.derived.VALUE_REALITY)}</p>
+      {state.flags.includes("FLAG_REPAIR_TALK") ? <p className="mt-3 text-pretty text-base leading-7">你同阿媽講過邨口。屋企近咗，個心緊過。</p> : null}
+      {state.flags.includes("FLAG_REPAIR_SILENT") ? <p className="mt-3 text-pretty text-base leading-7">你冇講。少咗一場鬧，屋企少咗一句。</p> : null}
       <details className="mt-4">
         <summary className="min-h-11 text-sm text-ink/70">其他你記住嘅句</summary>
         <ul className="flex flex-col gap-3 pb-2">

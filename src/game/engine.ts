@@ -19,7 +19,15 @@ import {
   type State,
 } from "./types";
 
-export const SAVE_KEY = "hklife-p01-v11";
+export const SAVE_KEY = "hklife-p01-v12";
+export const LEGACY_SAVE_KEY = "hklife-p01-v11";
+export const SCHEMA_VERSION = 2;
+
+export type SaveEnvelope = {
+  schemaVersion: 2;
+  savedAt: string;
+  state: State;
+};
 
 const PRIMARY_LABEL: Record<keyof Primary, string> = {
   STAT_MIND: "機靈",
@@ -45,6 +53,7 @@ const DERIVED_LABEL: Record<keyof Derived, string> = {
 
 const COUNTER_LABEL: Partial<Record<keyof Counters, string>> = {
   NPC_MOM_STRESS: "阿媽攰",
+  WORLD_DAD_WORK_OCCURRENCES: "阿爸返工",
   REL_LOCAL_MARKET: "街坊熟",
   COUNTER_EXPLORE: "出過門",
   ART_PROGRESS: "畫畫",
@@ -101,18 +110,20 @@ export function freshState(seed = 198401): State {
     battle: null,
     offeredExplore: false,
     name: "",
+    schemaVersion: 2,
   };
 }
 
 export function loadState(): State | null {
   if (typeof localStorage === "undefined") return null;
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw) as State;
-    if (!data || typeof data.phase !== "string" || !data.derived || !data.primary) return null;
-    if (typeof data.name !== "string") data.name = "";
-    return data;
+    const current = localStorage.getItem(SAVE_KEY);
+    if (current) return parseSave(current);
+    const legacy = localStorage.getItem(LEGACY_SAVE_KEY);
+    if (!legacy) return null;
+    const migrated = parseSave(legacy);
+    if (migrated) saveState(migrated);
+    return migrated;
   } catch {
     return null;
   }
@@ -120,7 +131,26 @@ export function loadState(): State | null {
 
 export function saveState(state: State) {
   if (typeof localStorage === "undefined") return;
-  localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  const envelope: SaveEnvelope = {
+    schemaVersion: 2,
+    savedAt: new Date().toISOString(),
+    state: { ...state, schemaVersion: 2 },
+  };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(envelope));
+  localStorage.removeItem(LEGACY_SAVE_KEY);
+}
+
+export function parseSave(raw: string): State | null {
+  let data: unknown;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!isRecord(data)) return null;
+  if (data.schemaVersion === 2 && isRecord(data.state)) return validateState(data.state);
+  if (typeof data.phase === "string") return validateState(data);
+  return null;
 }
 
 export type Action =
@@ -183,7 +213,7 @@ export function reducer(state: State, action: Action): State {
 function openYear(state: State): State {
   const year = YEARS[state.yearIndex];
   const counter = { ...state.counter };
-  if (year.year === 1986) counter.NPC_DAD_OVERTIME_COUNT = Math.max(1, counter.NPC_DAD_OVERTIME_COUNT);
+  if (year.year === 1986) counter.WORLD_DAD_WORK_OCCURRENCES = Math.max(2, counter.WORLD_DAD_WORK_OCCURRENCES);
   return {
     ...state,
     counter,
@@ -238,6 +268,10 @@ function choose(state: State, choice: Choice): State {
       snapshot: snapshotOf(next),
     };
     next = { ...next, memories: upsertMemory(next.memories, record) };
+  }
+  if (choice.memory?.id === "MEM_DAD_WORK") {
+    const response = choice.id === "A" ? 1 : choice.id === "B" ? 2 : 3;
+    next = { ...next, counter: { ...next.counter, PLAYER_DAD_CHOICE_RESPONSE: response } };
   }
   if (choice.battle) {
     return {
@@ -297,23 +331,20 @@ function settleBattle(state: State): State {
 
 function repair(state: State, talk: boolean): State {
   const prior = state.result;
-  if (talk) {
-    return {
-      ...state,
-      phase: "result",
-      result: {
-        text: "今晚阿媽問你點解行到門口。你講俾佢聽。佢聽完，冇再加一句罰。",
-        deltas: prior?.deltas ?? [],
-        skills: prior?.skills ?? [],
-      },
-    };
-  }
-  const applied = applyEffect(state, { derived: { STATE_FAMILY_HARMONY: -1 } });
+  const applied = applyEffect(
+    state,
+    talk
+      ? { derived: { STATE_FAMILY_HARMONY: 2, STATE_STRESS: 1 }, flags: ["FLAG_REPAIR_TALK"] }
+      : { derived: { STATE_FAMILY_HARMONY: -1, STATE_PEACE: 1 }, flags: ["FLAG_REPAIR_SILENT"] },
+  );
+  const text = talk
+    ? "你講俾佢聽。佢拉住你一陣。屋企近咗，但你個心緊咗少少。"
+    : "你唔講，自己瞓。少咗一場鬧，個心靜返。屋企少咗一句。";
   return {
     ...applied.state,
     phase: "result",
     result: {
-      text: "你唔講，自己瞓。阿媽喺廳等咗一陣。呢晚屋企少咗一句。",
+      text,
       deltas: [...(prior?.deltas ?? []), ...applied.deltas],
       skills: prior?.skills ?? [],
     },
@@ -382,6 +413,8 @@ function openNext(state: State): State {
 
 function yearEnd(state: State): State {
   const counter = { ...state.counter, NPC_MOM_STRESS: clamp(state.counter.NPC_MOM_STRESS - 2, 0, 100) };
+  const year = yearOf(state);
+  if (year.year === 1985) counter.WORLD_DAD_WORK_OCCURRENCES = clamp(counter.WORLD_DAD_WORK_OCCURRENCES + 1, 0, 99);
   const derived = { ...state.derived };
   if (derived.STATE_STRESS >= 80) {
     derived.STATE_MOOD = clamp(derived.STATE_MOOD - 3, 0, 100);
@@ -428,7 +461,7 @@ export function applyEffect(state: State, effect: Effect): { state: State; delta
   }
   for (const [key, value] of Object.entries(effect.counter ?? {}) as [keyof Counters, number][]) {
     const before = counter[key];
-    const max = key === "NPC_DAD_OVERTIME_COUNT" || key === "COUNTER_EXPLORE" ? 99 : key.endsWith("PROGRESS") ? 10 : 100;
+    const max = key === "WORLD_DAD_WORK_OCCURRENCES" || key === "PLAYER_DAD_CHOICE_RESPONSE" || key === "COUNTER_EXPLORE" ? 99 : key.endsWith("PROGRESS") ? 10 : 100;
     const min = key.endsWith("PROGRESS") ? 0 : 0;
     counter[key] = clamp(before + value, min, max);
     const label = COUNTER_LABEL[key];
@@ -470,4 +503,129 @@ function pushDelta(deltas: Delta[], label: string, value: number) {
 export function canRetry(state: State) {
   const kind = state.battle?.kind;
   return state.battleTries < 1 && (kind === "fail" || kind === "bad");
+}
+
+const PHASES = new Set(["title", "gender", "year", "activities", "note", "event", "battle", "battle-result", "result", "repair", "explore-offer", "year-end", "ending"]);
+const SCENES = new Set(["home", "kindy", "corridor", "market", "estate"]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function strings(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function savedDeltas(value: unknown): Delta[] {
+  if (!Array.isArray(value)) return [];
+  const deltas: Delta[] = [];
+  for (const item of value) {
+    if (!isRecord(item)) continue;
+    if (typeof item.label !== "string" || typeof item.value !== "number") continue;
+    deltas.push({ label: item.label, value: item.value });
+  }
+  return deltas;
+}
+
+function savedResult(raw: Record<string, unknown>): ResultView | null {
+  if (!isRecord(raw.result) || typeof raw.result.text !== "string") return null;
+  const lean = raw.result.lean;
+  return {
+    text: raw.result.text,
+    deltas: savedDeltas(raw.result.deltas),
+    skills: strings(raw.result.skills),
+    lean: typeof lean === "string" ? lean : undefined,
+  };
+}
+
+export function validateState(raw: Record<string, unknown>): State | null {
+  if (typeof raw.phase !== "string" || !PHASES.has(raw.phase) || !isRecord(raw.primary) || !isRecord(raw.derived)) return null;
+  const base = freshState();
+  const primary = { ...base.primary };
+  for (const key of Object.keys(base.primary) as (keyof Primary)[]) {
+    const value = raw.primary[key];
+    if (typeof value === "number" && Number.isFinite(value)) primary[key] = value;
+  }
+  const derived = { ...base.derived };
+  for (const key of Object.keys(base.derived) as (keyof Derived)[]) {
+    const value = raw.derived[key];
+    if (typeof value === "number" && Number.isFinite(value)) derived[key] = value;
+  }
+  const counter = { ...base.counter };
+  const legacyCounter = isRecord(raw.counter) ? raw.counter : {};
+  for (const key of Object.keys(base.counter) as (keyof Counters)[]) {
+    const value = legacyCounter[key];
+    if (typeof value === "number" && Number.isFinite(value)) counter[key] = value;
+  }
+  if (typeof legacyCounter.WORLD_DAD_WORK_OCCURRENCES !== "number" && typeof legacyCounter.NPC_DAD_OVERTIME_COUNT === "number") {
+    counter.WORLD_DAD_WORK_OCCURRENCES = legacyCounter.NPC_DAD_OVERTIME_COUNT;
+  }
+  const npc = { ...base.npc };
+  if (isRecord(raw.npc)) {
+    for (const id of Object.keys(base.npc) as NpcId[]) {
+      const patch = raw.npc[id];
+      if (!isRecord(patch)) continue;
+      npc[id] = {
+        relation: typeof patch.relation === "number" ? patch.relation : base.npc[id].relation,
+        trust: typeof patch.trust === "number" ? patch.trust : base.npc[id].trust,
+        available: typeof patch.available === "boolean" ? patch.available : base.npc[id].available,
+      };
+    }
+  }
+  const memories = Array.isArray(raw.memories)
+    ? raw.memories.filter(isRecord).flatMap((item) => {
+        if (typeof item.id !== "string" || !item.id) return [];
+        const snapshot = isRecord(item.snapshot)
+          ? {
+              dream: typeof item.snapshot.dream === "number" ? item.snapshot.dream : derived.VALUE_DREAM,
+              reality: typeof item.snapshot.reality === "number" ? item.snapshot.reality : derived.VALUE_REALITY,
+              family: typeof item.snapshot.family === "number" ? item.snapshot.family : derived.STATE_FAMILY_HARMONY,
+            }
+          : { dream: derived.VALUE_DREAM, reality: derived.VALUE_REALITY, family: derived.STATE_FAMILY_HARMONY };
+        const record: MemoryRecord = {
+          id: item.id,
+          eventId: typeof item.eventId === "string" ? item.eventId : "",
+          choiceId: typeof item.choiceId === "string" ? item.choiceId : "",
+          variant: typeof item.variant === "string" ? item.variant : "base",
+          year: typeof item.year === "number" ? item.year : 1984,
+          age: typeof item.age === "number" ? item.age : 3,
+          npc: typeof item.npc === "string" ? item.npc : "",
+          emotion: typeof item.emotion === "string" ? item.emotion : "",
+          weight: typeof item.weight === "number" ? item.weight : 1,
+          echo: typeof item.echo === "string" ? item.echo : "",
+          snapshot,
+        };
+        return [record];
+      })
+    : [];
+  return {
+    ...base,
+    phase: raw.phase as State["phase"],
+    gender: raw.gender === "boy" || raw.gender === "girl" ? raw.gender : null,
+    yearIndex: typeof raw.yearIndex === "number" ? clamp(raw.yearIndex, 0, 2) : 0,
+    primary,
+    derived,
+    counter,
+    npc,
+    flags: strings(raw.flags),
+    skills: strings(raw.skills),
+    memories,
+    seed: typeof raw.seed === "number" ? raw.seed : base.seed,
+    apLeft: typeof raw.apLeft === "number" ? raw.apLeft : 2,
+    spent: strings(raw.spent),
+    queue: strings(raw.queue),
+    eventId: typeof raw.eventId === "string" ? raw.eventId : null,
+    note: typeof raw.note === "string" ? raw.note : null,
+    noteScene: typeof raw.noteScene === "string" && SCENES.has(raw.noteScene) ? (raw.noteScene as State["noteScene"]) : null,
+    result: savedResult(raw),
+    approach: raw.approach === "social" || raw.approach === "safe" || raw.approach === "curious" ? raw.approach : null,
+    battleTries: typeof raw.battleTries === "number" ? raw.battleTries : 0,
+    battle:
+      isRecord(raw.battle) && (raw.battle.kind === "perfect" || raw.battle.kind === "win" || raw.battle.kind === "fail" || raw.battle.kind === "bad")
+        ? { kind: raw.battle.kind, stress: typeof raw.battle.stress === "number" ? raw.battle.stress : 0, hp: typeof raw.battle.hp === "number" ? raw.battle.hp : 0 }
+        : null,
+    offeredExplore: raw.offeredExplore === true,
+    name: typeof raw.name === "string" ? raw.name.slice(0, 8) : "",
+    schemaVersion: 2,
+  };
 }

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { actBattle, createBattle } from "./battleSim.ts";
-import { cardFor, choicesFor, heardNews, lifeVoice, variantOf } from "./content.ts";
-import { freshState, reducer, type Action } from "./engine.ts";
+import { cardFor, choicesFor, heardNews, lifeVoice, variantOf, YEARS } from "./content.ts";
+import { freshState, parseSave, reducer, type Action } from "./engine.ts";
+import { FLAG_LEDGER, RETIRED_FLAGS } from "./ledger.ts";
 import type { State } from "./types.ts";
 
 function run(state: State, actions: Action[]) {
@@ -24,7 +25,7 @@ function chooseId(state: State, id: string) {
   return reducer(state, { type: "choose", choice });
 }
 
-describe("logic audit v2.1", () => {
+describe("logic audit v2.2", () => {
   it("news C is not remembered as heard", () => {
     let state = run(freshState(1), [{ type: "gender", gender: "girl", name: "阿澄" }]);
     state = spend(state, ["ACT_REST", "ACT_MARKET"]);
@@ -134,29 +135,25 @@ describe("logic audit v2.1", () => {
     assert.equal(state.eventId, "EVT_1986_ECHO_08");
   });
 
-  it("dad overtime, skills, speech and dream are read later", () => {
+  it("dad's extra work is the world's count, not the child's answer", () => {
     let state = freshState();
-    state = { ...state, phase: "event", eventId: "EVT_1984_FAMILY_02", gender: "girl", yearIndex: 0 };
-    state = chooseId(state, "B");
-    assert.equal(state.counter.NPC_DAD_OVERTIME_COUNT, 1);
-    state = { ...state, phase: "event", eventId: "EVT_1985_FAMILY_03", yearIndex: 1 };
-    state = chooseId(state, "B");
-    assert.equal(state.counter.NPC_DAD_OVERTIME_COUNT, 2);
-    state = { ...state, phase: "year-end", yearIndex: 1 };
+    state = { ...state, phase: "result", yearIndex: 1, queue: [], gender: "girl" };
+    state = reducer(state, { type: "ack" });
+    assert.equal(state.phase, "year-end");
+    assert.equal(state.counter.WORLD_DAD_WORK_OCCURRENCES, 1);
     state = reducer(state, { type: "nextYear" });
-    assert.ok(cardFor("EVT_1986_FAMILY_06", state).lines.join("").includes("唔係第一次"));
-
-    state = { ...state, skills: [...state.skills, "SKL_03"], counter: { ...state.counter, ART_PROGRESS: 3 } };
-    assert.ok(cardFor("EVT_1986_MARKET_07", state).lines.join("").includes("顏色"));
-
-    state = { ...state, primary: { ...state.primary, STAT_SPEECH: 6 } };
-    const asked = choicesFor("EVT_1986_MARKET_07", state).find((item) => item.id === "B");
-    assert.ok(asked?.result.includes("唔使即刻還"));
-    const quiet = choicesFor("EVT_1986_MARKET_07", { ...state, primary: { ...state.primary, STAT_SPEECH: 5 } }).find((item) => item.id === "B");
-    assert.equal(quiet?.result.includes("唔使即刻還"), false);
-
-    state = { ...state, derived: { ...state.derived, VALUE_DREAM: 70, VALUE_REALITY: 50 }, counter: { ...state.counter, ART_PROGRESS: 0, MIND_PROGRESS: 0 }, npc: { ...state.npc, NPC_FRIEND_01: { relation: 4, trust: 2, available: true } } };
-    assert.ok(cardFor("EVT_1986_SKILL_05", state).lines.join("").includes("望住顏色"));
+    assert.equal(state.counter.WORLD_DAD_WORK_OCCURRENCES, 2);
+    const before = cardFor("EVT_1986_FAMILY_06", state).lines.join("");
+    assert.ok(before.includes("唔係第一次"));
+    state = { ...state, phase: "event", eventId: "EVT_1986_FAMILY_06" };
+    const left = chooseId(state, "A");
+    const stayed = chooseId(state, "C");
+    assert.equal(left.counter.WORLD_DAD_WORK_OCCURRENCES, stayed.counter.WORLD_DAD_WORK_OCCURRENCES);
+    assert.equal(left.counter.PLAYER_DAD_CHOICE_RESPONSE, 1);
+    assert.equal(stayed.counter.PLAYER_DAD_CHOICE_RESPONSE, 3);
+    assert.notEqual(left.npc.NPC_DAD_01.relation, stayed.npc.NPC_DAD_01.relation);
+    assert.ok(cardFor("EVT_1986_ECHO_08", left).lines.join("").includes("約裂過"));
+    assert.ok(cardFor("EVT_1986_ECHO_08", stayed).lines.join("").includes("留低過"));
   });
 
   it("followed reading is stronger than an unpracticed attempt", () => {
@@ -169,20 +166,123 @@ describe("logic audit v2.1", () => {
     assert.ok(strong.stress < weak.stress);
   });
 
-  it("ending voice uses weight, not a fixed set of ids", () => {
+  it("later cards still read skill, speech, and the dream gap", () => {
+    const painted = {
+      ...freshState(),
+      skills: ["SKL_03"],
+      counter: { ...freshState().counter, ART_PROGRESS: 3 },
+    };
+    assert.ok(cardFor("EVT_1986_MARKET_07", painted).lines.join("").includes("顏色"));
+    const loud = choicesFor("EVT_1986_MARKET_07", { ...freshState(), primary: { ...freshState().primary, STAT_SPEECH: 6 } }).find((item) => item.id === "B");
+    assert.ok(loud?.result.includes("唔使即刻還"));
+    const quiet = choicesFor("EVT_1986_MARKET_07", { ...freshState(), primary: { ...freshState().primary, STAT_SPEECH: 5 } }).find((item) => item.id === "B");
+    assert.equal(quiet?.result.includes("唔使即刻還"), false);
+    const dreaming = {
+      ...freshState(),
+      derived: { ...freshState().derived, VALUE_DREAM: 70, VALUE_REALITY: 50 },
+      npc: { ...freshState().npc, NPC_FRIEND_01: { relation: 4, trust: 2, available: true } },
+    };
+    assert.ok(cardFor("EVT_1986_SKILL_05", dreaming).lines.join("").includes("望住顏色"));
+  });
+
+  it("ending voice keeps one memory from each year", () => {
     const voice = lifeVoice(
       [
         { id: "MEM_NEWS_01", choiceId: "C", weight: 1, year: 1984 },
-        { id: "MEM_MOM_TIRED", choiceId: "C", weight: 1, year: 1984 },
         { id: "MEM_SILENT_NEWS_01", choiceId: "C", weight: 1, year: 1985 },
-        { id: "MEM_RED_BALL", choiceId: "C", weight: 1, year: 1985 },
-        { id: "MEM_FIRST_INTEREST", choiceId: "C", weight: 1, year: 1986 },
+        { id: "MEM_FIRST_INTEREST", choiceId: "A", weight: 2, year: 1986 },
+        { id: "MEM_DAD_WORK", choiceId: "A", weight: 2, year: 1986 },
+        { id: "MEM_MARKET_01", choiceId: "B", weight: 2, year: 1986 },
         { id: "MEM_FIRST_INDEPENDENCE", choiceId: "C", weight: 3, year: 1986 },
       ],
       "阿澄",
     );
     assert.ok(voice.includes("阿澄"));
+    assert.ok(voice.includes("繼續食飯"));
+    assert.ok(voice.includes("跟住睇"));
     assert.ok(voice.includes("踏出"));
-    assert.equal(voice.includes("繼續食飯"), false);
+  });
+
+  it("repair talk and silence each gain and lose something", () => {
+    const base = { ...freshState(), phase: "repair" as const, gender: "girl" as const, result: { text: "你踏出一步。", deltas: [], skills: [] } };
+    const talk = reducer(base, { type: "repair", talk: true });
+    const silent = reducer(base, { type: "repair", talk: false });
+    assert.ok(talk.result?.text.includes("屋企近"));
+    assert.ok(talk.result?.text.includes("緊"));
+    assert.equal(talk.derived.STATE_FAMILY_HARMONY, base.derived.STATE_FAMILY_HARMONY + 2);
+    assert.equal(talk.derived.STATE_STRESS, base.derived.STATE_STRESS + 1);
+    assert.ok(silent.result?.text.includes("靜"));
+    assert.ok(silent.result?.text.includes("少咗一句"));
+    assert.equal(silent.derived.STATE_FAMILY_HARMONY, base.derived.STATE_FAMILY_HARMONY - 1);
+    assert.equal(silent.derived.STATE_PEACE, base.derived.STATE_PEACE + 1);
+  });
+
+  it("low independent thought still shows the question", () => {
+    const state = { ...freshState(), derived: { ...freshState().derived, INDEPENDENT_THOUGHT: 12 } };
+    const choices = choicesFor("EVT_1986_SKILL_05", state);
+    const ask = choices.find((item) => item.id === "D");
+    assert.ok(ask);
+    assert.equal(ask?.label, "你有個奇怪問題想問");
+    assert.equal(ask?.effect.primary?.STAT_SPEECH, undefined);
+    assert.equal(ask?.effect.derived?.STATE_STRESS, 1);
+  });
+
+  it("save envelope migrates v11 and rejects garbage", () => {
+    assert.equal(parseSave("not-json"), null);
+    assert.equal(parseSave("{\"schemaVersion\":2}"), null);
+    const legacy = freshState();
+    const counter = { ...legacy.counter } as Record<string, number>;
+    delete counter.WORLD_DAD_WORK_OCCURRENCES;
+    delete counter.PLAYER_DAD_CHOICE_RESPONSE;
+    counter.NPC_DAD_OVERTIME_COUNT = 4;
+    const raw = JSON.stringify({ ...legacy, counter, memories: [{ id: "MEM_NEWS_01", choiceId: "C", eventId: "EVT_1984_NEWS_01" }] });
+    const migrated = parseSave(raw);
+    assert.ok(migrated);
+    assert.equal(migrated?.schemaVersion, 2);
+    assert.equal(migrated?.counter.WORLD_DAD_WORK_OCCURRENCES, 4);
+    assert.equal(migrated?.memories[0]?.snapshot?.dream, legacy.derived.VALUE_DREAM);
+    const envelope = JSON.stringify({ schemaVersion: 2, savedAt: "2026-10-04T00:00:00.000Z", state: freshState() });
+    assert.equal(parseSave(envelope)?.phase, "title");
+  });
+
+  it("every formal flag has a producer and a consumer", () => {
+    const seen = new Set<string>();
+    const ids = YEARS.flatMap((year) => [...year.events, ...year.dailies]);
+    for (const id of ids) {
+      for (const choice of choicesFor(id, freshState())) {
+        for (const flag of choice.effect.flags ?? []) if (flag.startsWith("FLAG_")) seen.add(flag);
+      }
+      const low = { ...freshState(), derived: { ...freshState().derived, INDEPENDENT_THOUGHT: 10 } };
+      for (const choice of choicesFor(id, low)) {
+        for (const flag of choice.effect.flags ?? []) if (flag.startsWith("FLAG_")) seen.add(flag);
+      }
+    }
+    for (const flag of RETIRED_FLAGS) assert.equal(seen.has(flag), false);
+    const ledger = new Set(FLAG_LEDGER.map((item) => item.id));
+    for (const flag of seen) assert.equal(ledger.has(flag), true, flag);
+    for (const spec of FLAG_LEDGER) {
+      assert.ok(spec.producer.length > 0);
+      assert.ok(spec.consumer.length > 0);
+      assert.ok(spec.fallback);
+      assert.ok(spec.scope);
+    }
+  });
+
+  it("event and choice ids stay unique, and memories point at a real choice", () => {
+    const ids = YEARS.flatMap((year) => [...year.events, ...year.dailies]);
+    assert.equal(new Set(ids).size, ids.length);
+    for (const id of ids) {
+      assert.ok(cardFor(id, freshState()).title);
+      const choices = choicesFor(id, freshState());
+      assert.ok(choices.length >= 2, id);
+      assert.equal(new Set(choices.map((choice) => choice.id)).size, choices.length, id);
+      for (const choice of choices) {
+        assert.ok(choice.result.includes("。") || choice.result.length > 8, `${id} ${choice.id}`);
+        if (!choice.memory) continue;
+        assert.equal(choice.memory.choiceId, choice.id, `${id} ${choice.id}`);
+        assert.equal(choice.memory.eventId, id);
+        assert.ok(choice.memory.echo);
+      }
+    }
   });
 });
