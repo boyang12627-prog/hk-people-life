@@ -36,19 +36,19 @@ const PRIMARY_LABEL: Record<keyof Primary, string> = {
   STAT_VIT: "體質",
   STAT_SPEECH: "口才",
   STAT_COURAGE: "膽識",
-  STAT_FATE: "福緣",
+  STAT_FATE: "運氣",
 };
 
 const DERIVED_LABEL: Record<keyof Derived, string> = {
   STATE_HEALTH: "健康",
   STATE_MOOD: "心情",
   STATE_STRESS: "壓力",
-  VALUE_DREAM: "夢想",
-  VALUE_REALITY: "現實",
+  VALUE_DREAM: "想做",
+  VALUE_REALITY: "要做",
   STATE_PEACE: "心安",
-  STATE_FAMILY_HARMONY: "家庭",
-  STATE_GLOBAL_NETWORK: "人脈",
-  INDEPENDENT_THOUGHT: "獨立思考",
+  STATE_FAMILY_HARMONY: "屋企",
+  STATE_GLOBAL_NETWORK: "熟人",
+  INDEPENDENT_THOUGHT: "自己諗",
 };
 
 const COUNTER_LABEL: Partial<Record<keyof Counters, string>> = {
@@ -248,9 +248,9 @@ function pickActivity(state: State, id: string): State {
 }
 
 const LEAN_AFTER = {
-  dream: "你今日偏向跟住想做嘅事。",
-  reality: "你今日偏向跟住要做嘅事。",
-  balance: "你今日兩邊都拖住少少。",
+  dream: "你今日比較想做自己鍾意嘅。",
+  reality: "你今日比較跟住要做嘅。",
+  balance: "你今日兩邊都想要。",
   think: "你今日停低諗咗一句。",
 } as const;
 
@@ -338,8 +338,8 @@ function repair(state: State, talk: boolean): State {
       : { derived: { STATE_FAMILY_HARMONY: -1, STATE_PEACE: 1 }, flags: ["FLAG_REPAIR_SILENT"] },
   );
   const text = talk
-    ? "你講俾佢聽。佢拉住你一陣。屋企近咗，但你個心緊咗少少。"
-    : "你唔講，自己瞓。少咗一場鬧，個心靜返。屋企少咗一句。";
+    ? "你講俾阿媽聽。佢拉住你一陣，冇再鬧。屋企近咗，但你個心緊咗。"
+    : "你唔講，自己瞓。少咗場鬧，個心靜返，但屋企少咗一句。";
   return {
     ...applied.state,
     phase: "result",
@@ -386,7 +386,7 @@ function exploreOffer(state: State, go: boolean): State {
     offeredExplore: false,
     phase: "result",
     result: {
-      text: enough ? "你再落咗一次平台。你行到邨口，件事先至發生。" : "你落咗一次平台。仲差一次，先至行到邨口。冇人逼你再去。",
+      text: enough ? "你再落咗一次平台。行到邨口，件事先至發生。" : "你落咗一次平台。仲差一次，先至行到邨口。冇人逼你再去。",
       deltas: applied.deltas,
       skills: [],
     },

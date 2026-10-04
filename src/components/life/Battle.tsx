@@ -114,7 +114,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
         </div>
         <div className="grid gap-3 bg-paper px-4 py-3 text-ink">
           <Meter label="精神力" barRef={hpRef} valueRef={hpLabel} tone="bg-estate" />
-          <Meter label="幹勁" barRef={spRef} valueRef={spLabel} tone="bg-amber" />
+          <Meter label="氣力" barRef={spRef} valueRef={spLabel} tone="bg-amber" />
           <Meter label="壓力" barRef={stressRef} valueRef={stressLabel} tone="bg-ink" />
           <Meter label="入到課室" barRef={meterRef} tone="bg-estate" />
           <p ref={hintRef} className="min-h-12 text-sm text-pretty text-ink/70">
@@ -125,7 +125,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
       <div className="grid grid-cols-2 gap-2">
         <BattleButton
           label="向前行"
-          detail="幹勁 2，唔夠就慢步"
+          detail="氣力 2，唔夠就慢行"
           buttonRef={(node) => {
             buttons.current.walk = node;
           }}
@@ -133,15 +133,15 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
         />
         <BattleButton
           label="停低呼吸"
-          detail="幹勁 3，擋一半"
+          detail="氣力 3，擋一半"
           buttonRef={(node) => {
             buttons.current.guard = node;
           }}
           onClick={() => press("guard")}
         />
         <BattleButton
-          label="跟讀"
-          detail={practiced ? "幹勁 6，你跟得熟" : "幹勁 6，未跟熟，效用弱"}
+          label="跟住讀"
+          detail={practiced ? "氣力 6，你跟得熟" : "氣力 6，未跟熟，冇咁有效"}
           buttonRef={(node) => {
             buttons.current.read = node;
           }}
@@ -149,8 +149,8 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
         />
         {see ? (
           <BattleButton
-            label="察言觀色"
-            detail="幹勁 8，避開下一聲"
+            label="睇面色"
+            detail="氣力 8，避開下一聲"
             buttonRef={(node) => {
               buttons.current.see = node;
             }}
@@ -160,7 +160,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
         {ask ? (
           <BattleButton
             label="問問題"
-            detail="幹勁 8，走近少少"
+            detail="氣力 8，走近少少"
             buttonRef={(node) => {
               buttons.current.ask = node;
             }}
@@ -169,8 +169,8 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
         ) : null}
       </div>
       <p className="text-sm text-pretty text-paper/70">
-        {practiced ? "你識跟讀。跟住講，壓力會落得多啲。" : "你未跟熟。跟住講都得，但個聲好細。"}
-        精神力由毅力同體質計。幹勁係另一條。今日入唔到，都可以再試，唔會完。
+        {practiced ? "你識跟住讀。跟住講，壓力會落得多啲。" : "你未跟熟。跟住講都得，但個聲好細。"}
+        氣力用嚟行、停、跟住讀。今日入唔到，可以再試，唔會完。
       </p>
     </div>
   );

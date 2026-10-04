@@ -51,7 +51,7 @@ export function createBattle(input: {
     input.approach === "safe"
       ? "你仍然捉實阿媽。開頭冇咁驚。"
       : input.approach === "curious"
-        ? "你望住課室。裡面聲多，壓力密啲。"
+        ? "你望住課室。入面好嘈，壓力大啲。"
         : "阿媽鬆開手。你開過口，而家要自己行埋去。";
   return {
     x: startX,
@@ -120,7 +120,7 @@ export function stepBattle(sim: BattleSim, dt: number) {
       sim.hp = Math.max(0, sim.hp - taken);
       if (perfect) {
         sim.sp = Math.min(sim.maxSp, sim.sp + 10);
-        sim.hint = "你啱啱停低。個聲擦過，幹勁返嚟。";
+        sim.hint = "你啱啱停低。個聲擦過，氣力返嚟少少。";
       } else {
         sim.stress = Math.min(100, sim.stress + 1);
         sim.hint = "你擋住咗。個聲細咗一半。";
@@ -150,11 +150,11 @@ export function actBattle(sim: BattleSim, name: BattleAction, enabled: boolean) 
     sim.x = Math.min(100, sim.x + (weak ? 2 : 3));
     sim.stress = Math.min(100, sim.stress + 2);
     sim.cd.walk = 1.35;
-    sim.hint = weak ? "幹勁唔夠。你仍然行，只係慢。" : "你行前一步。";
+    sim.hint = weak ? "氣力唔夠。你仍然行，只係慢。" : "你行前一步。";
     return;
   }
   if (sim.sp < cost) {
-    sim.hint = "幹勁唔夠。可以行慢步，或者等一陣。";
+    sim.hint = "氣力唔夠。可以慢行，或者等一陣。";
     return;
   }
   sim.sp -= cost;

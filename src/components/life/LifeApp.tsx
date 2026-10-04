@@ -62,9 +62,9 @@ export function LifeApp() {
         />
       ) : null}
       {state.phase === "note" && state.result ? (
-        <Paper scene={state.noteScene ?? "home"} kicker="呢個下午" title="時間用咗一次">
+        <Paper scene={state.noteScene ?? "home"} kicker="呢個下午" title="用咗一個下午">
           <ResultBody result={state.result} />
-          <Primary onClick={() => { tap(); dispatch({ type: "ack" }); }}>{state.apLeft > 0 ? "仲有一次" : "今年嘅事開始"}</Primary>
+          <Primary onClick={() => { tap(); dispatch({ type: "ack" }); }}>{state.apLeft > 0 ? "仲有一個下午" : "跟住就係今年嘅事"}</Primary>
         </Paper>
       ) : null}
       {state.phase === "event" && state.eventId ? <EventCard state={state} onChoose={(choice) => { tap(); dispatch({ type: "choose", choice }); }} /> : null}
@@ -106,15 +106,15 @@ export function LifeApp() {
         <Paper scene="home" kicker="1986 · 夜晚" title="阿媽問你">
           <p className="text-pretty text-base leading-7">{state.result.text}</p>
           <p className="mt-3 text-pretty text-base leading-7">今晚佢問你點解行到門口。你可以講，亦都可以唔講。</p>
-          <ChoiceButton label="同阿媽講" hint="屋企近，個心會緊" onClick={() => { tap(); dispatch({ type: "repair", talk: true }); }} />
-          <ChoiceButton label="唔講，自己瞓" hint="少句鬧，自己吞" onClick={() => { tap("soft"); dispatch({ type: "repair", talk: false }); }} />
+          <ChoiceButton label="同阿媽講" hint="講咗會近啲，個心會緊" onClick={() => { tap(); dispatch({ type: "repair", talk: true }); }} />
+          <ChoiceButton label="唔講，自己瞓" hint="少句鬧，自己收住" onClick={() => { tap("soft"); dispatch({ type: "repair", talk: false }); }} />
         </Paper>
       ) : null}
       {state.phase === "explore-offer" ? (
         <Paper scene="estate" kicker="1986 · 年尾" title="要唔要再落一次平台">
-          <p className="text-pretty text-base leading-7">你自己出過門嘅次數未夠兩次。落一次平台會計一次。夠數，走廊盡頭先會發生。你亦可以留低，呢個係你自己揀。</p>
-          <ChoiceButton label="落一次平台" hint="唔使再扣今年嗰兩次" onClick={() => { tap(); dispatch({ type: "explore", go: true }); }} />
-          <ChoiceButton label="留喺屋企" hint="件事就未發生" onClick={() => { tap("soft"); dispatch({ type: "explore", go: false }); }} />
+          <p className="text-pretty text-base leading-7">你落平台嘅次數未夠。再落一次，先至行到邨口。你亦可以留喺屋企，唔去都得。</p>
+          <ChoiceButton label="落一次平台" hint="呢次唔計入嗰兩個下午" onClick={() => { tap(); dispatch({ type: "explore", go: true }); }} />
+          <ChoiceButton label="留喺屋企" hint="唔去都得" onClick={() => { tap("soft"); dispatch({ type: "explore", go: false }); }} />
         </Paper>
       ) : null}
       {state.phase === "year-end" ? <YearEnd state={state} onNext={() => { tap(); dispatch({ type: "nextYear" }); }} /> : null}
@@ -132,16 +132,16 @@ function Top({ state }: { state: State }) {
         <p className="font-serif text-xl tracking-wide text-paper">人生・香港</p>
         <p className="text-sm text-paper/70">{year ? `${year.year} · ${year.age} 歲` : "1984–1986"}</p>
       </div>
-      {showAp ? <p className="text-sm text-paper/70">今年仲有 {state.apLeft} 次</p> : null}
+      {showAp ? <p className="text-sm text-paper/70">{state.apLeft >= 2 ? "仲有兩個下午" : "仲有一個下午"}</p> : null}
     </header>
   );
 }
 
 function Title({ onStart }: { onStart: () => void }) {
   return (
-    <Paper scene="estate" kicker="幼年" title="你唔係要打贏">
-      <p className="text-pretty text-base leading-7">一九八四至一九八六。屋邨、飯枱、幼稚園門口。</p>
-      <p className="mt-3 text-pretty text-base leading-7">你一路揀。三年之後，先睇到自己變成邊個。</p>
+    <Paper scene="estate" kicker="幼年" title="細個三年">
+      <p className="text-pretty text-base leading-7">一九八四到一九八六。屋邨、飯枱、幼稚園門口。</p>
+      <p className="mt-3 text-pretty text-base leading-7">你一路揀。過咗呢三年，先睇到自己變成邊個。</p>
       <Primary onClick={onStart}>開始</Primary>
     </Paper>
   );
@@ -152,13 +152,13 @@ function GenderPick({ onPick }: { onPick: (gender: Gender, name: string) => void
   const clean = name.trim().slice(0, 8);
   return (
     <Paper scene="home" kicker="開始之前" title="你係？">
-      <p className="text-pretty text-base leading-7">故事唔會因為你係仔定女而少一段。稱呼會跟你。年份仍然係一九八四。</p>
+      <p className="text-pretty text-base leading-7">仔定女，故事都係屋邨呢三年。想留個名都可以，唔寫都得。</p>
       <label className="mt-4 block text-sm text-ink/70">
         人哋點叫你
         <input
           value={name}
           maxLength={8}
-          placeholder="可留空"
+          placeholder="唔寫都得"
           onChange={(event) => setName(event.target.value)}
           className="mt-1 min-h-12 w-full rounded-xl border border-line bg-paper px-3 text-base text-ink"
         />
@@ -183,9 +183,9 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
       <p className="text-pretty text-base leading-7">{year.era}</p>
       <p className="mt-3 text-pretty text-base leading-7">{year.open}</p>
       {state.name ? <p className="mt-3 text-pretty text-base leading-7">人哋叫你{state.name}。</p> : null}
-      <p className="mt-3 text-sm text-pretty text-ink/70">今年你有兩次時間，用嚟陪人、玩、或者休息。之後嘅事會自己嚟，唔使你預留。</p>
+      <p className="mt-3 text-sm text-pretty text-ink/70">今年有兩個下午。你可以陪人、自己玩，或者休息。之後嘅事會自己嚟，唔使你預早留時間。</p>
       <LifeNow state={state} />
-      <Primary onClick={onNext}>用呢兩次時間</Primary>
+      <Primary onClick={onNext}>用呢兩個下午</Primary>
       <button type="button" onClick={onRestart} className="mt-2 min-h-11 w-full text-sm text-ink/70">
         由頭開始
       </button>
@@ -196,8 +196,8 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
 function Activities({ state, onPick }: { state: State; onPick: (id: string) => void }) {
   const year = yearOf(state);
   return (
-    <Paper scene={year.scene} kicker="今年" title="你想點過">
-      <p className="text-sm text-ink/70">兩次要唔同。揀完先至會發生其他事。</p>
+    <Paper scene={year.scene} kicker="今年" title="今日點過">
+      <p className="text-sm text-ink/70">兩個下午要唔同。揀完，其他事先至嚟。</p>
       <div className="mt-3 flex flex-col gap-2">
         {year.activities.map((id) => {
           const activity = ACTIVITIES[id];
@@ -211,7 +211,7 @@ function Activities({ state, onPick }: { state: State; onPick: (id: string) => v
               className="flex min-h-14 flex-col items-start justify-center rounded-xl bg-bg px-4 py-3 text-left text-paper disabled:opacity-40"
             >
               <span className="text-base font-medium">{activity.label}</span>
-              <span className="text-sm text-pretty text-paper/70">{used ? "今年用過" : activity.detail}</span>
+              <span className="text-sm text-pretty text-paper/70">{used ? "今年去過" : activity.detail}</span>
             </button>
           );
         })}
@@ -249,7 +249,7 @@ function BattleResult({ state, onRetry, onSettle }: { state: State; onRetry: () 
   return (
     <Paper scene="kindy" kicker="1985 · 第一日" title={retry ? "今日未入到" : "門口"}>
       <p className="text-pretty text-base leading-7">{story.text}</p>
-      {retry ? <p className="mt-3 text-sm text-pretty text-ink/70">可以再試一次。再入唔到，就返屋企，第二日幼稚園仍然喺度。</p> : null}
+      {retry ? <p className="mt-3 text-sm text-pretty text-ink/70">可以再試一次。再入唔到，就返屋企。幼稚園聽日仍然開。</p> : null}
       {retry ? <Primary onClick={onRetry}>再試一次</Primary> : null}
       <button type="button" onClick={onSettle} className="mt-2 min-h-12 w-full rounded-xl border border-line text-base text-ink">
         {retry ? "今日返屋企" : "繼續"}
@@ -266,7 +266,7 @@ function YearEnd({ state, onNext }: { state: State; onNext: () => void }) {
   const missedGate = last && !hasGate && state.counter.COUNTER_EXPLORE < 2;
   return (
     <Paper scene="home" kicker={`${year.year} 完`} title="你記住咗">
-      {memories.length === 0 ? <p className="text-base leading-7">呢一年好靜。</p> : null}
+      {memories.length === 0 ? <p className="text-base leading-7">呢一年冇乜特別事。</p> : null}
       <ul className="flex flex-col gap-3">
         {memories.map((item) => (
           <li key={item.id} className="border-l-2 border-amber pl-3 text-pretty text-base leading-7">
@@ -274,9 +274,9 @@ function YearEnd({ state, onNext }: { state: State; onNext: () => void }) {
           </li>
         ))}
       </ul>
-      {memories.length > 0 ? <p className="mt-3 text-sm text-pretty text-ink/70">呢幾句會留低。下年可能會自己出返嚟。</p> : null}
+      {memories.length > 0 ? <p className="mt-3 text-sm text-pretty text-ink/70">呢幾句會留低。下年可能會再出現。</p> : null}
       {missedGate ? <p className="mt-3 text-sm text-pretty text-ink/70">你未行到走廊盡頭。冇人逼你去。</p> : null}
-      <Primary onClick={onNext}>{last ? "睇十年後" : "下一年"}</Primary>
+      <Primary onClick={onNext}>{last ? "睇下十年後" : "下一年"}</Primary>
     </Paper>
   );
 }
@@ -287,8 +287,8 @@ function Ending({ state, onRestart }: { state: State; onRestart: () => void }) {
     <Paper scene="home" kicker="十年後" title="同一個屋邨">
       <p className="font-serif text-pretty text-xl leading-9">{lifeVoice(state.memories, state.name)}</p>
       <p className="mt-3 text-pretty text-base leading-7">{orientationLine(state.derived.VALUE_DREAM, state.derived.VALUE_REALITY)}</p>
-      {state.flags.includes("FLAG_REPAIR_TALK") ? <p className="mt-3 text-pretty text-base leading-7">你同阿媽講過邨口。屋企近咗，個心緊過。</p> : null}
-      {state.flags.includes("FLAG_REPAIR_SILENT") ? <p className="mt-3 text-pretty text-base leading-7">你冇講。少咗一場鬧，屋企少咗一句。</p> : null}
+      {state.flags.includes("FLAG_REPAIR_TALK") ? <p className="mt-3 text-pretty text-base leading-7">你同阿媽講過邨口。屋企近咗，但個心緊過。</p> : null}
+      {state.flags.includes("FLAG_REPAIR_SILENT") ? <p className="mt-3 text-pretty text-base leading-7">你冇講。少咗場鬧，屋企少咗一句。</p> : null}
       <details className="mt-4">
         <summary className="min-h-11 text-sm text-ink/70">其他你記住嘅句</summary>
         <ul className="flex flex-col gap-3 pb-2">
@@ -300,32 +300,35 @@ function Ending({ state, onRestart }: { state: State; onRestart: () => void }) {
         </ul>
       </details>
       {skills.length > 0 ? <p className="mt-4 text-sm text-pretty text-ink/70">你識嘅事：{skills.join("、")}</p> : null}
-      <Primary onClick={onRestart}>再活一次</Primary>
+      <Primary onClick={onRestart}>再嚟過</Primary>
     </Paper>
   );
 }
 
 function LifeNow({ state }: { state: State }) {
-  const mood = state.derived.STATE_MOOD >= 70 ? "鬆" : state.derived.STATE_MOOD >= 45 ? "普通" : "緊";
-  const stress = state.derived.STATE_STRESS >= 60 ? "重" : state.derived.STATE_STRESS >= 30 ? "有啲" : "輕";
-  const home = state.derived.STATE_FAMILY_HARMONY >= 70 ? "暖" : state.derived.STATE_FAMILY_HARMONY >= 45 ? "普通" : "靜";
+  const home =
+    state.derived.STATE_FAMILY_HARMONY >= 70 ? "屋企而家幾和氣" : state.derived.STATE_FAMILY_HARMONY >= 45 ? "屋企而家普普通通" : "屋企而家少講嘢";
+  const mood = state.derived.STATE_MOOD >= 70 ? "你心情幾好" : state.derived.STATE_MOOD >= 45 ? "你心情普通" : "你心情唔多好";
+  const stress = state.derived.STATE_STRESS >= 60 ? "壓力幾大" : state.derived.STATE_STRESS >= 30 ? "有少少壓力" : "冇乜壓力";
   const gap = state.derived.VALUE_DREAM - state.derived.VALUE_REALITY;
-  const lean = gap >= 8 ? "你偏向想做自己" : gap <= -8 ? "你偏向穩陣" : "想做同要做，仲未分";
+  const lean = gap >= 8 ? "你而家比較想做自己鍾意嘅。" : gap <= -8 ? "你而家比較跟住要做嘅。" : "想做同要做，你仲未分到邊樣先。";
   return (
     <div className="mt-4">
-      <p className="text-pretty text-base leading-7">屋企而家{home}。你個心情{mood}，壓力{stress}。{lean}。</p>
+      <p className="text-pretty text-base leading-7">
+        {home}。{mood}，{stress}。{lean}
+      </p>
       <details className="mt-3">
-        <summary className="min-h-11 text-sm text-ink/70">人生檔案</summary>
+        <summary className="min-h-11 text-sm text-ink/70">睇數字</summary>
         <p className="text-sm text-pretty text-ink/70">
-          心情 {state.derived.STATE_MOOD} · 壓力 {state.derived.STATE_STRESS} · 家庭 {state.derived.STATE_FAMILY_HARMONY}
+          心情 {state.derived.STATE_MOOD} · 壓力 {state.derived.STATE_STRESS} · 屋企 {state.derived.STATE_FAMILY_HARMONY}
         </p>
         <p className="mt-2 text-sm text-pretty text-ink/70">
-          夢想 {state.derived.VALUE_DREAM} · 現實 {state.derived.VALUE_REALITY} · 獨立思考 {state.derived.INDEPENDENT_THOUGHT}
+          想做 {state.derived.VALUE_DREAM} · 要做 {state.derived.VALUE_REALITY} · 自己諗 {state.derived.INDEPENDENT_THOUGHT}
         </p>
         <details className="mt-2">
           <summary className="min-h-11 text-sm text-ink/60">其餘</summary>
           <p className="text-sm text-pretty text-ink/60">
-            心安 {state.derived.STATE_PEACE} · 健康 {state.derived.STATE_HEALTH} · 人脈 {state.derived.STATE_GLOBAL_NETWORK}
+            心安 {state.derived.STATE_PEACE} · 健康 {state.derived.STATE_HEALTH} · 熟人 {state.derived.STATE_GLOBAL_NETWORK}
           </p>
           <p className="mt-2 text-sm text-pretty text-ink/60">
             {Object.entries(PRIMARY_LABEL)
@@ -333,7 +336,6 @@ function LifeNow({ state }: { state: State }) {
               .join(" · ")}
           </p>
         </details>
-        <p className="mt-2 text-sm text-pretty text-ink/60">心安唔係戰鬥血量。戰鬥用精神力同幹勁。</p>
       </details>
     </div>
   );
@@ -369,7 +371,7 @@ function ResultBody({ result }: { result: NonNullable<State["result"]> }) {
       {result.lean ? <p className="mt-3 text-sm text-ink/50">{result.lean}</p> : null}
       {result.deltas.length > 0 ? (
         <details className="mt-3">
-          <summary className="min-h-11 text-sm text-ink/70">檔案記低咗</summary>
+          <summary className="min-h-11 text-sm text-ink/70">記低咗</summary>
           <ul className="flex flex-wrap gap-2 pb-2">
             {result.deltas.map((delta, index) => (
               <li key={`${delta.label}-${index}`} className="rounded-full bg-line px-2.5 py-1 text-xs text-ink">
