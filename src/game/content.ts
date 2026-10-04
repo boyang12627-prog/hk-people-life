@@ -325,8 +325,8 @@ export function cardFor(id: string, state: State): Card {
     case "EVT_1985_FRIEND_04": {
       const school = picked(state, "MEM_FIRST_SCHOOL");
       const lines = state.npc.NPC_FRIEND_01.available
-        ? ["阿傑：「我先攞到㗎！」", "你都想掂個波。", "老師行開咗。"]
-        : ["有個細路，你未正式識佢。佢叫自己阿傑。", "阿傑：「我先攞到㗎！」", "老師行開咗。"];
+        ? ["課室有個紅波。阿傑抱住唔放。", "阿傑：「個波我先攞到㗎！」", "你都想掂。老師行開咗。"]
+        : ["有個細路抱住個紅波，你未正式識佢。佢叫阿傑。", "阿傑：「個波我先攞到㗎！」", "老師行開咗。"];
       if (school.includes("fail") || school.includes("bad") || state.flags.includes("FLAG_RETRY_SCHOOL")) lines.unshift("你上次未入到課室。今日個波仍然喺度。");
       else if (school.startsWith("safe")) lines.unshift("你上次拉住阿媽。今日個波喺你前面。");
       else if (!state.flags.includes("FLAG_FIRST_SCHOOL")) lines.unshift("你未正式入過課室。個波仍然係新嘅。");
