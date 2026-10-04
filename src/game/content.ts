@@ -119,7 +119,7 @@ export const ACTIVITIES: Record<string, { id: string; label: string; detail: str
     id: "ACT_MARKET",
     label: "陪阿媽去街市",
     detail: "跟住出街買餸。慢，但你會見到街坊。",
-    blurb: "你拖住阿媽。街市濕，膠袋響。阿姨開始認得你張臉。",
+    blurb: "你拖住阿媽。個日地下好濕，魚檔啲水淌到鞋。阿姨開始認得你。",
     scene: "market",
     effect: { counter: { REL_LOCAL_MARKET: 5, NPC_MOM_STRESS: -3, MIND_PROGRESS: 1 }, derived: { STATE_MOOD: 2, VALUE_REALITY: 1 }, npc: { NPC_MOM_01: { trust: 1 } } },
   },
