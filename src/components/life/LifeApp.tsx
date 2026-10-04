@@ -342,11 +342,11 @@ function LifeNow({ state }: { state: State }) {
 }
 
 const SENSE: Record<SceneId, string> = {
-  home: "廳。風扇轉住，飯枱部電視未熄，碗碟仲未收。",
-  kindy: "幼稚園。膠凳拖過地，個紅波喺角落。",
-  corridor: "走廊。衫晾到出晒邊，燈黃，阿媽啲袋放喺地下。",
-  market: "街市。個日地下好濕，魚檔啲水一直淌到鞋。",
-  estate: "大廈門口。鐵閘拉住，信箱一排，遊樂場個韆鞦響。",
+  home: "廳入面個風扇轉緊，電視未熄，碗碟都未收。",
+  kindy: "有人拖緊膠凳。個紅波擺喺角落頭。",
+  corridor: "走廊晾滿衫，燈有啲黃。阿媽啲袋放喺地下。",
+  market: "街市。個日地下好濕，魚檔啲水滲到對鞋。",
+  estate: "大廈門口鐵閘拉上咗。遊樂場個韆鞦響緊。",
 };
 
 function Paper({ scene, kicker, title, children }: { scene: SceneId; kicker: string; title: string; children: ReactNode }) {
