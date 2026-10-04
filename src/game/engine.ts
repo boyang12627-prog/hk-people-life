@@ -248,8 +248,8 @@ function pickActivity(state: State, id: string): State {
 }
 
 const LEAN_AFTER = {
-  dream: "你今日比較想做自己鍾意嘅。",
-  reality: "你今日比較跟住要做嘅。",
+  dream: "你今日比較想做自己鍾意嘅嘢。",
+  reality: "你今日比較跟住要做嘅嘢。",
   balance: "你今日兩邊都想要。",
   think: "你今日停低諗咗一句。",
 } as const;
@@ -373,7 +373,7 @@ function exploreOffer(state: State, go: boolean): State {
       memories: upsertMemory(applied.state.memories, record),
       offeredExplore: true,
       phase: "result",
-      result: { text: "你留喺屋企。走廊盡頭嗰件事，你自己揀咗唔去。", deltas: applied.deltas, skills: [] },
+      result: { text: "你留喺屋企。行到走廊盡頭先會發生嘅事，你自己揀咗唔去。", deltas: applied.deltas, skills: [] },
     };
   }
   const applied = applyEffect(state, {
@@ -386,7 +386,7 @@ function exploreOffer(state: State, go: boolean): State {
     offeredExplore: false,
     phase: "result",
     result: {
-      text: enough ? "你再落咗一次平台。行到邨口，件事先至發生。" : "你落咗一次平台。仲差一次，先至行到邨口。冇人逼你再去。",
+      text: enough ? "你再落咗一次平台。行到邨口，跟住嗰件事先至發生。" : "你落咗一次平台。仲差一次，先至行到邨口。冇人逼你再去。",
       deltas: applied.deltas,
       skills: [],
     },

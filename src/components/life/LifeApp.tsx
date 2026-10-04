@@ -140,7 +140,7 @@ function Top({ state }: { state: State }) {
 function Title({ onStart }: { onStart: () => void }) {
   return (
     <Paper scene="estate" kicker="幼年" title="細個三年">
-      <p className="text-pretty text-base leading-7">一九八四到一九八六。屋邨、飯枱、幼稚園門口。</p>
+      <p className="text-pretty text-base leading-7">一九八四到一九八六。你喺屋邨大，食飯，去幼稚園門口。</p>
       <p className="mt-3 text-pretty text-base leading-7">你一路揀。過咗呢三年，先睇到自己變成邊個。</p>
       <Primary onClick={onStart}>開始</Primary>
     </Paper>
@@ -311,7 +311,7 @@ function LifeNow({ state }: { state: State }) {
   const mood = state.derived.STATE_MOOD >= 70 ? "你心情幾好" : state.derived.STATE_MOOD >= 45 ? "你心情普通" : "你心情唔多好";
   const stress = state.derived.STATE_STRESS >= 60 ? "壓力幾大" : state.derived.STATE_STRESS >= 30 ? "有少少壓力" : "冇乜壓力";
   const gap = state.derived.VALUE_DREAM - state.derived.VALUE_REALITY;
-  const lean = gap >= 8 ? "你而家比較想做自己鍾意嘅。" : gap <= -8 ? "你而家比較跟住要做嘅。" : "想做同要做，你仲未分到邊樣先。";
+  const lean = gap >= 8 ? "你而家比較想做自己鍾意嘅嘢。" : gap <= -8 ? "你而家比較跟住要做嘅嘢。" : "想做同要做，你仲未分到邊樣先。";
   return (
     <div className="mt-4">
       <p className="text-pretty text-base leading-7">

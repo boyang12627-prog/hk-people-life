@@ -86,8 +86,8 @@ export const YEARS: YearDef[] = [
     year: 1984,
     age: 3,
     scene: "home",
-    era: "十二月。飯枱部電視開住，大人講緊好遠嘅事。",
-    open: "你三歲。碗入面有魚。大人個聲壓低咗。",
+    era: "十二月。飯枱部電視開住，大人講緊啲好遠嘅事。",
+    open: "你三歲。碗入面有魚。大人細聲講。",
     events: ["EVT_1984_NEWS_01", "EVT_1984_FAMILY_02"],
     dailies: ["MINI_84_TOY"],
     activities: ["ACT_MARKET", "ACT_PLAY", "ACT_DRAW", "ACT_REST"],
@@ -96,8 +96,8 @@ export const YEARS: YearDef[] = [
     year: 1985,
     age: 4,
     scene: "kindy",
-    era: "大人有時會靜一靜。你知道自己要去一間叫幼稚園嘅地方。",
-    open: "你四歲。阿媽話，門口有其他小朋友。你未知道自己會唔會入到去。",
+    era: "大人有時會靜一靜。你知自己要去幼稚園。",
+    open: "你四歲。阿媽話門口有其他小朋友。你未知自己會唔會入到去。",
     events: ["EVT_1985_SCHOOL_01", "EVT_1985_FAMILY_03", "EVT_1985_FRIEND_04"],
     dailies: ["MINI_85_RAIN", "MINI_85_GRANDMA"],
     activities: ["ACT_MARKET", "ACT_PLAY", "ACT_DRAW", "ACT_REST", "ACT_ESTATE"],
@@ -106,8 +106,8 @@ export const YEARS: YearDef[] = [
     year: 1986,
     age: 5,
     scene: "corridor",
-    era: "屋邨照舊。大人開始忙過之前。",
-    open: "你五歲。你開始知道，大人唔係唔想陪你，係佢哋都有要做嘅事。",
+    era: "屋邨都係咁。大人開始忙過之前。",
+    open: "你五歲。你開始知，大人唔係唔想陪你，係佢哋都有要做嘅事。",
     events: ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_MARKET_07", "EVT_1986_ECHO_08"],
     dailies: ["MINI_86_ESTATE", "MINI_86_TV", "MINI_86_HELP"],
     activities: ["ACT_MARKET", "ACT_PLAY", "ACT_DRAW", "ACT_REST", "ACT_ESTATE"],
@@ -127,7 +127,7 @@ export const ACTIVITIES: Record<string, { id: string; label: string; detail: str
     id: "ACT_PLAY",
     label: "自己玩",
     detail: "留喺屋企，同玩具過一個下午。",
-    blurb: "你自己玩咗成個下午。冇人叫你，你都玩得落。",
+    blurb: "你自己玩咗成個下午。冇人叫你，你都玩得落去。",
     scene: "home",
     effect: { derived: { STATE_MOOD: 3, VALUE_DREAM: 1, STATE_FAMILY_HARMONY: -4 }, primary: { STAT_GRIT: 1 } },
   },
@@ -135,7 +135,7 @@ export const ACTIVITIES: Record<string, { id: string; label: string; detail: str
     id: "ACT_DRAW",
     label: "塗鴉",
     detail: "用鉛筆將張紙填滿。",
-    blurb: "你將張紙塗滿。大人話你亂畫，你覺得畫完。",
+    blurb: "你將張紙塗滿。大人話你亂畫，你覺得已經畫完。",
     scene: "home",
     effect: { derived: { VALUE_DREAM: 2, STATE_MOOD: 1, INDEPENDENT_THOUGHT: 2, STATE_FAMILY_HARMONY: -3 }, counter: { ART_PROGRESS: 1 }, primary: { STAT_MIND: 1 } },
   },
@@ -143,7 +143,7 @@ export const ACTIVITIES: Record<string, { id: string; label: string; detail: str
     id: "ACT_REST",
     label: "休息",
     detail: "瞓、發呆，唔使趕住做完嘢。",
-    blurb: "你乜都冇做。個身鬆咗。",
+    blurb: "你乜都冇做。瞓咗陣，冇咁攰。",
     scene: "home",
     effect: { derived: { STATE_STRESS: -6, STATE_PEACE: 2, STATE_MOOD: 1 }, counter: { NPC_MOM_STRESS: -4 } },
   },
@@ -151,7 +151,7 @@ export const ACTIVITIES: Record<string, { id: string; label: string; detail: str
     id: "ACT_ESTATE",
     label: "去平台",
     detail: "落樓。可以去平台，唔好出街口。",
-    blurb: "平台有其他細路。你冇出到街，但你離開咗屋門。",
+    blurb: "平台有其他細路。你冇出到街，不過你離開咗屋企門。",
     scene: "estate",
     effect: { counter: { COUNTER_EXPLORE: 1 }, derived: { STATE_MOOD: 2, STATE_STRESS: 1 }, primary: { STAT_VIT: 1 } },
   },
@@ -241,49 +241,49 @@ export function cardFor(id: string, state: State): Card {
         scene: "home",
         kicker: "日常 · 1985",
         title: "落大雨",
-        lines: ["落大雨。平台去唔到。", "窗外面白晒，屋入面只剩風扇同你。"],
+        lines: ["落大雨，平台去唔到。", "出面白晒，睇唔到對面。屋入面得部風扇同你。"],
       };
     case "MINI_85_GRANDMA":
       return {
         scene: "home",
         kicker: "日常 · 1985",
         title: "嫲嫲揭開煲蓋",
-        lines: ["湯好香。嫲嫲話，以前呢棟樓要自己行樓梯。", "你捉住碗，好熱。"],
+        lines: ["湯好香。嫲嫲話，以前呢棟樓要自己行樓梯。", "碗好熱，你用手托住。"],
       };
     case "MINI_86_ESTATE":
       return {
         scene: "estate",
         kicker: "日常 · 1986",
         title: "平台有人叫你",
-        lines: ["有個細路喺平台揮手。你未必識佢。", "阿媽喺樓上晾衫，未叫你返。"],
+        lines: ["有個細路喺平台揮手。你未必識佢。", "阿媽喺樓上晾衫，未叫你返去。"],
       };
     case "MINI_86_TV":
       return {
         scene: "home",
         kicker: "日常 · 1986",
         title: "電視又開住",
-        lines: ["飯未食完。電視有人唱歌，有人講嘢。", "阿爸未出聲叫你揀。"],
+        lines: ["飯未食完。電視有人唱歌，有人講嘢。", "阿爸未出聲叫你轉台。"],
       };
     case "MINI_86_HELP":
       return {
         scene: "corridor",
         kicker: "日常 · 1986",
         title: "膠袋太重",
-        lines: ["阿媽兩隻手都係袋。走廊燈黃。", "佢冇叫你，但佢行得慢。"],
+        lines: ["阿媽兩隻手都拎住袋。走廊盞燈黃黃地。", "佢冇叫你，但佢行得好慢。"],
       };
     case "EVT_1984_NEWS_01": {
       const cold = newsCold(state);
       const lines = cold
-        ? ["電視聲大過碗筷。阿媽冇夾魚畀你。", "冇人同你解釋。你仍然聽得到個聲好認真。"]
+        ? ["電視聲好大，蓋過食飯聲。阿媽冇夾魚畀你。", "冇人同你解釋。你聽得出佢哋講得好認真。"]
         : [
-            "電視入面講緊好遠嘅事。你只知道今日有魚。",
+            "電視入面講緊好遠嘅事。你只知今日有魚。",
             "阿媽：「食飯先。咁遠嘅事，陣間先講。」",
-            "阿爸細聲：「最緊要一家人穩陣。」",
+            "阿爸細聲講：「最緊要一家人穩陣。」",
           ];
       if (cold && state.spent.includes("ACT_PLAY") && state.spent.includes("ACT_DRAW")) {
-        lines.push("你玩咗成個下午。飯枱係你今日第一眼見到佢哋。");
+        lines.push("你玩咗成個下午。食飯先至見到佢哋。");
       }
-      const lean = gapLine(state, "你今日用喺自己想做嘅嘢。碗遲啲先到你面前。", "你跟住人做要做嘅。碗就喺你面前。");
+      const lean = gapLine(state, "你今日用咗個下午做自己想做嘅。碗遲啲先到你面前。", "你跟住人做該做嘅嘢。碗就喺你面前。");
       if (!cold && lean) lines.push(lean);
       return { scene: "home", kicker: "1984 · 飯枱", title: "將來", lines };
     }
@@ -304,21 +304,21 @@ export function cardFor(id: string, state: State): Card {
         "阿媽：「佢平時好乖，係怕生。」",
         "你見到一個細路手上攞住個紅波。",
       ];
-      if (mom === "A") lines.splice(1, 0, "阿媽企得好近。上年你收過玩具，佢今日仍然陪你行到門口。");
+      if (mom === "A") lines.splice(1, 0, "阿媽企得好近。上年你收過玩具，今日佢仍然陪你行到門口。");
       if (mom === "B") lines.splice(1, 0, "你想捉實佢。上年你扭過計。佢隻手今日都喺度。");
       if (mom === "C") lines.splice(1, 0, "你冇出聲。上年你都係坐喺佢隔離。");
-      if (state.counter.NPC_MOM_STRESS >= 26) lines.push("阿媽今日把口短。你知佢仲未放鬆。");
+      if (state.counter.NPC_MOM_STRESS >= 26) lines.push("阿媽今日把口短。你知佢仲未鬆。");
       else if (state.counter.NPC_MOM_STRESS < 20) lines.push("阿媽行得慢，仲有氣同你講門口有人。");
-      const lean = gapLine(state, "你想自己行入去，多過想有人帶。", "你想有人講清楚，先至肯入。");
+      const lean = gapLine(state, "你想自己行入去，多過想有人帶你。", "你想有人講清楚，先至肯入去。");
       if (lean) lines.push(lean);
       return { scene: "kindy", kicker: "1985 · 第一日", title: "幼稚園門口", lines };
     }
     case "EVT_1985_FAMILY_03": {
       const news = picked(state, "MEM_NEWS_01");
-      const lines = ["四歲嘅你唔識講呢啲。你只知道新聞完咗之後，屋企好靜。", "阿爸將甜品推過嚟：「冇事，食甜品。」", "阿媽冇笑，只係將電視聲調細。"];
-      if (news === "A") lines.unshift("你認得呢種靜。上年你企埋去聽過個電視。");
+      const lines = ["你四歲，唔識講呢啲。你只知新聞完咗，屋企好靜。", "阿爸將甜品推過嚟：「冇事，食甜品。」", "阿媽冇笑，只係將電視聲調細。"];
+      if (news === "A") lines.unshift("你記得上年都係咁靜。你企埋去聽過個電視。");
       else if (news === "B") lines.unshift("阿爸望你一眼。上年你問過「將來」。佢好似記得。");
-      else if (news === "C") lines.unshift("上年你揀咗繼續食飯。今年你都識接住個甜品。");
+      else if (news === "C") lines.unshift("上年你揀咗繼續食飯。今年你都識自己食甜品。");
       else lines.push("你未聽過佢哋講將來，所以你唔知佢哋靜緊咩。");
       return { scene: "home", kicker: "1985 · 新聞之後", title: "屋企好靜", lines };
     }
@@ -329,7 +329,7 @@ export function cardFor(id: string, state: State): Card {
         : ["有個細路抱住個紅波，你未正式識佢。佢叫阿傑。", "阿傑：「個波我先攞到㗎！」", "老師行開咗。"];
       if (school.includes("fail") || school.includes("bad") || state.flags.includes("FLAG_RETRY_SCHOOL")) lines.unshift("你上次未入到課室。今日個波仍然喺度。");
       else if (school.startsWith("safe")) lines.unshift("你上次拉住阿媽。今日個波喺你前面。");
-      else if (!state.flags.includes("FLAG_FIRST_SCHOOL")) lines.unshift("你未正式入過課室。個波仍然係新嘅。");
+      else if (!state.flags.includes("FLAG_FIRST_SCHOOL")) lines.unshift("你未正式入過課室。個波你未玩過。");
       return { scene: "kindy", kicker: "1985 · 課室", title: "紅波", lines };
     }
     case "EVT_1986_SKILL_05": {
@@ -341,16 +341,16 @@ export function cardFor(id: string, state: State): Card {
       const mom = picked(state, "MEM_MOM_TIRED");
       if (mom === "A") lines.push("阿媽冇幫你揀。上年你自己收過玩具。");
       if (state.flags.includes("FLAG_PARENT_EXPLAIN")) lines.push("阿爸解釋過一次將來。今日佢想你揀實際。");
-      if (state.flags.includes("FLAG_AVOID_CONFLICT")) lines.push("你上次行開。今日個位仍然係你自己嘅。");
+      if (state.flags.includes("FLAG_AVOID_CONFLICT")) lines.push("你上次行開。今日個位仍然係你自己坐。");
       if (state.flags.includes("FLAG_CURIOUS_SCHOOL")) lines.push("你第一日自己行近個波。老師記得。");
-      if (state.derived.INDEPENDENT_THOUGHT >= 50) lines.push("你問出口之前，已經自己喺度諗咗兩句。冇人聽見。");
+      if (state.derived.INDEPENDENT_THOUGHT >= 50) lines.push("你未問出口，已經自己諗咗兩句。冇人聽見。");
       const extra: string[] = [];
-      if (state.flags.includes("FLAG_TOY_MONOPOLY") || state.npc.NPC_FRIEND_01.trust < 0) extra.push("阿傑坐得好遠。個紅波唔喺你枱。");
+      if (state.flags.includes("FLAG_TOY_MONOPOLY") || state.npc.NPC_FRIEND_01.trust < 0) extra.push("阿傑坐得好遠。個紅波唔喺你張枱。");
       else if (state.flags.includes("FLAG_SHARED_BALL") || state.npc.NPC_FRIEND_01.trust >= 5) extra.push("阿傑揮你過去坐。");
       else if (!state.npc.NPC_FRIEND_01.available) extra.push("你同阿傑未算識。課室得你自己個位。");
       if (state.counter.ART_PROGRESS >= 2) extra.push("老師：「佢唔係今日先畫。屋企張紙都係顏色。」");
       else if (state.counter.MIND_PROGRESS >= 2) extra.push("老師：「佢識跟住數到十。」");
-      const lean = gapLine(state, "你望住顏色多過數字。", "阿爸個聲先到。你知「實際」兩個字。");
+      const lean = gapLine(state, "你望住顏色多過數字。", "你先聽到阿爸講。你知「實際」兩個字。");
       if (lean) extra.push(lean);
       if (state.npc.NPC_TEACH_01.trust >= 35) extra.push("老師記得你自己行入課室。");
       else if (state.flags.includes("FLAG_TEACHER_SLOW")) extra.push("佢講得好慢，等你跟。");
@@ -358,25 +358,25 @@ export function cardFor(id: string, state: State): Card {
       return { scene: "kindy", kicker: "1986 · 第一次揀", title: "畫畫，定係數數？", lines };
     }
     case "EVT_1986_FAMILY_06": {
-      const lines = ["本來約好去公園。", "阿爸唔係唔想去。佢件外套已經摺好，然後又拆開。", "「下個星期日可能要返工。」佢靜一陣：「下次啦。」"];
+      const lines = ["本來約好去公園。", "阿爸唔係唔想去。佢件外套摺好，跟住又拆開。", "「下個星期日可能要返工。」佢靜一陣：「下次啦。」"];
       const mom = picked(state, "MEM_MOM_TIRED");
       if (mom === "A") lines.push("你想起阿媽攰嗰日。今日係阿爸。");
       if (mom === "C") lines.push("你識坐埋去。上年你都係咁坐。");
-      if (state.flags.includes("FLAG_FAMILY_NEWS_SILENCE")) lines.push("新聞之後嗰種靜，你識。");
+      if (state.flags.includes("FLAG_FAMILY_NEWS_SILENCE")) lines.push("新聞之後冇人出聲，你識。");
       if (state.counter.WORLD_DAD_WORK_OCCURRENCES >= 2) lines.unshift("呢個唔係第一次。外套摺好又拆開，你見過。");
-      else if (state.counter.NPC_MOM_STRESS >= 26) lines.push("阿媽冇出聲幫你。佢自己都未放鬆。");
-      else if (state.counter.NPC_MOM_STRESS < 20) lines.push("阿媽望你一眼，聲軟：「下星期都得。」");
+      else if (state.counter.NPC_MOM_STRESS >= 26) lines.push("阿媽冇出聲幫你。佢自己都未鬆。");
+      else if (state.counter.NPC_MOM_STRESS < 20) lines.push("阿媽望你一眼，細聲講：「下星期都得。」");
       return { scene: "home", kicker: "1986 · 星期日", title: "阿爸話要返工", lines };
     }
     case "EVT_1986_MARKET_07": {
       const lines =
         state.counter.REL_LOCAL_MARKET < 20
-          ? ["你跟阿媽企咗好耐。呢檔你未熟。", "阿姨同阿媽講嘢，然後多塞一條菜入袋。", "冇人解釋，亦都冇收多一毫子。"]
+          ? ["你跟阿媽企咗好耐。呢檔你未熟。", "阿姨同阿媽講嘢，跟住多塞一條菜入袋。", "冇人同你解釋，亦都冇收多一毫子。"]
           : [`阿姨：「又係你呀？${grown}喎，大個喇。」`, "阿媽：「唔該晒。」", "阿姨偷偷多塞一條菜入袋。冇人提錢。"];
       if (state.skills.includes("SKL_03") || state.counter.ART_PROGRESS >= 3) lines.push("你手指有顏色。阿姨問你畫過條菜未。");
       else if (state.skills.includes("SKL_12") || state.counter.MIND_PROGRESS >= 3) lines.push("阿姨：「你識數㗎？幫我數三條。」你數到。");
       else if (state.skills.includes("SKL_10")) lines.push("你望一望，兩邊檔都想睇。時間唔夠。");
-      if (state.flags.includes("TAG_RESPONSIBILITY") || state.primary.STAT_STR >= 6) lines.push("你隻手識得自己伸去接袋。");
+      if (state.flags.includes("TAG_RESPONSIBILITY") || state.primary.STAT_STR >= 6) lines.push("你隻手自己伸出去接袋。");
       if (state.flags.includes("FLAG_HELPED_MOM_01")) lines.push("阿媽唔使叫你。上年你自己收過玩具。");
       if (
         state.flags.includes("FLAG_FIRST_INTEREST_CHOICE") &&
@@ -389,27 +389,27 @@ export function cardFor(id: string, state: State): Card {
       return { scene: "market", kicker: "1986 · 街市", title: "多一條菜", lines };
     }
     case "EVT_1986_ECHO_08": {
-      const lines = ["你已經落過平台幾次。今日你企到邨口。", "出面光過走廊。你其實只係想自己行多兩步。", "阿媽喺後邊。佢未出聲，但你知道佢望住。"];
+      const lines = ["你已經落過平台幾次。今日你企到邨口。", "出面光過走廊。你其實只係想自己行多兩步。", "阿媽喺後邊。佢未出聲，但你知佢望住。"];
       const news = picked(state, "MEM_NEWS_01");
       const dad = picked(state, "MEM_DAD_WORK");
       const extra: string[] = [];
       if (news === "C") extra.push("上年你跟住食飯。今日條路，冇人推你。");
       if (news === "B") extra.push("你想再問一句。你問過一次將來。");
-      if (state.counter.WORLD_DAD_WORK_OCCURRENCES >= 2) extra.push("阿爸今日又唔喺度。你知呢種靜。");
+      if (state.counter.WORLD_DAD_WORK_OCCURRENCES >= 2) extra.push("阿爸今日又唔喺度。屋企又靜返。");
       if (dad === "A") extra.push("你自己去玩過。個約裂過，今日佢仍然唔喺度。");
-      else if (dad === "B") extra.push("你應過佢去開工。今日公園仍然唔係你嘅。");
+      else if (dad === "B") extra.push("你應過佢去返工。今日公園都係去唔成。");
       else if (dad === "C") extra.push("你留低過。今日你自己行，都記得嗰陣。");
       if (state.flags.includes("FLAG_DAD_WILL_COMPENSATE")) extra.push("佢話遲啲會補。今日條路，佢唔喺度。");
       if (state.flags.includes("FLAG_FAVOUR_QUESTION")) lines.push("你問過一份好意係咪要還。今日條路，冇人同你收錢。");
       if (state.flags.includes("FLAG_MARKET_KINDNESS")) lines.push("阿姨塞過一條菜。出面冇人伸手向你要錢。");
       if (state.npc.NPC_MOM_01.trust >= 75) extra.push("阿媽隻手伸喺你後面，未拉你。");
-      else if (state.npc.NPC_MOM_01.trust <= 65) extra.push("阿媽企得遠。聲會先到。");
+      else if (state.npc.NPC_MOM_01.trust <= 65) extra.push("阿媽企得遠。佢一出聲你就聽到。");
       if (state.primary.STAT_FATE >= 6) extra.push("你踏出去嗰下，佢遲咗半秒先叫你。");
       lines.push(...extra.slice(0, 3));
       return { scene: "estate", kicker: "1986 · 邨口", title: "如果我自己行呢", lines };
     }
     default:
-      return { scene: "home", kicker: "日常", title: "一個下午", lines: ["時間過去。"] };
+      return { scene: "home", kicker: "日常", title: "一個下午", lines: ["個下午就咁過。"] };
   }
 }
 
@@ -419,38 +419,38 @@ export function choicesFor(id: string, state: State): Choice[] {
     case "MINI_84_TOY":
       return [
         choice("A", "拉住阿媽要睇", "dream", { derived: { STATE_MOOD: 2 }, npc: { NPC_MOM_01: { trust: -1 } } }, "你拉住佢。阿媽歎口氣，俾你睇十秒。「睇完要行。」"),
-        choice("B", "自己望完就走", "think", { derived: { INDEPENDENT_THOUGHT: 1, STATE_MOOD: 1 } }, "你望清楚個車，然後自己追上去。冇人買。你記得個樣。"),
+        choice("B", "自己望完就走", "think", { derived: { INDEPENDENT_THOUGHT: 1, STATE_MOOD: 1 } }, "你望清楚架車，跟住自己追上去。冇人買。你記得個樣。"),
         choice("C", "唔睇，跟住行", "reality", { derived: { VALUE_REALITY: 1, STATE_FAMILY_HARMONY: 1, STATE_MOOD: -1 } }, "你跟住行。車留喺櫃入面。阿媽冇發現你停過。"),
       ];
     case "MINI_85_RAIN":
       return [
-        choice("A", "畫畫", "dream", { derived: { VALUE_DREAM: 2, STATE_MOOD: 1 }, counter: { ART_PROGRESS: 1 } }, "雨聲好密。你將張紙塗到邊都有顏色。"),
-        choice("B", "聽收音機", "think", { derived: { VALUE_REALITY: 1, INDEPENDENT_THOUGHT: 1, STATE_PEACE: 1 }, counter: { MIND_PROGRESS: 1 } }, "收音機轉台，有人講，有人唱。你唔明，但你聽。你記住個節奏。"),
-        choice("C", "瞓一陣", "balance", { derived: { STATE_STRESS: -4, STATE_PEACE: 2, STATE_MOOD: 1 } }, "你瞓。雨聲遠咗。呢個下午冇嘢趕住要做。"),
+        choice("A", "畫畫", "dream", { derived: { VALUE_DREAM: 2, STATE_MOOD: 1 }, counter: { ART_PROGRESS: 1 } }, "落好大雨。你將張紙塗到邊都有顏色。"),
+        choice("B", "聽收音機", "think", { derived: { VALUE_REALITY: 1, INDEPENDENT_THOUGHT: 1, STATE_PEACE: 1 }, counter: { MIND_PROGRESS: 1 } }, "收音機轉台，有人講，有人唱。你唔明，但你聽住。你記住個節奏。"),
+        choice("C", "瞓一陣", "balance", { derived: { STATE_STRESS: -4, STATE_PEACE: 2, STATE_MOOD: 1 } }, "你瞓咗。雨聲遠咗。呢個下午冇嘢趕住要做。"),
       ];
     case "MINI_85_GRANDMA":
       return [
         choice("A", "聽佢講", "reality", { npc: { NPC_GRAND_01: { trust: 3, relation: 2 } }, derived: { INDEPENDENT_THOUGHT: 1 } }, "你聽。你唔知全部，但你知呢棟樓以前仲難行。"),
         choice("B", "走去玩", "dream", { derived: { STATE_MOOD: 2 }, npc: { NPC_GRAND_01: { relation: -1 } } }, "你留低碗湯，走去玩具度。嫲嫲冇叫你返。"),
-        choice("C", "問點解要行樓梯", "think", { derived: { INDEPENDENT_THOUGHT: 2 }, npc: { NPC_GRAND_01: { trust: 2 } } }, "嫲嫲笑。「因為嗰陣冇呢啲掣。」你將「以前」兩個字記住。"),
+        choice("C", "問點解要行樓梯", "think", { derived: { INDEPENDENT_THOUGHT: 2 }, npc: { NPC_GRAND_01: { trust: 2 } } }, "嫲嫲笑：「因為嗰陣冇呢啲掣。」你記住「以前」兩個字。"),
       ];
     case "MINI_86_ESTATE":
       return [
-        choice("A", "揮返手", "dream", { derived: { STATE_MOOD: 2, VALUE_DREAM: 1 } }, "你揮返手。你未知佢個名，但你有回應到。"),
-        choice("B", "企埋一邊睇", "think", { derived: { INDEPENDENT_THOUGHT: 1, STATE_PEACE: 1 } }, "你睇人哋點玩。你未加入，但你記住個規則。"),
-        choice("C", "上去搵阿媽", "reality", { derived: { STATE_FAMILY_HARMONY: 2, STATE_MOOD: -1 } }, "你行返上樓。阿媽件衫未乾。你站喺佢隔離。"),
+        choice("A", "揮返手", "dream", { derived: { STATE_MOOD: 2, VALUE_DREAM: 1 } }, "你揮返手。你未知佢個名，但你應咗佢。"),
+        choice("B", "企埋一邊睇", "think", { derived: { INDEPENDENT_THOUGHT: 1, STATE_PEACE: 1 } }, "你睇人哋點玩。你未加入，但你記住點玩。"),
+        choice("C", "上去搵阿媽", "reality", { derived: { STATE_FAMILY_HARMONY: 2, STATE_MOOD: -1 } }, "你行返上樓。阿媽件衫未乾。你企喺佢隔離。"),
       ];
     case "MINI_86_TV":
       return [
-        choice("A", "睇多陣", "dream", { derived: { STATE_MOOD: 2, VALUE_DREAM: 1 } }, "你睇。歌聲比新聞易入耳。飯涼得慢。"),
-        choice("B", "食完先", "reality", { derived: { VALUE_REALITY: 1, STATE_FAMILY_HARMONY: 1 } }, "你扒飯。電視繼續。你揀咗碗先。"),
-        choice("C", "問佢哋睇緊咩", "think", { derived: { INDEPENDENT_THOUGHT: 1 }, primary: { STAT_SPEECH: 1 } }, "阿爸答得好短。「唱歌。」你知道唔係淨係唱歌，但你問過。"),
+        choice("A", "睇多陣", "dream", { derived: { STATE_MOOD: 2, VALUE_DREAM: 1 } }, "你睇。唱歌易聽過新聞。飯涼得慢。"),
+        choice("B", "食完先", "reality", { derived: { VALUE_REALITY: 1, STATE_FAMILY_HARMONY: 1 } }, "你扒飯。電視繼續播。你揀咗碗先。"),
+        choice("C", "問佢哋睇緊咩", "think", { derived: { INDEPENDENT_THOUGHT: 1 }, primary: { STAT_SPEECH: 1 } }, "阿爸答得好短：「唱歌。」你知唔係淨係唱歌，但你問過。"),
       ];
     case "MINI_86_HELP":
       return [
         choice("A", "伸手托住一袋", "reality", { derived: { STATE_FAMILY_HARMONY: 2, VALUE_REALITY: 1 }, primary: { STAT_STR: 1 }, flags: ["TAG_RESPONSIBILITY"] }, "袋帶勒手。阿媽望你一眼，冇講大道理。"),
-        choice("B", "走先行開門", "balance", { derived: { STATE_FAMILY_HARMONY: 1, VALUE_DREAM: 1, STATE_STRESS: 1 } }, "你跑去按燈。袋仍然係佢拎。你只係開咗路。"),
-        choice("C", "當睇唔到", "dream", { derived: { STATE_MOOD: 1, STATE_FAMILY_HARMONY: -1 } }, "你望住牆畫。阿媽自己將袋放低。佢冇鬧你。"),
+        choice("B", "走先行開門", "balance", { derived: { STATE_FAMILY_HARMONY: 1, VALUE_DREAM: 1, STATE_STRESS: 1 } }, "你跑去按燈。袋仍然係佢拎。你只係開咗門。"),
+        choice("C", "當睇唔到", "dream", { derived: { STATE_MOOD: 1, STATE_FAMILY_HARMONY: -1 } }, "你望住牆上面幅畫。阿媽自己將袋放低。佢冇鬧你。"),
       ];
     case "EVT_1984_NEWS_01":
       return [
@@ -459,7 +459,7 @@ export function choicesFor(id: string, state: State): Choice[] {
           "企埋去聽清楚",
           "think",
           { derived: { STATE_MOOD: 1, INDEPENDENT_THOUGHT: 1 }, flags: ["FLAG_HEARD_ADULT_FUTURE"], skills: ["SKL_02"] },
-          "你望住個光。你唔知「將來」係咩，但你知道大人今晚好認真。你開始識得睇人嘅面色。",
+          "你望住個光。你唔知「將來」係咩，但你知大人今晚好認真。你開始識睇人面色。",
           mem("MEM_NEWS_01", "EVT_1984_NEWS_01", "A", "NPC_DAD_01", "curious", "十年後，電視又開住。你仲會停低，聽成年人唔講完嗰句。", 2),
         ),
         choice(
@@ -483,8 +483,8 @@ export function choicesFor(id: string, state: State): Choice[] {
             derived: { VALUE_REALITY: 1, STATE_PEACE: 1 },
             flags: ["TAG_NEWS_ENGAGEMENT_LOW"],
           },
-          "你扒飯。電視仍然響，但飯熱過新聞。你唔係以後都聽唔到。",
-          mem("MEM_NEWS_01", "EVT_1984_NEWS_01", "C", "NPC_MOM_01", "steady", "十年後，飯桌仍然係你最穩嘅位置。新聞響，你都食得落。"),
+          "你扒飯。電視仍然響，但你顧住食飯。你唔係以後都聽唔到。",
+          mem("MEM_NEWS_01", "EVT_1984_NEWS_01", "C", "NPC_MOM_01", "steady", "十年後，飯枱仍然係你最穩陣嘅位。新聞響，你都食得落。"),
         ),
       ];
     case "EVT_1984_FAMILY_02":
@@ -500,7 +500,7 @@ export function choicesFor(id: string, state: State): Choice[] {
             flags: ["FLAG_HELPED_MOM_01", "TAG_RESPONSIBILITY"],
             skills: ["SKL_07"],
           },
-          "你蹲低，將車仔推入盒。你本來想玩。阿媽肩鬆咗少少。你識自己收玩具。",
+          "你蹲低，將車仔推入盒。你本來想玩。阿媽透咗口氣。你識自己收玩具。",
           mem("MEM_MOM_TIRED", "EVT_1984_FAMILY_02", "A", "NPC_MOM_01", "duty", "你見到攰嘅人，手會自己去收拾。", 2),
         ),
         choice(
@@ -536,7 +536,7 @@ export function choicesFor(id: string, state: State): Choice[] {
             flags: ["FLAG_FIRST_SCHOOL"],
             skills: ["SKL_01"],
           },
-          "你開咗口。個波仲係喺人哋手上，但有人望過你。",
+          "你開咗口。個波仲喺人哋手上，但有人望過你。",
           undefined,
           "social",
         ),
@@ -578,7 +578,7 @@ export function choicesFor(id: string, state: State): Choice[] {
           heard
             ? "阿媽望阿爸一眼。「我哋頭先講過將來。大人有時都會擔心。你食甜品先。」"
             : "阿媽望阿爸一眼。「大人有時都會擔心。你食甜品先。」佢冇再解釋。",
-          mem("MEM_SILENT_NEWS_01", "EVT_1985_FAMILY_03", "A", "NPC_MOM_01", "empathy", "你後來識得察覺，靜有時係擔心，唔係冇事。", 2),
+          mem("MEM_SILENT_NEWS_01", "EVT_1985_FAMILY_03", "A", "NPC_MOM_01", "empathy", "你後來識睇得出，靜有時係擔心，唔係冇事。", 2),
         ),
         choice(
           "B",
@@ -593,7 +593,7 @@ export function choicesFor(id: string, state: State): Choice[] {
           "跟住睇多一陣",
           "balance",
           { derived: { INDEPENDENT_THOUGHT: 2, STATE_STRESS: 1 }, flags: ["FLAG_FAMILY_NEWS_SILENCE"] },
-          "你坐低，跟住個聲。你唔明，但你記住個節奏。頭有少少緊。",
+          "你坐低，跟住個聲聽。你唔明，但你記住個節奏。個頭有少少緊。",
           mem("MEM_SILENT_NEWS_01", "EVT_1985_FAMILY_03", "C", "NPC_DAD_01", "watch", "你會想知多一句。知多一句，有時會攰。"),
         ),
       ];
@@ -622,7 +622,7 @@ export function choicesFor(id: string, state: State): Choice[] {
             flags: ["FLAG_SHARED_BALL"],
             skills: ["SKL_05"],
           },
-          "你將個波推返畀佢，再等自己嗰輪。你放棄咗自己一個人霸住佢。阿傑開始叫你個名。",
+          "你將個波推返畀佢，再等自己嗰輪。你冇再一個人霸住個波。阿傑開始叫你個名。",
           mem("MEM_RED_BALL", "EVT_1985_FRIEND_04", "B", "NPC_FRIEND_01", "share", "你後來識講「輪住」。有時你會唔捨得，但你識講。", 2),
         ),
         choice(
@@ -630,8 +630,8 @@ export function choicesFor(id: string, state: State): Choice[] {
           "走開，唔好嘈",
           "reality",
           { derived: { STATE_PEACE: 1 }, flags: ["FLAG_AVOID_CONFLICT"] },
-          "你行開。個波留喺佢度。課室靜返少少，你同佢都未熟到。",
-          mem("MEM_RED_BALL", "EVT_1985_FRIEND_04", "C", "NPC_FRIEND_01", "leave", "你避開爭執。避開完，有時個位已經有人企咗。"),
+          "你行開。個波留喺佢度。課室靜返少少，你同佢都未熟。",
+          mem("MEM_RED_BALL", "EVT_1985_FRIEND_04", "C", "NPC_FRIEND_01", "leave", "你避開爭嘢。避開完，有時個位已經有人企咗。"),
         ),
       ];
     case "EVT_1986_SKILL_05": {
@@ -646,7 +646,7 @@ export function choicesFor(id: string, state: State): Choice[] {
             flags: ["FLAG_FIRST_INTEREST_CHOICE"],
             skills: ["SKL_03"],
           },
-          "你揀顏色。數數嗰組今日冇你份。紙填滿嘅時候，你個心定。",
+          "你揀顏色。數數嗰組今日冇你份。張紙填滿，你個心定咗落嚟。",
           mem("MEM_FIRST_INTEREST", "EVT_1986_SKILL_05", "A", "NPC_TEACH_01", "art", "你手上仲有顏色。數字唔係你第一眼。", 2),
         ),
         choice(
@@ -659,7 +659,7 @@ export function choicesFor(id: string, state: State): Choice[] {
             flags: ["FLAG_FIRST_INTEREST_CHOICE"],
             skills: ["SKL_12"],
           },
-          "你跟住數。畫畫小組今日過咗你。你數得明嘅時候，個心亦都定。",
+          "你跟住數。畫畫小組今日過咗你。你數得明，個心定咗落嚟。",
           mem("MEM_FIRST_INTEREST", "EVT_1986_SKILL_05", "B", "NPC_DAD_01", "count", "你會先數清楚，再決定畫唔畫。", 2),
         ),
         choice(
@@ -708,10 +708,10 @@ export function choicesFor(id: string, state: State): Choice[] {
         ),
         choice(
           "B",
-          "知道啦，你去開工",
+          "知道啦，你去返工",
           "reality",
           { derived: { VALUE_REALITY: 2, STATE_FAMILY_HARMONY: 1 }, npc: { NPC_DAD_01: { trust: 2 } }, flags: ["FLAG_DAD_OVERTIME_MEMORY"] },
-          "你應咗佢。公園取消。你明佢要返工，但係你自己講出口。",
+          "你應咗佢。公園取消。你明佢要返工，不過係你自己講出口。",
           mem("MEM_DAD_WORK", "EVT_1986_FAMILY_06", "B", "NPC_DAD_01", "accept", "你識講「知道啦」。知道，唔等於唔想去。"),
         ),
         choice(
@@ -724,7 +724,7 @@ export function choicesFor(id: string, state: State): Choice[] {
             flags: ["FLAG_DAD_OVERTIME_MEMORY"],
             skills: ["SKL_06"],
           },
-          "公園唔去。你哋留喺屋企。出街冇你份，但佢未出門嗰陣，你有。",
+          "公園唔去。你哋留喺屋企。出街冇你份，但佢未出門之前，你有佢陪。",
           mem("MEM_DAD_WORK", "EVT_1986_FAMILY_06", "C", "NPC_DAD_01", "stay", "公園取消，你都識留低陪人。", 2),
         ),
       ];
@@ -735,7 +735,7 @@ export function choicesFor(id: string, state: State): Choice[] {
           "同阿姨講多謝",
           "dream",
           { derived: { STATE_GLOBAL_NETWORK: 2, STATE_MOOD: 1 }, flags: ["FLAG_MARKET_KINDNESS"] },
-          "你講多謝。冇人塞錢入你手。阿姨笑，下次會再認得你。",
+          "你講多謝。冇人塞錢畀你。阿姨笑，下次會再認得你。",
           mem("MEM_MARKET_01", "EVT_1986_MARKET_07", "A", "NPC_AUNT_01", "thanks", "你記得一條唔使錢嘅菜。你記得自己講過多謝。"),
         ),
         choice(
@@ -750,7 +750,7 @@ export function choicesFor(id: string, state: State): Choice[] {
           },
           state.primary.STAT_SPEECH >= 6
             ? "阿姨頓一頓：「街坊就係咁，唔使即刻還。」你問到一句實答。你記住，人情唔係一筆數。"
-            : "阿姨笑，冇答實。你冇多識到人。你記住：人情係咪一定要還。",
+            : "阿姨笑，冇答實。你冇多識到人。你記住，人情係咪一定要還。",
           mem("MEM_MARKET_01", "EVT_1986_MARKET_07", "B", "NPC_AUNT_01", "question", "你會問，一份好意係咪一定要還。", 2),
         ),
         choice(
@@ -773,7 +773,7 @@ export function choicesFor(id: string, state: State): Choice[] {
           "返去拉住阿媽",
           "reality",
           { derived: { VALUE_REALITY: 1, STATE_FAMILY_HARMONY: 2 }, flags: ["FLAG_FIRST_INDEPENDENCE"] },
-          "你返去拉住佢。邨口留喺後面。你今日未試，但你知道條路喺度。",
+          "你返去拉住佢。邨口留喺後面。你今日未試，但你知條路喺度。",
           mem("MEM_FIRST_INDEPENDENCE", "EVT_1986_ECHO_08", "A", "NPC_MOM_01", "return", "你記得邨口。你揀咗返去拉住個人。"),
         ),
         choice(
@@ -785,7 +785,7 @@ export function choicesFor(id: string, state: State): Choice[] {
             primary: { STAT_COURAGE: 1 },
             flags: ["FLAG_FIRST_INDEPENDENCE"],
           },
-          "你行到門口，自己停低。出面好光，你睇唔到盡。你未踏出去。",
+          "你行到門口，自己停低。出面好光，你睇唔到盡頭。你未踏出去。",
           mem("MEM_FIRST_INDEPENDENCE", "EVT_1986_ECHO_08", "B", "NPC_MOM_01", "edge", "你識行到門口，然後自己停。", 2),
           undefined,
           true,
@@ -860,7 +860,7 @@ export function battleStory(kind: BattleKind, approach: Approach) {
   }
   if (kind === "bad") {
     return {
-      text: `${approachLine}你喘唔到氣，阿媽帶你返屋企。老師記住你慢熱。你冇傷到，只係今日去唔到。`,
+      text: `${approachLine}你透唔到氣，阿媽帶你返屋企。老師記住你慢熱。你冇傷到，只係今日去唔到。`,
       echo: "十年後你記得嗰日太嘈。你返咗屋企，幼稚園第二日仍然喺度。",
       emotion: "overwhelm",
       weight: 2,
@@ -884,8 +884,8 @@ export function battleStory(kind: BattleKind, approach: Approach) {
 
 export function orientationLine(dream: number, reality: number) {
   const gap = dream - reality;
-  if (gap >= 8) return "你而家比較想做自己鍾意嘅。";
-  if (gap <= -8) return "你而家比較跟住要做嘅。";
+  if (gap >= 8) return "你而家比較想做自己鍾意嘅嘢。";
+  if (gap <= -8) return "你而家比較跟住要做嘅嘢。";
   return "想做同要做，你仲未分到邊樣先。";
 }
 
@@ -897,7 +897,7 @@ const RECALL: Record<string, Record<string, string>> = {
   },
   MEM_MOM_TIRED: {
     A: "阿媽攰嗰日，你收咗玩具。",
-    B: "你扭計要阿媽陪，即使佢已經好攰。",
+    B: "你扭計要阿媽陪。佢已經好攰，你都要。",
     C: "你冇玩，只係坐喺阿媽旁邊。",
   },
   MEM_SILENT_NEWS_01: {
@@ -907,7 +907,7 @@ const RECALL: Record<string, Record<string, string>> = {
   },
   MEM_RED_BALL: {
     A: "個紅波你唔肯放。阿傑之後冇再叫你。",
-    B: "你同阿傑輪住玩。你放棄咗一個人霸住個波。",
+    B: "你同阿傑輪住玩。你冇再一個人霸住個波。",
     C: "你行開。個波留喺人哋度。",
   },
   MEM_FIRST_INTEREST: {
@@ -922,7 +922,7 @@ const RECALL: Record<string, Record<string, string>> = {
     C: "公園取消。你留低同佢一齊。",
   },
   MEM_MARKET_01: {
-    A: "你同阿姨講過多謝。冇人塞錢入你手。",
+    A: "你同阿姨講過多謝。冇人塞錢畀你。",
     B: "你問過，一份好意係咪一定要還。",
     C: "你幫阿媽拎過袋。你少咗自己行開嘅時間。",
   },
