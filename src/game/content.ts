@@ -300,7 +300,7 @@ export function cardFor(id: string, state: State): Card {
     case "EVT_1985_SCHOOL_01": {
       const mom = picked(state, "MEM_MOM_TIRED");
       const lines = [
-        "老師蹲低：「唔使驚，入去同其他小朋友玩。我教你跟住講兩個字。」",
+        "老師蹲低：「唔使驚，入去同其他小朋友玩。你跟我讀兩個字就得。」",
         "阿媽：「佢平時好乖，係怕生。」",
         "你見到一個細路手上攞住個紅波。",
       ];
@@ -550,7 +550,7 @@ export function choicesFor(id: string, state: State): Choice[] {
             flags: ["FLAG_FIRST_SCHOOL", "FLAG_TEACHER_SLOW"],
             skills: ["SKL_01"],
           },
-          "你未行。阿媽隻手仲喺你度。老師記住你慢熱。你跟住佢講咗兩個字。",
+          "你未行。阿媽隻手仲喺你度。老師記住你慢熱。你跟住老師讀咗兩個字。",
           undefined,
           "safe",
         ),

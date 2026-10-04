@@ -169,7 +169,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
         ) : null}
       </div>
       <p className="text-sm text-pretty text-paper/70">
-        {practiced ? "你識跟住讀。跟住講，壓力會落得多啲。" : "你未跟熟。跟住講都得，但個聲好細。"}
+        {practiced ? "你識跟住讀。跟住讀，壓力會落得多啲。" : "你未跟熟。跟住讀都得，但個聲好細。"}
         氣力用嚟行、停、跟住讀。今日入唔到，可以再試，唔會完。
       </p>
     </div>
