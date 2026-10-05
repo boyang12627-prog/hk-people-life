@@ -55,6 +55,7 @@ export type Effect = {
   counter?: Partial<Counters>;
   npc?: Partial<Record<NpcId, Partial<Npc>>>;
   flags?: string[];
+  tags?: string[];
   skills?: string[];
 };
 
@@ -95,6 +96,7 @@ export type Phase =
   | "repair"
   | "explore-offer"
   | "year-end"
+  | "fifteen"
   | "ending";
 
 export type ResultView = { text: string; deltas: Delta[]; skills: string[]; lean?: string };
@@ -108,6 +110,7 @@ export type State = {
   counter: Counters;
   npc: Record<NpcId, Npc>;
   flags: string[];
+  personalityTags: string[];
   skills: string[];
   memories: MemoryRecord[];
   seed: number;

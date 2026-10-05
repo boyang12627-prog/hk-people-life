@@ -6,11 +6,13 @@ import {
   battleStory,
   cardFor,
   choicesFor,
+  fifteenLines,
   lifeVoice,
   orientationLine,
   PRIMARY_LABEL,
   recallLine,
   SKILL_NAME,
+  yearLean,
   yearOf,
 } from "@/game/content";
 import { canRetry, freshState, loadState, reducer, saveState } from "@/game/engine";
@@ -105,7 +107,11 @@ export function LifeApp() {
       {state.phase === "repair" && state.result ? (
         <Paper scene="home" kicker="1986 · 夜晚" title="阿媽問你">
           <p className="text-pretty text-base leading-7">{state.result.text}</p>
-          <p className="mt-3 text-pretty text-base leading-7">今晚佢問你點解行到門口。你可以講，亦都可以唔講。</p>
+          <p className="mt-3 text-pretty text-base leading-7">
+            {state.skills.includes("SKL_09")
+              ? "你識自己行。今晚佢仍然問你點解行到門口，但你唔使解釋咁多。"
+              : "今晚佢問你點解行到門口。你可以講，亦都可以唔講。"}
+          </p>
           <ChoiceButton label="同阿媽講" hint="講咗會近啲，個心會緊" onClick={() => { tap(); dispatch({ type: "repair", talk: true }); }} />
           <ChoiceButton label="唔講，自己瞓" hint="少句鬧，自己收住" onClick={() => { tap("soft"); dispatch({ type: "repair", talk: false }); }} />
         </Paper>
@@ -118,19 +124,21 @@ export function LifeApp() {
         </Paper>
       ) : null}
       {state.phase === "year-end" ? <YearEnd state={state} onNext={() => { tap(); dispatch({ type: "nextYear" }); }} /> : null}
+      {state.phase === "fifteen" ? <Fifteen state={state} onNext={() => { tap(); dispatch({ type: "ack" }); }} /> : null}
       {state.phase === "ending" ? <Ending state={state} onRestart={() => { tap(); dispatch({ type: "restart" }); }} /> : null}
     </main>
   );
 }
 
 function Top({ state }: { state: State }) {
-  const year = state.phase === "title" || state.phase === "gender" || state.phase === "ending" ? null : yearOf(state);
+  const year = state.phase === "title" || state.phase === "gender" || state.phase === "ending" || state.phase === "fifteen" ? null : yearOf(state);
   const showAp = state.phase === "activities" || state.phase === "year";
+  const stamp = state.phase === "fifteen" ? "1996 · 15 歲" : year ? `${year.year} · ${year.age} 歲` : "1984–1986";
   return (
     <header className="mb-3 flex items-end justify-between gap-3">
       <div>
         <p className="font-serif text-xl tracking-wide text-paper">人生・香港</p>
-        <p className="text-sm text-paper/70">{year ? `${year.year} · ${year.age} 歲` : "1984–1986"}</p>
+        <p className="text-sm text-paper/70">{stamp}</p>
       </div>
       {showAp ? <p className="text-sm text-paper/70">{state.apLeft >= 2 ? "仲有兩個下午" : "仲有一個下午"}</p> : null}
     </header>
@@ -275,8 +283,23 @@ function YearEnd({ state, onNext }: { state: State; onNext: () => void }) {
         ))}
       </ul>
       {memories.length > 0 ? <p className="mt-3 text-sm text-pretty text-ink/70">呢幾句會留低。下年可能會再出現。</p> : null}
+      <p className="mt-3 text-pretty text-base leading-7">{yearLean(state.derived.VALUE_DREAM, state.derived.VALUE_REALITY)}</p>
+      {state.personalityTags.includes("TAG_EMPATHY") ? <p className="mt-3 text-pretty text-base leading-7">呢一年，你有陣時會坐埋去，唔使人叫。</p> : null}
       {missedGate ? <p className="mt-3 text-sm text-pretty text-ink/70">你未行到走廊盡頭。冇人逼你去。</p> : null}
       <Primary onClick={onNext}>{last ? "睇下十年後" : "下一年"}</Primary>
+    </Paper>
+  );
+}
+
+function Fifteen({ state, onNext }: { state: State; onNext: () => void }) {
+  return (
+    <Paper scene="home" kicker="1996 · 十五歲" title="自己返屋企">
+      {fifteenLines(state).map((line) => (
+        <p key={line} className="mt-2 text-pretty text-base leading-7 first:mt-0">
+          {line}
+        </p>
+      ))}
+      <Primary onClick={onNext}>睇下自己變成邊個</Primary>
     </Paper>
   );
 }
@@ -310,12 +333,10 @@ function LifeNow({ state }: { state: State }) {
     state.derived.STATE_FAMILY_HARMONY >= 70 ? "屋企而家幾和氣" : state.derived.STATE_FAMILY_HARMONY >= 45 ? "屋企而家普普通通" : "屋企而家少講嘢";
   const mood = state.derived.STATE_MOOD >= 70 ? "你心情幾好" : state.derived.STATE_MOOD >= 45 ? "你心情普通" : "你心情唔多好";
   const stress = state.derived.STATE_STRESS >= 60 ? "壓力幾大" : state.derived.STATE_STRESS >= 30 ? "有少少壓力" : "冇乜壓力";
-  const gap = state.derived.VALUE_DREAM - state.derived.VALUE_REALITY;
-  const lean = gap >= 8 ? "你而家比較想做自己鍾意嘅嘢。" : gap <= -8 ? "你而家比較跟住要做嘅嘢。" : "想做同要做，你仲未分到邊樣先。";
   return (
     <div className="mt-4">
       <p className="text-pretty text-base leading-7">
-        {home}。{mood}，{stress}。{lean}
+        {home}。{mood}，{stress}。
       </p>
       <details className="mt-3">
         <summary className="min-h-11 text-sm text-ink/70">睇數字</summary>

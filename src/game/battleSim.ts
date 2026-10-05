@@ -28,7 +28,7 @@ export type BattleSim = {
 };
 
 const COST: Record<BattleAction, number> = {
-  walk: 2,
+  walk: 1,
   guard: 3,
   read: 6,
   see: 8,
@@ -44,7 +44,7 @@ export function createBattle(input: {
   ask: boolean;
   practiced: boolean;
 }): BattleSim {
-  const startX = input.approach === "social" ? 16 : input.approach === "curious" ? 11 : 9;
+  const startX = input.approach === "social" ? 22 : input.approach === "curious" ? 14 : 18;
   let stress = input.approach === "safe" ? 10 : input.approach === "curious" ? 22 : 16;
   if (input.tidy) stress = Math.max(0, stress - 6);
   const hint =
@@ -91,7 +91,7 @@ export function stepBattle(sim: BattleSim, dt: number) {
     sim.cd[key] = Math.max(0, sim.cd[key] - dt);
   });
   sim.regen += dt;
-  if (sim.regen >= 2.4) {
+  if (sim.regen >= 2) {
     sim.regen = 0;
     sim.sp = Math.min(sim.maxSp, sim.sp + 1);
   }
@@ -99,10 +99,10 @@ export function stepBattle(sim: BattleSim, dt: number) {
   if (sim.spawn <= 0) {
     sim.waves.push({
       x: 112,
-      speed: 26 + Math.min(10, sim.t * 0.18),
-      dmg: 10 + sim.pressure,
+      speed: 26 + Math.min(8, sim.t * 0.15),
+      dmg: 9 + sim.pressure,
     });
-    sim.spawn = sim.t < 18 ? 2.55 : 2.15;
+    sim.spawn = sim.t < 18 ? 2.8 : 2.45;
   }
   const kept: Wave[] = [];
   for (const wave of sim.waves) {
@@ -128,8 +128,8 @@ export function stepBattle(sim: BattleSim, dt: number) {
       sim.guard = 0;
     } else {
       sim.hp = Math.max(0, sim.hp - wave.dmg);
-      sim.stress = Math.min(100, sim.stress + 8);
-      sim.x = Math.max(4, sim.x - 4);
+      sim.stress = Math.min(100, sim.stress + 10);
+      sim.x = Math.max(4, sim.x - 2);
       sim.shake = 0.18;
       sim.hint = "陌生嘅聲撞過嚟。你退後一步。";
     }
@@ -149,7 +149,7 @@ export function actBattle(sim: BattleSim, name: BattleAction, enabled: boolean) 
     if (!weak) sim.sp -= cost;
     sim.x = Math.min(100, sim.x + (weak ? 2 : 3));
     sim.stress = Math.min(100, sim.stress + 2);
-    sim.cd.walk = 1.35;
+    sim.cd.walk = 1.1;
     sim.hint = weak ? "氣力唔夠。你仍然行，只係慢。" : "你行前一步。";
     return;
   }
@@ -173,7 +173,7 @@ export function actBattle(sim: BattleSim, name: BattleAction, enabled: boolean) 
     sim.cd.see = 3.6;
     sim.hint = "你望一望。下一聲，你會避開。";
   } else if (name === "ask") {
-    sim.x = Math.min(100, sim.x + 8);
+    sim.x = Math.min(100, sim.x + 3);
     sim.stress = Math.max(0, sim.stress - 4);
     sim.cd.ask = 3.3;
     sim.hint = "你問咗一句。課室近咗。";

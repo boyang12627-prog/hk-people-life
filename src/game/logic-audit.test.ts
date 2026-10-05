@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { actBattle, createBattle } from "./battleSim.ts";
-import { cardFor, choicesFor, heardNews, lifeVoice, variantOf, YEARS } from "./content.ts";
-import { freshState, parseSave, reducer, type Action } from "./engine.ts";
-import { FLAG_LEDGER, RETIRED_FLAGS } from "./ledger.ts";
+import { readFileSync } from "node:fs";
+import { FLAG_LEDGER, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
+import { cardFor, choicesFor, fifteenLines, heardNews, lifeVoice, variantOf, yearLean, YEARS } from "./content.ts";
+import { applyEffect, freshState, parseSave, reducer, type Action } from "./engine.ts";
 import type { State } from "./types.ts";
 
 function run(state: State, actions: Action[]) {
@@ -263,8 +264,26 @@ describe("logic audit v2.2", () => {
     for (const spec of FLAG_LEDGER) {
       assert.ok(spec.producer.length > 0);
       assert.ok(spec.consumer.length > 0);
+      assert.ok(spec.consumerKind);
       assert.ok(spec.fallback);
       assert.ok(spec.scope);
+    }
+    const game = ["./content.ts", "./engine.ts"].map((file) => readFileSync(new URL(file, import.meta.url), "utf8")).join("\n");
+    const ui = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    const reads = (src: string, id: string) => src.includes(`.includes("${id}")`);
+    for (const spec of FLAG_LEDGER) {
+      const seenInPlay = reads(game, spec.id) || reads(ui, spec.id);
+      if (spec.consumerKind === "CODE") assert.equal(reads(game, spec.id), true, spec.id);
+      if (spec.consumerKind === "ENDING") assert.equal(seenInPlay, true, spec.id);
+      if (spec.consumerKind === "DEBUG" || spec.consumerKind === "MEMORY") assert.equal(seenInPlay, false, spec.id);
+    }
+    for (const spec of TAG_LEDGER) {
+      const seenInPlay = reads(game, spec.id) || reads(ui, spec.id);
+      assert.equal(seenInPlay, spec.consumerKind !== "DEBUG" && spec.consumerKind !== "MEMORY", spec.id);
+    }
+    for (const spec of SKILL_LEDGER) {
+      const where = spec.consumerKind === "BATTLE" ? ui : game;
+      assert.equal(reads(where, spec.id) || (spec.consumerKind === "ENDING" && (reads(game, spec.id) || reads(ui, spec.id))), true, spec.id);
     }
   });
 
@@ -284,5 +303,48 @@ describe("logic audit v2.2", () => {
         assert.ok(choice.memory.echo);
       }
     }
+  });
+
+  it("tags stay out of flags, and each quiet skill changes a later scene", () => {
+    const news = choicesFor("EVT_1984_NEWS_01", freshState()).find((item) => item.id === "C");
+    assert.ok(news?.effect.tags?.includes("TAG_NEWS_ENGAGEMENT_LOW"));
+    assert.equal((news?.effect.flags ?? []).some((flag) => flag.startsWith("TAG_")), false);
+    const moved = applyEffect(freshState(), { flags: ["FLAG_HELPED_MOM_01", "TAG_RESPONSIBILITY"], tags: ["TAG_EMPATHY"] });
+    assert.deepEqual(moved.state.flags, ["FLAG_HELPED_MOM_01"]);
+    assert.ok(moved.state.personalityTags.includes("TAG_RESPONSIBILITY"));
+    assert.ok(moved.state.personalityTags.includes("TAG_EMPATHY"));
+    const market = { ...freshState(), personalityTags: ["TAG_RESPONSIBILITY"], counter: { ...freshState().counter, REL_LOCAL_MARKET: 30 } };
+    assert.ok(cardFor("EVT_1986_MARKET_07", market).lines.join("").includes("伸出去接袋"));
+    const share = { ...freshState(), skills: ["SKL_05"] };
+    assert.equal(choicesFor("EVT_1986_SKILL_05", share).some((item) => item.id === "E"), true);
+    assert.equal(choicesFor("EVT_1986_SKILL_05", freshState()).some((item) => item.id === "E"), false);
+    const company = { ...freshState(), skills: ["SKL_06"] };
+    assert.ok(choicesFor("EVT_1986_ECHO_08", company).find((item) => item.id === "A")?.result.includes("識陪屋企人"));
+    const carry = { ...freshState(), skills: ["SKL_08"] };
+    assert.equal(choicesFor("EVT_1986_ECHO_08", carry).find((item) => item.id === "C")?.effect.derived?.STATE_STRESS, 1);
+    const favour = { ...freshState(), skills: ["SKL_11"] };
+    assert.equal(choicesFor("EVT_1986_ECHO_08", favour).find((item) => item.id === "B")?.effect.derived?.STATE_PEACE, 2);
+    const walked = { ...freshState(), skills: ["SKL_09"] };
+    assert.ok(fifteenLines(walked).join("").includes("自己行過"));
+    const lowNews = { ...freshState(), personalityTags: ["TAG_NEWS_ENGAGEMENT_LOW"] };
+    assert.ok(fifteenLines(lowNews).join("").includes("顧住食飯"));
+  });
+
+  it("a choice does not announce dream or reality, and 1986 opens 1996 first", () => {
+    let state = run(freshState(1), [{ type: "gender", gender: "girl", name: "" }]);
+    state = spend(state, ["ACT_REST", "ACT_MARKET"]);
+    state = chooseId(state, "C");
+    assert.equal(state.result?.lean, undefined);
+    assert.equal(state.result?.text.includes("想做自己鍾意"), false);
+    assert.equal(yearLean(70, 40).includes("自己決定"), true);
+    const after = reducer({ ...freshState(), phase: "year-end", yearIndex: 2 }, { type: "nextYear" });
+    assert.equal(after.phase, "fifteen");
+    assert.equal(reducer(after, { type: "ack" }).phase, "ending");
+    const old = freshState();
+    const raw = JSON.stringify({ ...old, flags: ["TAG_EMPATHY", "FLAG_REPAIR_TALK"] });
+    const migrated = parseSave(raw);
+    assert.equal(migrated?.flags.includes("TAG_EMPATHY"), false);
+    assert.ok(migrated?.personalityTags.includes("TAG_EMPATHY"));
+    assert.ok(migrated?.flags.includes("FLAG_REPAIR_TALK"));
   });
 });

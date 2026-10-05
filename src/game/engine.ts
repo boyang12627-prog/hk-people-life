@@ -95,6 +95,7 @@ export function freshState(seed = 198401): State {
       NPC_TEACH_01: { relation: 30, trust: 30, available: false },
     },
     flags: [],
+    personalityTags: [],
     skills: [],
     memories: [],
     seed,
@@ -187,6 +188,7 @@ export function reducer(state: State, action: Action): State {
         return openNext({ ...state, note: null });
       }
       if (state.phase === "result") return openNext({ ...state, result: null });
+      if (state.phase === "fifteen") return { ...state, phase: "ending" };
       return state;
     case "choose":
       return choose(state, action.choice);
@@ -201,7 +203,7 @@ export function reducer(state: State, action: Action): State {
     case "explore":
       return exploreOffer(state, action.go);
     case "nextYear":
-      if (state.yearIndex >= YEARS.length - 1) return { ...state, phase: "ending" };
+      if (state.yearIndex >= YEARS.length - 1) return { ...state, phase: "fifteen" };
       return openYear({ ...state, yearIndex: state.yearIndex + 1 });
     case "restart":
       return freshState(Math.floor(Math.random() * 1_000_000_000));
@@ -247,13 +249,6 @@ function pickActivity(state: State, id: string): State {
   };
 }
 
-const LEAN_AFTER = {
-  dream: "你今日比較想做自己鍾意嘅嘢。",
-  reality: "你今日比較跟住要做嘅嘢。",
-  balance: "你今日兩邊都想要。",
-  think: "你今日停低諗咗一句。",
-} as const;
-
 function choose(state: State, choice: Choice): State {
   const variant = state.eventId ? variantOf(state.eventId, state) : "base";
   const applied = applyEffect(state, choice.effect);
@@ -280,13 +275,13 @@ function choose(state: State, choice: Choice): State {
       approach: choice.battle,
       battleTries: 0,
       battle: null,
-      result: { text: choice.result, deltas: applied.deltas, skills: applied.skills, lean: LEAN_AFTER[choice.tendency] },
+      result: { text: choice.result, deltas: applied.deltas, skills: applied.skills },
     };
   }
   if (choice.repair) {
-    return { ...next, phase: "repair", result: { text: choice.result, deltas: applied.deltas, skills: applied.skills, lean: LEAN_AFTER[choice.tendency] } };
+    return { ...next, phase: "repair", result: { text: choice.result, deltas: applied.deltas, skills: applied.skills } };
   }
-  return { ...next, phase: "result", result: { text: choice.result, deltas: applied.deltas, skills: applied.skills, lean: LEAN_AFTER[choice.tendency] } };
+  return { ...next, phase: "result", result: { text: choice.result, deltas: applied.deltas, skills: applied.skills } };
 }
 
 function onBattleEnd(state: State, outcome: BattleOutcome): State {
@@ -482,8 +477,16 @@ export function applyEffect(state: State, effect: Effect): { state: State; delta
     if (patch.available !== undefined) current.available = patch.available;
   }
   const flags = [...state.flags];
+  const personalityTags = [...(state.personalityTags ?? [])];
   for (const flag of effect.flags ?? []) {
+    if (flag.startsWith("TAG_")) {
+      if (!personalityTags.includes(flag)) personalityTags.push(flag);
+      continue;
+    }
     if (!flags.includes(flag) && !flag.startsWith("MEM_")) flags.push(flag);
+  }
+  for (const tag of effect.tags ?? []) {
+    if (!personalityTags.includes(tag)) personalityTags.push(tag);
   }
   const skills = [...state.skills];
   const gained: string[] = [];
@@ -493,7 +496,7 @@ export function applyEffect(state: State, effect: Effect): { state: State; delta
       gained.push(SKILL_NAME[skill] ?? skill);
     }
   }
-  return { state: { ...state, primary, derived, counter, npc, flags, skills }, deltas, skills: gained };
+  return { state: { ...state, primary, derived, counter, npc, flags, personalityTags, skills }, deltas, skills: gained };
 }
 
 function pushDelta(deltas: Delta[], label: string, value: number) {
@@ -505,7 +508,7 @@ export function canRetry(state: State) {
   return state.battleTries < 1 && (kind === "fail" || kind === "bad");
 }
 
-const PHASES = new Set(["title", "gender", "year", "activities", "note", "event", "battle", "battle-result", "result", "repair", "explore-offer", "year-end", "ending"]);
+const PHASES = new Set(["title", "gender", "year", "activities", "note", "event", "battle", "battle-result", "result", "repair", "explore-offer", "year-end", "fifteen", "ending"]);
 const SCENES = new Set(["home", "kindy", "corridor", "market", "estate"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -598,6 +601,14 @@ export function validateState(raw: Record<string, unknown>): State | null {
         return [record];
       })
     : [];
+  const rawFlags = strings(raw.flags);
+  const personalityTags = strings(raw.personalityTags);
+  const flags: string[] = [];
+  for (const flag of rawFlags) {
+    if (flag.startsWith("TAG_")) {
+      if (!personalityTags.includes(flag)) personalityTags.push(flag);
+    } else flags.push(flag);
+  }
   return {
     ...base,
     phase: raw.phase as State["phase"],
@@ -607,7 +618,8 @@ export function validateState(raw: Record<string, unknown>): State | null {
     derived,
     counter,
     npc,
-    flags: strings(raw.flags),
+    flags,
+    personalityTags,
     skills: strings(raw.skills),
     memories,
     seed: typeof raw.seed === "number" ? raw.seed : base.seed,

@@ -125,7 +125,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
       <div className="grid grid-cols-2 gap-2">
         <BattleButton
           label="向前行"
-          detail="氣力 2，唔夠就慢行"
+          detail="氣力 1，唔夠就慢行"
           buttonRef={(node) => {
             buttons.current.walk = node;
           }}
