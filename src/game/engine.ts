@@ -1,9 +1,14 @@
 import { ACTIVITIES, battleStory, buildQueue, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
 import {
   clamp,
+  COUNTER_RANGE,
+  DERIVED_RANGE,
   INITIAL_COUNTERS,
   INITIAL_DERIVED,
   INITIAL_PRIMARY,
+  NPC_STAT_RANGE,
+  PRIMARY_RANGE,
+  BATTLE_TRIES_RANGE,
   type Approach,
   type BattleOutcome,
   type Counters,
@@ -456,8 +461,8 @@ export function applyEffect(state: State, effect: Effect): { state: State; delta
   }
   for (const [key, value] of Object.entries(effect.counter ?? {}) as [keyof Counters, number][]) {
     const before = counter[key];
-    const max = key === "WORLD_DAD_WORK_OCCURRENCES" || key === "PLAYER_DAD_CHOICE_RESPONSE" || key === "COUNTER_EXPLORE" ? 99 : key.endsWith("PROGRESS") ? 10 : 100;
-    const min = key.endsWith("PROGRESS") ? 0 : 0;
+    const max = COUNTER_RANGE[key].max;
+    const min = COUNTER_RANGE[key].min;
     counter[key] = clamp(before + value, min, max);
     const label = COUNTER_LABEL[key];
     if (label) pushDelta(deltas, label, counter[key] - before);
@@ -547,21 +552,21 @@ export function validateState(raw: Record<string, unknown>): State | null {
   const primary = { ...base.primary };
   for (const key of Object.keys(base.primary) as (keyof Primary)[]) {
     const value = raw.primary[key];
-    if (typeof value === "number" && Number.isFinite(value)) primary[key] = value;
+    if (typeof value === "number" && Number.isFinite(value)) primary[key] = clamp(value, PRIMARY_RANGE.min, PRIMARY_RANGE.max);
   }
   const derived = { ...base.derived };
   for (const key of Object.keys(base.derived) as (keyof Derived)[]) {
     const value = raw.derived[key];
-    if (typeof value === "number" && Number.isFinite(value)) derived[key] = value;
+    if (typeof value === "number" && Number.isFinite(value)) derived[key] = clamp(value, DERIVED_RANGE.min, DERIVED_RANGE.max);
   }
   const counter = { ...base.counter };
   const legacyCounter = isRecord(raw.counter) ? raw.counter : {};
   for (const key of Object.keys(base.counter) as (keyof Counters)[]) {
     const value = legacyCounter[key];
-    if (typeof value === "number" && Number.isFinite(value)) counter[key] = value;
+    if (typeof value === "number" && Number.isFinite(value)) counter[key] = clamp(value, COUNTER_RANGE[key].min, COUNTER_RANGE[key].max);
   }
-  if (typeof legacyCounter.WORLD_DAD_WORK_OCCURRENCES !== "number" && typeof legacyCounter.NPC_DAD_OVERTIME_COUNT === "number") {
-    counter.WORLD_DAD_WORK_OCCURRENCES = legacyCounter.NPC_DAD_OVERTIME_COUNT;
+  if (typeof legacyCounter.WORLD_DAD_WORK_OCCURRENCES !== "number" && typeof legacyCounter.NPC_DAD_OVERTIME_COUNT === "number" && Number.isFinite(legacyCounter.NPC_DAD_OVERTIME_COUNT)) {
+    counter.WORLD_DAD_WORK_OCCURRENCES = clamp(legacyCounter.NPC_DAD_OVERTIME_COUNT, COUNTER_RANGE.WORLD_DAD_WORK_OCCURRENCES.min, COUNTER_RANGE.WORLD_DAD_WORK_OCCURRENCES.max);
   }
   const npc = { ...base.npc };
   if (isRecord(raw.npc)) {
@@ -569,8 +574,8 @@ export function validateState(raw: Record<string, unknown>): State | null {
       const patch = raw.npc[id];
       if (!isRecord(patch)) continue;
       npc[id] = {
-        relation: typeof patch.relation === "number" ? patch.relation : base.npc[id].relation,
-        trust: typeof patch.trust === "number" ? patch.trust : base.npc[id].trust,
+        relation: typeof patch.relation === "number" && Number.isFinite(patch.relation) ? clamp(patch.relation, NPC_STAT_RANGE.min, NPC_STAT_RANGE.max) : base.npc[id].relation,
+        trust: typeof patch.trust === "number" && Number.isFinite(patch.trust) ? clamp(patch.trust, NPC_STAT_RANGE.min, NPC_STAT_RANGE.max) : base.npc[id].trust,
         available: typeof patch.available === "boolean" ? patch.available : base.npc[id].available,
       };
     }
@@ -580,9 +585,9 @@ export function validateState(raw: Record<string, unknown>): State | null {
         if (typeof item.id !== "string" || !item.id) return [];
         const snapshot = isRecord(item.snapshot)
           ? {
-              dream: typeof item.snapshot.dream === "number" ? item.snapshot.dream : derived.VALUE_DREAM,
-              reality: typeof item.snapshot.reality === "number" ? item.snapshot.reality : derived.VALUE_REALITY,
-              family: typeof item.snapshot.family === "number" ? item.snapshot.family : derived.STATE_FAMILY_HARMONY,
+              dream: typeof item.snapshot.dream === "number" && Number.isFinite(item.snapshot.dream) ? clamp(item.snapshot.dream, DERIVED_RANGE.min, DERIVED_RANGE.max) : derived.VALUE_DREAM,
+              reality: typeof item.snapshot.reality === "number" && Number.isFinite(item.snapshot.reality) ? clamp(item.snapshot.reality, DERIVED_RANGE.min, DERIVED_RANGE.max) : derived.VALUE_REALITY,
+              family: typeof item.snapshot.family === "number" && Number.isFinite(item.snapshot.family) ? clamp(item.snapshot.family, DERIVED_RANGE.min, DERIVED_RANGE.max) : derived.STATE_FAMILY_HARMONY,
             }
           : { dream: derived.VALUE_DREAM, reality: derived.VALUE_REALITY, family: derived.STATE_FAMILY_HARMONY };
         const record: MemoryRecord = {
@@ -631,10 +636,10 @@ export function validateState(raw: Record<string, unknown>): State | null {
     noteScene: typeof raw.noteScene === "string" && SCENES.has(raw.noteScene) ? (raw.noteScene as State["noteScene"]) : null,
     result: savedResult(raw),
     approach: raw.approach === "social" || raw.approach === "safe" || raw.approach === "curious" ? raw.approach : null,
-    battleTries: typeof raw.battleTries === "number" ? raw.battleTries : 0,
+    battleTries: typeof raw.battleTries === "number" && Number.isFinite(raw.battleTries) ? clamp(Math.floor(raw.battleTries), BATTLE_TRIES_RANGE.min, BATTLE_TRIES_RANGE.max) : 0,
     battle:
       isRecord(raw.battle) && (raw.battle.kind === "perfect" || raw.battle.kind === "win" || raw.battle.kind === "fail" || raw.battle.kind === "bad")
-        ? { kind: raw.battle.kind, stress: typeof raw.battle.stress === "number" ? raw.battle.stress : 0, hp: typeof raw.battle.hp === "number" ? raw.battle.hp : 0 }
+        ? { kind: raw.battle.kind, stress: typeof raw.battle.stress === "number" && Number.isFinite(raw.battle.stress) ? clamp(raw.battle.stress, 0, 100) : 0, hp: typeof raw.battle.hp === "number" && Number.isFinite(raw.battle.hp) ? clamp(raw.battle.hp, 0, 100) : 0 }
         : null,
     offeredExplore: raw.offeredExplore === true,
     name: typeof raw.name === "string" ? raw.name.slice(0, 8) : "",

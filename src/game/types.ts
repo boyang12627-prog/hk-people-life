@@ -151,6 +151,21 @@ export const INITIAL_DERIVED: Derived = {
   INDEPENDENT_THOUGHT: 40,
 };
 
+export const COUNTER_RANGE: Record<CounterKey, { min: number; max: number }> = {
+  NPC_MOM_STRESS: { min: 0, max: 100 },
+  WORLD_DAD_WORK_OCCURRENCES: { min: 0, max: 99 },
+  PLAYER_DAD_CHOICE_RESPONSE: { min: 0, max: 99 },
+  REL_LOCAL_MARKET: { min: 0, max: 100 },
+  COUNTER_EXPLORE: { min: 0, max: 99 },
+  ART_PROGRESS: { min: 0, max: 10 },
+  MIND_PROGRESS: { min: 0, max: 10 },
+};
+
+export const PRIMARY_RANGE = { min: 0, max: 10 };
+export const DERIVED_RANGE = { min: 0, max: 100 };
+export const NPC_STAT_RANGE = { min: 0, max: 100 };
+export const BATTLE_TRIES_RANGE = { min: 0, max: 9 };
+
 export const INITIAL_COUNTERS: Counters = {
   NPC_MOM_STRESS: 25,
   WORLD_DAD_WORK_OCCURRENCES: 0,

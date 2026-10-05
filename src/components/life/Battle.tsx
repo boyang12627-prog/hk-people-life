@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
-import { actBattle, createBattle, stepBattle, type BattleAction, type BattleSim } from "@/game/battleSim";
+import { actBattle, BATTLE_COST, createBattle, stepBattle, type BattleAction, type BattleSim } from "@/game/battleSim";
 import type { Approach, BattleOutcome } from "@/game/types";
 
 type Props = {
@@ -56,7 +56,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
       if (spLabel.current) spLabel.current.textContent = String(Math.round(sim.sp));
       if (stressLabel.current) stressLabel.current.textContent = String(Math.round(sim.stress));
       if (hintRef.current) hintRef.current.textContent = sim.hint;
-      const costs: Record<BattleAction, number> = { walk: 2, guard: 3, read: 6, see: 8, ask: 8 };
+      const costs = BATTLE_COST;
       (Object.keys(costs) as BattleAction[]).forEach((name) => {
         const button = buttons.current[name];
         if (!button) return;
@@ -125,7 +125,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
       <div className="grid grid-cols-2 gap-2">
         <BattleButton
           label="向前行"
-          detail="氣力 1，唔夠就慢行"
+          detail={`氣力 ${BATTLE_COST.walk}，唔夠就慢行`}
           buttonRef={(node) => {
             buttons.current.walk = node;
           }}
@@ -133,7 +133,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
         />
         <BattleButton
           label="停低呼吸"
-          detail="氣力 3，擋一半"
+          detail={`氣力 ${BATTLE_COST.guard}，擋一半`}
           buttonRef={(node) => {
             buttons.current.guard = node;
           }}
@@ -141,7 +141,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
         />
         <BattleButton
           label="跟住讀"
-          detail={practiced ? "氣力 6，你跟得熟" : "氣力 6，未跟熟，冇咁有效"}
+          detail={practiced ? `氣力 ${BATTLE_COST.read}，你跟得熟` : `氣力 ${BATTLE_COST.read}，未跟熟，冇咁有效`}
           buttonRef={(node) => {
             buttons.current.read = node;
           }}
@@ -150,7 +150,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
         {see ? (
           <BattleButton
             label="睇面色"
-            detail="氣力 8，避開下一聲"
+            detail={`氣力 ${BATTLE_COST.see}，避開下一聲`}
             buttonRef={(node) => {
               buttons.current.see = node;
             }}
@@ -160,7 +160,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
         {ask ? (
           <BattleButton
             label="問問題"
-            detail="氣力 8，走近少少"
+            detail={`氣力 ${BATTLE_COST.ask}，走近少少`}
             buttonRef={(node) => {
               buttons.current.ask = node;
             }}

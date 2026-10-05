@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { actBattle, createBattle } from "./battleSim.ts";
+import { actBattle, BATTLE_COST, createBattle } from "./battleSim.ts";
 import { readFileSync } from "node:fs";
-import { FLAG_LEDGER, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
+import { judgeBalance, runGateSample } from "./battleBalance.ts";
+import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
 import { cardFor, choicesFor, fifteenLines, heardNews, lifeVoice, variantOf, yearLean, YEARS } from "./content.ts";
 import { applyEffect, freshState, parseSave, reducer, type Action } from "./engine.ts";
 import type { State } from "./types.ts";
@@ -244,6 +245,29 @@ describe("logic audit v2.2", () => {
     assert.equal(migrated?.memories[0]?.snapshot?.dream, legacy.derived.VALUE_DREAM);
     const envelope = JSON.stringify({ schemaVersion: 2, savedAt: "2026-10-04T00:00:00.000Z", state: freshState() });
     assert.equal(parseSave(envelope)?.phase, "title");
+    const dirty = freshState();
+    const broken = JSON.stringify({
+      ...dirty,
+      yearIndex: 9,
+      battleTries: 40,
+      primary: { ...dirty.primary, STAT_MIND: 999 },
+      derived: { ...dirty.derived, STATE_MOOD: -999 },
+      counter: { ...dirty.counter, NPC_MOM_STRESS: 500, ART_PROGRESS: 80, COUNTER_EXPLORE: -3 },
+      npc: { ...dirty.npc, NPC_DAD_01: { relation: 999, trust: -20, available: true } },
+      battle: { kind: "win", stress: 400, hp: -5 },
+    });
+    const clamped = parseSave(broken);
+    assert.equal(clamped?.primary.STAT_MIND, 10);
+    assert.equal(clamped?.derived.STATE_MOOD, 0);
+    assert.equal(clamped?.counter.NPC_MOM_STRESS, 100);
+    assert.equal(clamped?.counter.ART_PROGRESS, 10);
+    assert.equal(clamped?.counter.COUNTER_EXPLORE, 0);
+    assert.equal(clamped?.npc.NPC_DAD_01.relation, 100);
+    assert.equal(clamped?.npc.NPC_DAD_01.trust, 0);
+    assert.equal(clamped?.yearIndex, 2);
+    assert.equal(clamped?.battleTries, 9);
+    assert.equal(clamped?.battle?.stress, 100);
+    assert.equal(clamped?.battle?.hp, 0);
   });
 
   it("every formal flag has a producer and a consumer", () => {
@@ -259,9 +283,11 @@ describe("logic audit v2.2", () => {
       }
     }
     for (const flag of RETIRED_FLAGS) assert.equal(seen.has(flag), false);
-    const ledger = new Set(FLAG_LEDGER.map((item) => item.id));
+    const catalog = [...FLAG_LEDGER, ...INDEX_LEDGER, ...MEMORY_LEDGER];
+    const ledger = new Set(catalog.map((item) => item.id));
+    assert.equal(ledger.size, catalog.length);
     for (const flag of seen) assert.equal(ledger.has(flag), true, flag);
-    for (const spec of FLAG_LEDGER) {
+    for (const spec of catalog) {
       assert.ok(spec.producer.length > 0);
       assert.ok(spec.consumer.length > 0);
       assert.ok(spec.consumerKind);
@@ -272,10 +298,12 @@ describe("logic audit v2.2", () => {
     const ui = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
     const reads = (src: string, id: string) => src.includes(`.includes("${id}")`);
     for (const spec of FLAG_LEDGER) {
-      const seenInPlay = reads(game, spec.id) || reads(ui, spec.id);
+      assert.ok(spec.consumerKind === "CODE" || spec.consumerKind === "ENDING");
       if (spec.consumerKind === "CODE") assert.equal(reads(game, spec.id), true, spec.id);
-      if (spec.consumerKind === "ENDING") assert.equal(seenInPlay, true, spec.id);
-      if (spec.consumerKind === "DEBUG" || spec.consumerKind === "MEMORY") assert.equal(seenInPlay, false, spec.id);
+      if (spec.consumerKind === "ENDING") assert.equal(reads(game, spec.id) || reads(ui, spec.id), true, spec.id);
+    }
+    for (const spec of [...INDEX_LEDGER, ...MEMORY_LEDGER]) {
+      assert.equal(reads(game, spec.id) || reads(ui, spec.id), false, spec.id);
     }
     for (const spec of TAG_LEDGER) {
       const seenInPlay = reads(game, spec.id) || reads(ui, spec.id);
@@ -347,4 +375,60 @@ describe("logic audit v2.2", () => {
     assert.ok(migrated?.personalityTags.includes("TAG_EMPATHY"));
     assert.ok(migrated?.flags.includes("FLAG_REPAIR_TALK"));
   });
+
+  it("core choices come back the next year and again at fifteen", () => {
+    const ask = remember("MEM_NEWS_01", "B", { flags: ["FLAG_PARENT_EXPLAIN"] });
+    assert.ok(cardFor("EVT_1985_FAMILY_03", ask).lines.join("").includes("問過"));
+    assert.ok(cardFor("EVT_1986_SKILL_05", ask).lines.join("").includes("實際"));
+    assert.ok(fifteenLines(ask).join("").includes("自己先開口問"));
+    const eat = remember("MEM_NEWS_01", "C", { personalityTags: ["TAG_NEWS_ENGAGEMENT_LOW"] });
+    assert.ok(cardFor("EVT_1985_FAMILY_03", eat).lines.join("").includes("繼續食飯"));
+    assert.ok(cardFor("EVT_1986_SKILL_05", eat).lines.join("").includes("唔急住揀"));
+    assert.ok(fifteenLines(eat).join("").includes("唔急住問"));
+    const mom = remember("MEM_MOM_TIRED", "A", { flags: ["FLAG_HELPED_MOM_01"] });
+    assert.ok(cardFor("EVT_1985_SCHOOL_01", mom).lines.join("").includes("收過玩具"));
+    assert.ok(cardFor("EVT_1986_MARKET_07", mom).lines.join("").includes("收過玩具"));
+    assert.ok(fifteenLines(mom).join("").includes("伸出去"));
+    const ball = remember("MEM_RED_BALL", "B", { flags: ["FLAG_SHARED_BALL"] });
+    assert.ok(cardFor("EVT_1986_SKILL_05", ball).lines.join("").includes("揮你過去坐"));
+    assert.ok(fifteenLines(ball).join("").includes("輪住"));
+    const dad = remember("MEM_DAD_WORK", "B");
+    assert.ok(cardFor("EVT_1986_ECHO_08", dad).lines.join("").includes("應過佢去返工"));
+    assert.ok(fifteenLines(dad).join("").includes("應一聲"));
+  });
+
+  it("battle costs come from one table, and prepared approaches are not a dead road", () => {
+    const ui = readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8");
+    assert.equal(BATTLE_COST.walk, 1);
+    assert.ok(ui.includes("BATTLE_COST"));
+    assert.equal(ui.includes("walk: 2"), false);
+    const gate = judgeBalance(runGateSample(200));
+    assert.deepEqual(gate.fails, []);
+  });
 });
+
+function remember(id: string, choiceId: string, extra: Partial<State> = {}) {
+  const base = freshState();
+  return {
+    ...base,
+    ...extra,
+    flags: extra.flags ?? base.flags,
+    personalityTags: extra.personalityTags ?? [],
+    counter: extra.counter ?? base.counter,
+    npc: extra.npc ?? base.npc,
+    memories: [
+      {
+        id,
+        eventId: id,
+        choiceId,
+        variant: "base",
+        year: 1984,
+        age: 3,
+        npc: "",
+        emotion: "",
+        weight: 1,
+        echo: "十年後仲喺度。",
+      },
+    ],
+  };
+}

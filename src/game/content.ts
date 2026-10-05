@@ -342,6 +342,9 @@ export function cardFor(id: string, state: State): Card {
       const mom = picked(state, "MEM_MOM_TIRED");
       if (mom === "A") lines.push("阿媽冇幫你揀。上年你自己收過玩具。");
       if (state.flags.includes("FLAG_PARENT_EXPLAIN")) lines.push("阿爸解釋過一次將來。今日佢想你揀實際。");
+      const news = picked(state, "MEM_NEWS_01");
+      if (news === "A") lines.push("上年你企埋去聽。今日你都係聽完先至揀。");
+      if (news === "C") lines.push("上年「九七」你冇問。今日新嘢擺喺面前，你都唔急住揀。");
       if (state.flags.includes("FLAG_AVOID_CONFLICT")) lines.push("你上次行開。今日個位仍然係你自己坐。");
       if (state.flags.includes("FLAG_CURIOUS_SCHOOL")) lines.push("你第一日自己行近個波。老師記得。");
       if (state.derived.INDEPENDENT_THOUGHT >= 50) lines.push("你未問出口，已經自己諗咗兩句。冇人聽見。");
@@ -932,12 +935,35 @@ export function orientationLine(dream: number, reality: number) {
 export function fifteenLines(state: State) {
   const lines = ["屋企部電視仲係開住。", "你第一次自己返屋企。阿媽問你幾點返。", "你冇再解釋咁多。"];
   if (state.skills.includes("SKL_09")) lines.splice(2, 0, "條路你細個自己行過。而家冇人拖住你。");
-  const news = state.memories.find((item) => item.id === "MEM_NEWS_01")?.choiceId;
-  if (news === "A" || news === "B") lines.push("你而家先明白，嗰晚大人講緊咁大件事。");
-  else if (state.personalityTags.includes("TAG_NEWS_ENGAGEMENT_LOW")) lines.push("你細個新聞響都顧住食飯。而家都係，唔使停低問。");
-  else lines.push("電視仲係響。你已經唔使停低問。");
+  lines.push(...thirdHop(state));
   lines.push("原來你細個嗰啲選擇，未消失。");
   return lines;
+}
+
+function thirdHop(state: State) {
+  const lines: string[] = [];
+  const news = picked(state, "MEM_NEWS_01");
+  if (news === "B") lines.push("有人提起前途。你自己先開口問。");
+  else if (news === "A") lines.push("電視又開住。你會停低，聽大人唔講完嗰句。");
+  else if (news === "C" || state.personalityTags.includes("TAG_NEWS_ENGAGEMENT_LOW")) lines.push("新聞響，你都唔急住問。你細個都係顧住食飯。");
+  const mom = picked(state, "MEM_MOM_TIRED");
+  if (mom === "A") lines.push("阿媽問你食咗未。你手自己伸出去。");
+  else if (mom === "C") lines.push("阿媽坐喺度。你坐埋去，冇問好多。");
+  else if (mom === "B") lines.push("你仲想人陪。想完，你識自己收口。");
+  const ball = picked(state, "MEM_RED_BALL");
+  if (ball === "B") lines.push("朋友叫你。你識講輪住，唔會一個人霸住。");
+  else if (ball === "A") lines.push("你記得自己霸過個波。今日你冇再搶先。");
+  else if (ball === "C") lines.push("有人叫你。你企一陣先至行埋去。");
+  const dad = picked(state, "MEM_DAD_WORK");
+  if (dad === "B") lines.push("阿爸又話要返工。你應一聲，冇再問成個下午。");
+  else if (dad === "A") lines.push("個約你細個裂過。今日你自己行，唔使等人。");
+  else if (dad === "C") lines.push("阿爸留唔到。你識坐低等，唔使即刻走。");
+  const market = picked(state, "MEM_MARKET_01");
+  if (market === "B") lines.push("有人幫你。你仲會問，份好意係咪一定要還。");
+  else if (market === "A") lines.push("街坊多畀過你。你而家都識講多謝。");
+  if (state.flags.includes("FLAG_CURIOUS_SCHOOL")) lines.push("你細個自己行近過。而家返學，你唔使再拖住人。");
+  else if (state.flags.includes("FLAG_FAMILY_NEWS_SILENCE") && picked(state, "MEM_SILENT_NEWS_01") === "A") lines.push("屋企靜過。你而家都識，靜有時係擔心。");
+  return lines.slice(0, 3);
 }
 
 const RECALL: Record<string, Record<string, string>> = {

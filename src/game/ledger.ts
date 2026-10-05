@@ -1,7 +1,11 @@
 export type FlagScope = "run" | "year" | "life" | "npc";
 
-/** CODE is read by a later branch. MEMORY is only stored beside a memory. ENDING is the ending or year-end. DEBUG is an index nobody reads. */
-export type ConsumerKind = "CODE" | "MEMORY" | "ENDING" | "DEBUG";
+/** CODE is read by a later branch. ENDING is the ending, the year-end, or the 1996 beat. */
+export type ConsumerKind = "CODE" | "ENDING";
+
+export type IndexKind = "DEBUG";
+
+export type MemoryKind = "MEMORY";
 
 export type FlagSpec = {
   id: string;
@@ -14,18 +18,15 @@ export type FlagSpec = {
   owner: string;
 };
 
-/** Formal flags only. A flag with no consumer does not belong here. */
+export type IndexSpec = Omit<FlagSpec, "consumerKind"> & { consumerKind: IndexKind };
+
+export type MemoryMarkSpec = Omit<FlagSpec, "consumerKind"> & { consumerKind: MemoryKind };
+
+/**
+ * Formal flags only: a later branch or the ending actually reads the flag.
+ * Indexes and memory-only marks live in INDEX_LEDGER and MEMORY_LEDGER.
+ */
 export const FLAG_LEDGER: FlagSpec[] = [
-  {
-    id: "FLAG_HEARD_ADULT_FUTURE",
-    producer: ["EVT_1984_NEWS_01 A", "EVT_1984_NEWS_01 B"],
-    consumer: ["nobody. heardNews reads MEM_NEWS_01 choiceId, not this flag"],
-    consumerKind: "DEBUG",
-    fallback: "No flag means not heard. Memory choiceId is the fact.",
-    scope: "life",
-    debugLabel: "聽過將來",
-    owner: "news",
-  },
   {
     id: "FLAG_PARENT_EXPLAIN",
     producer: ["EVT_1984_NEWS_01 B"],
@@ -127,16 +128,6 @@ export const FLAG_LEDGER: FlagSpec[] = [
     owner: "skill",
   },
   {
-    id: "FLAG_DAD_OVERTIME_MEMORY",
-    producer: ["EVT_1986_FAMILY_06"],
-    consumer: ["MEM_DAD_WORK is the fact. Ending reads the memory, not this flag"],
-    consumerKind: "MEMORY",
-    fallback: "Ending has no dad-work sentence.",
-    scope: "life",
-    debugLabel: "記得阿爸返工",
-    owner: "dad",
-  },
-  {
     id: "FLAG_DAD_WILL_COMPENSATE",
     producer: ["EVT_1986_FAMILY_06 A"],
     consumer: ["EVT_1986_ECHO_08"],
@@ -165,16 +156,6 @@ export const FLAG_LEDGER: FlagSpec[] = [
     scope: "life",
     debugLabel: "問人情",
     owner: "market",
-  },
-  {
-    id: "FLAG_FIRST_INDEPENDENCE",
-    producer: ["EVT_1986_ECHO_08"],
-    consumer: ["MEM_FIRST_INDEPENDENCE is the fact. Ending reads the memory, not this flag"],
-    consumerKind: "MEMORY",
-    fallback: "Skip memory covers an explicit refusal.",
-    scope: "life",
-    debugLabel: "到過邨口",
-    owner: "echo",
   },
   {
     id: "FLAG_RETRY_SCHOOL",
@@ -215,6 +196,42 @@ export const FLAG_LEDGER: FlagSpec[] = [
     scope: "life",
     debugLabel: "冇講",
     owner: "repair",
+  },
+];
+
+export const INDEX_LEDGER: IndexSpec[] = [
+  {
+    id: "FLAG_HEARD_ADULT_FUTURE",
+    producer: ["EVT_1984_NEWS_01 A", "EVT_1984_NEWS_01 B"],
+    consumer: ["nobody. heardNews reads MEM_NEWS_01 choiceId, not this flag"],
+    consumerKind: "DEBUG",
+    fallback: "No flag means not heard. Memory choiceId is the fact.",
+    scope: "life",
+    debugLabel: "聽過將來",
+    owner: "news",
+  },
+];
+
+export const MEMORY_LEDGER: MemoryMarkSpec[] = [
+  {
+    id: "FLAG_DAD_OVERTIME_MEMORY",
+    producer: ["EVT_1986_FAMILY_06"],
+    consumer: ["MEM_DAD_WORK is the fact. Ending reads the memory, not this flag"],
+    consumerKind: "MEMORY",
+    fallback: "Ending has no dad-work sentence.",
+    scope: "life",
+    debugLabel: "記得阿爸返工",
+    owner: "dad",
+  },
+  {
+    id: "FLAG_FIRST_INDEPENDENCE",
+    producer: ["EVT_1986_ECHO_08"],
+    consumer: ["MEM_FIRST_INDEPENDENCE is the fact. Ending reads the memory, not this flag"],
+    consumerKind: "MEMORY",
+    fallback: "Skip memory covers an explicit refusal.",
+    scope: "life",
+    debugLabel: "到過邨口",
+    owner: "echo",
   },
 ];
 
