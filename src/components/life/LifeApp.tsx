@@ -147,7 +147,7 @@ function Top({ state }: { state: State }) {
 
 function Title({ onStart }: { onStart: () => void }) {
   return (
-    <Paper scene="estate" kicker="幼年" title="細個三年">
+    <Paper scene="estate" kicker="幼年" title="細個嗰三年">
       <p className="text-pretty text-base leading-7">一九八四到一九八六。你喺屋邨大，食飯，去幼稚園門口。</p>
       <p className="mt-3 text-pretty text-base leading-7">你一路揀。過咗呢三年，先睇到自己變成邊個。</p>
       <Primary onClick={onStart}>開始</Primary>
