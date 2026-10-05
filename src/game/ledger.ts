@@ -174,7 +174,7 @@ export const FLAG_LEDGER: FlagSpec[] = [
     consumerKind: "CODE",
     fallback: "The offer repeats until the gate is met.",
     scope: "run",
-    debugLabel: "留喺屋企",
+    debugLabel: "留在家裡",
     owner: "echo",
   },
   {
@@ -194,7 +194,7 @@ export const FLAG_LEDGER: FlagSpec[] = [
     consumerKind: "ENDING",
     fallback: "Ending does not mention the swallowed night.",
     scope: "life",
-    debugLabel: "冇講",
+    debugLabel: "沒有說",
     owner: "repair",
   },
 ];

@@ -118,21 +118,21 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
           <Meter label="壓力" barRef={stressRef} valueRef={stressLabel} tone="bg-ink" />
           <Meter label="入到課室" barRef={meterRef} tone="bg-estate" />
           <p ref={hintRef} className="min-h-12 text-sm text-pretty text-ink/70">
-            阿媽鬆開手。
+            媽媽鬆開手。
           </p>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <BattleButton
           label="向前行"
-          detail={`氣力 ${BATTLE_COST.walk}，唔夠就慢行`}
+          detail={`氣力 ${BATTLE_COST.walk}，不夠就慢走`}
           buttonRef={(node) => {
             buttons.current.walk = node;
           }}
           onClick={() => press("walk")}
         />
         <BattleButton
-          label="停低呼吸"
+          label="停下呼吸"
           detail={`氣力 ${BATTLE_COST.guard}，擋一半`}
           buttonRef={(node) => {
             buttons.current.guard = node;
@@ -140,8 +140,8 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
           onClick={() => press("guard")}
         />
         <BattleButton
-          label="跟住讀"
-          detail={practiced ? `氣力 ${BATTLE_COST.read}，你跟得熟` : `氣力 ${BATTLE_COST.read}，未跟熟，冇咁有效`}
+          label="跟著讀"
+          detail={practiced ? `氣力 ${BATTLE_COST.read}，你跟得熟` : `氣力 ${BATTLE_COST.read}，還沒跟熟，沒那麼有效`}
           buttonRef={(node) => {
             buttons.current.read = node;
           }}
@@ -149,7 +149,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
         />
         {see ? (
           <BattleButton
-            label="睇面色"
+            label="看臉色"
             detail={`氣力 ${BATTLE_COST.see}，避開下一聲`}
             buttonRef={(node) => {
               buttons.current.see = node;
@@ -169,8 +169,8 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
         ) : null}
       </div>
       <p className="text-sm text-pretty text-paper/70">
-        {practiced ? "你識跟住讀。跟住讀，壓力會落得多啲。" : "你未跟熟。跟住讀都得，但個聲好細。"}
-        氣力用嚟行、停、跟住讀。今日入唔到，可以再試，唔會完。
+        {practiced ? "你懂得跟著讀。跟著讀，壓力會落得多一些。" : "你還沒跟熟。跟著讀也可以，但聲音很細。"}
+        氣力用來走、停、跟著讀。今天進不去，可以再試，不會結束。
       </p>
     </div>
   );

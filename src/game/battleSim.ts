@@ -50,10 +50,10 @@ export function createBattle(input: {
   if (input.tidy) stress = Math.max(0, stress - 6);
   const hint =
     input.approach === "safe"
-      ? "你仍然捉實阿媽。開頭冇咁驚。"
+      ? "你仍然抓著媽媽。開頭沒有那麼害怕。"
       : input.approach === "curious"
-        ? "你望住課室。入面好嘈，壓力大啲。"
-        : "阿媽鬆開手。你開過口，而家要自己行埋去。";
+        ? "你看著課室。裡面很吵，壓力大一些。"
+        : "媽媽鬆開手。你開過口，現在要自己走過去。";
   return {
     x: startX,
     hp: input.hp,
@@ -114,17 +114,17 @@ export function stepBattle(sim: BattleSim, dt: number) {
     }
     if (sim.dodge) {
       sim.dodge = false;
-      sim.hint = "你睇得出邊一下會撞過嚟，避開咗。";
+      sim.hint = "你看得出哪一下會撞過來，避開了。";
     } else if (sim.guard > 0) {
       const perfect = sim.guard > 0.48;
       const taken = perfect ? wave.dmg * 0.1 : wave.dmg * 0.5;
       sim.hp = Math.max(0, sim.hp - taken);
       if (perfect) {
         sim.sp = Math.min(sim.maxSp, sim.sp + 10);
-        sim.hint = "你啱啱停低。個聲擦過，氣力返嚟少少。";
+        sim.hint = "你剛剛停下。那個聲音擦過，氣力回來少許。";
       } else {
         sim.stress = Math.min(100, sim.stress + 8);
-        sim.hint = "你擋住咗。個聲細咗一半。";
+        sim.hint = "你擋住了。聲音小了一半。";
       }
       sim.guard = 0;
     } else {
@@ -132,7 +132,7 @@ export function stepBattle(sim: BattleSim, dt: number) {
       sim.stress = Math.min(100, sim.stress + 12);
       sim.x = Math.max(4, sim.x - 2);
       sim.shake = 0.18;
-      sim.hint = "陌生嘅聲撞過嚟。你退後一步。";
+      sim.hint = "陌生的聲音撞過來。你退後一步。";
     }
   }
   sim.waves = kept;
@@ -151,32 +151,32 @@ export function actBattle(sim: BattleSim, name: BattleAction, enabled: boolean) 
     sim.x = Math.min(100, sim.x + (weak ? 2 : 3));
     sim.stress = Math.min(100, sim.stress + 1);
     sim.cd.walk = 1.1;
-    sim.hint = weak ? "氣力唔夠。你仍然行，只係慢。" : "你行前一步。";
+    sim.hint = weak ? "氣力不夠。你仍然走，只是慢。" : "你向前走一步。";
     return;
   }
   if (sim.sp < cost) {
-    sim.hint = "氣力唔夠。可以慢行，或者等一陣。";
+    sim.hint = "氣力不夠。可以慢走，或者等一陣。";
     return;
   }
   sim.sp -= cost;
   if (name === "guard") {
     sim.guard = 0.78;
     sim.cd.guard = 0.95;
-    sim.hint = "你停低呼吸。";
+    sim.hint = "你停下呼吸。";
   } else if (name === "read") {
     const practiced = sim.practiced;
     sim.x = Math.min(100, sim.x + (practiced ? 2 : 1));
     sim.stress = Math.max(0, sim.stress - (practiced ? 10 : 4));
     sim.cd.read = practiced ? 2.1 : 2.6;
-    sim.hint = practiced ? "你跟住老師教過嘅字。聲細，但你有聲。" : "你未跟熟。只係出到半個字，聲細少少。";
+    sim.hint = practiced ? "你跟著老師教過的字。聲音細，但你有聲音。" : "你還沒跟熟。只出到半個字，聲音小了一點。";
   } else if (name === "see") {
     sim.dodge = true;
     sim.cd.see = 3.6;
-    sim.hint = "你望一望。下一聲，你會避開。";
+    sim.hint = "你看一看。下一聲，你會避開。";
   } else if (name === "ask") {
     sim.x = Math.min(100, sim.x + 3);
     sim.stress = Math.max(0, sim.stress - 4);
     sim.cd.ask = 3.3;
-    sim.hint = "你問咗一句。課室近咗。";
+    sim.hint = "你問了一句。課室近了。";
   }
 }

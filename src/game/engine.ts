@@ -51,14 +51,14 @@ const DERIVED_LABEL: Record<keyof Derived, string> = {
   VALUE_DREAM: "想做",
   VALUE_REALITY: "要做",
   STATE_PEACE: "心安",
-  STATE_FAMILY_HARMONY: "屋企",
+  STATE_FAMILY_HARMONY: "家裡",
   STATE_GLOBAL_NETWORK: "熟人",
-  INDEPENDENT_THOUGHT: "自己諗",
+  INDEPENDENT_THOUGHT: "自己想",
 };
 
 const COUNTER_LABEL: Partial<Record<keyof Counters, string>> = {
-  NPC_MOM_STRESS: "阿媽攰",
-  WORLD_DAD_WORK_OCCURRENCES: "阿爸返工",
+  NPC_MOM_STRESS: "媽媽累",
+  WORLD_DAD_WORK_OCCURRENCES: "爸爸上班",
   REL_LOCAL_MARKET: "街坊熟",
   COUNTER_EXPLORE: "出過門",
   ART_PROGRESS: "畫畫",
@@ -66,21 +66,21 @@ const COUNTER_LABEL: Partial<Record<keyof Counters, string>> = {
 };
 
 const NPC_RELATION: Record<NpcId, string> = {
-  NPC_DAD_01: "同阿爸",
-  NPC_MOM_01: "同阿媽",
-  NPC_GRAND_01: "同嫲嫲",
-  NPC_AUNT_01: "同阿姨",
-  NPC_FRIEND_01: "同阿傑",
-  NPC_TEACH_01: "同老師",
+  NPC_DAD_01: "和爸爸",
+  NPC_MOM_01: "和媽媽",
+  NPC_GRAND_01: "和嫲嫲",
+  NPC_AUNT_01: "和阿姨",
+  NPC_FRIEND_01: "和阿傑",
+  NPC_TEACH_01: "和老師",
 };
 
 const NPC_TRUST: Record<NpcId, string> = {
-  NPC_DAD_01: "阿爸信你",
-  NPC_MOM_01: "阿媽信你",
-  NPC_GRAND_01: "嫲嫲信你",
-  NPC_AUNT_01: "阿姨信你",
-  NPC_FRIEND_01: "阿傑信你",
-  NPC_TEACH_01: "老師信你",
+  NPC_DAD_01: "爸爸信任你",
+  NPC_MOM_01: "媽媽信任你",
+  NPC_GRAND_01: "嫲嫲信任你",
+  NPC_AUNT_01: "阿姨信任你",
+  NPC_FRIEND_01: "阿傑信任你",
+  NPC_TEACH_01: "老師信任你",
 };
 
 export function freshState(seed = 198401): State {
@@ -338,8 +338,8 @@ function repair(state: State, talk: boolean): State {
       : { derived: { STATE_FAMILY_HARMONY: -1, STATE_PEACE: 1 }, flags: ["FLAG_REPAIR_SILENT"] },
   );
   const text = talk
-    ? "你講俾阿媽聽。佢拉住你一陣，冇再鬧。屋企近咗，但你個心緊咗。"
-    : "你唔講，自己瞓。少咗場鬧，個心靜返，但屋企少咗一句。";
+    ? "你告訴媽媽。她拉了你一會兒，沒有再罵。家裡近了，但你心裡緊了。"
+    : "你不說，自己去睡。少了一場責罵，心靜下來，但家裡少了一句。";
   return {
     ...applied.state,
     phase: "result",
@@ -365,7 +365,7 @@ function exploreOffer(state: State, go: boolean): State {
       npc: "NPC_MOM_01",
       emotion: "stay",
       weight: 2,
-      echo: "十年後你記得自己可以去，但你留喺屋企。",
+      echo: "十年後你記得自己可以去，但你留在家裡。",
       snapshot: snapshotOf(applied.state),
     };
     return {
@@ -373,7 +373,7 @@ function exploreOffer(state: State, go: boolean): State {
       memories: upsertMemory(applied.state.memories, record),
       offeredExplore: true,
       phase: "result",
-      result: { text: "你留喺屋企。行到走廊盡頭先會發生嘅事，你自己揀咗唔去。", deltas: applied.deltas, skills: [] },
+      result: { text: "你留在家裡。走到走廊盡頭才會發生的事，你自己選了不去。", deltas: applied.deltas, skills: [] },
     };
   }
   const applied = applyEffect(state, {
@@ -386,7 +386,7 @@ function exploreOffer(state: State, go: boolean): State {
     offeredExplore: false,
     phase: "result",
     result: {
-      text: enough ? "你再落咗一次平台。行到邨口，跟住嗰件事先至發生。" : "你落咗一次平台。仲差一次，先至行到邨口。冇人逼你再去。",
+      text: enough ? "你再下了一次平台。走到屋邨門口，接著那件事才發生。" : "你下了一次平台。還差一次，才走到屋邨門口。沒有人逼你再去。",
       deltas: applied.deltas,
       skills: [],
     },

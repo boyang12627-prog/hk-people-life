@@ -190,5 +190,5 @@ export function driveSp(primary: Primary, mood: number) {
 }
 
 export function grownWord(gender: Gender) {
-  return gender === "boy" ? "大個仔" : "大個女";
+  return gender === "boy" ? "男孩子" : "女孩子";
 }

@@ -50,7 +50,7 @@ describe("logic audit v2.2", () => {
     state = reducer(state, { type: "nextYear" });
     state = spend(state, ["ACT_REST", "ACT_PLAY"]);
     assert.equal(state.eventId, "EVT_1985_SCHOOL_01");
-    assert.ok(cardFor(state.eventId, state).lines.join("").includes("仲有氣"));
+    assert.ok(cardFor(state.eventId, state).lines.join("").includes("還有力氣"));
     state = chooseId(state, "B");
     assert.equal(state.skills.includes("SKL_01"), true);
     assert.equal(state.npc.NPC_FRIEND_01.available, false);
@@ -61,8 +61,8 @@ describe("logic audit v2.2", () => {
     assert.equal(state.eventId, "EVT_1985_FAMILY_03");
     assert.equal(variantOf(state.eventId, state), "plain");
     const card = cardFor(state.eventId, state).lines.join("");
-    assert.ok(card.includes("繼續食飯"));
-    assert.equal(card.includes("企埋去聽"), false);
+    assert.ok(card.includes("繼續吃飯"));
+    assert.equal(card.includes("站過去聽"), false);
     state = chooseId(state, "A");
     assert.equal(state.result?.text.includes("頭先講過將來"), false);
     assert.equal(state.memories.find((item) => item.id === "MEM_SILENT_NEWS_01")?.variant, "plain");
@@ -72,7 +72,7 @@ describe("logic audit v2.2", () => {
     let state = run(freshState(1), [{ type: "gender", gender: "boy", name: "" }]);
     state = spend(state, ["ACT_PLAY", "ACT_DRAW"]);
     assert.equal(variantOf("EVT_1984_NEWS_01", state), "cold");
-    assert.ok(cardFor("EVT_1984_NEWS_01", state).lines.join("").includes("玩咗成個下午"));
+    assert.ok(cardFor("EVT_1984_NEWS_01", state).lines.join("").includes("玩了一整個下午"));
     assert.ok(state.derived.STATE_FAMILY_HARMONY < 70);
   });
 
@@ -98,7 +98,7 @@ describe("logic audit v2.2", () => {
     state = reducer(state, { type: "ack" });
     assert.equal(state.eventId, "EVT_1985_FRIEND_04");
     assert.equal(variantOf(state.eventId, state), "stranger");
-    assert.ok(cardFor(state.eventId, state).lines.join("").includes("未正式識"));
+    assert.ok(cardFor(state.eventId, state).lines.join("").includes("還不正式認識"));
   });
 
   it("explore fallback cannot skip the gate, and declining is explicit", () => {
@@ -146,7 +146,7 @@ describe("logic audit v2.2", () => {
     state = reducer(state, { type: "nextYear" });
     assert.equal(state.counter.WORLD_DAD_WORK_OCCURRENCES, 2);
     const before = cardFor("EVT_1986_FAMILY_06", state).lines.join("");
-    assert.ok(before.includes("唔係第一次"));
+    assert.ok(before.includes("不是第一次"));
     state = { ...state, phase: "event", eventId: "EVT_1986_FAMILY_06" };
     const left = chooseId(state, "A");
     const stayed = chooseId(state, "C");
@@ -154,8 +154,8 @@ describe("logic audit v2.2", () => {
     assert.equal(left.counter.PLAYER_DAD_CHOICE_RESPONSE, 1);
     assert.equal(stayed.counter.PLAYER_DAD_CHOICE_RESPONSE, 3);
     assert.notEqual(left.npc.NPC_DAD_01.relation, stayed.npc.NPC_DAD_01.relation);
-    assert.ok(cardFor("EVT_1986_ECHO_08", left).lines.join("").includes("約裂過"));
-    assert.ok(cardFor("EVT_1986_ECHO_08", stayed).lines.join("").includes("留低過"));
+    assert.ok(cardFor("EVT_1986_ECHO_08", left).lines.join("").includes("裂開過"));
+    assert.ok(cardFor("EVT_1986_ECHO_08", stayed).lines.join("").includes("留過"));
   });
 
   it("followed reading is stronger than an unpracticed attempt", () => {
@@ -176,15 +176,15 @@ describe("logic audit v2.2", () => {
     };
     assert.ok(cardFor("EVT_1986_MARKET_07", painted).lines.join("").includes("顏色"));
     const loud = choicesFor("EVT_1986_MARKET_07", { ...freshState(), primary: { ...freshState().primary, STAT_SPEECH: 6 } }).find((item) => item.id === "B");
-    assert.ok(loud?.result.includes("唔使即刻還"));
+    assert.ok(loud?.result.includes("不必立刻還"));
     const quiet = choicesFor("EVT_1986_MARKET_07", { ...freshState(), primary: { ...freshState().primary, STAT_SPEECH: 5 } }).find((item) => item.id === "B");
-    assert.equal(quiet?.result.includes("唔使即刻還"), false);
+    assert.equal(quiet?.result.includes("不必立刻還"), false);
     const dreaming = {
       ...freshState(),
       derived: { ...freshState().derived, VALUE_DREAM: 70, VALUE_REALITY: 50 },
       npc: { ...freshState().npc, NPC_FRIEND_01: { relation: 4, trust: 2, available: true } },
     };
-    assert.ok(cardFor("EVT_1986_SKILL_05", dreaming).lines.join("").includes("望住顏色"));
+    assert.ok(cardFor("EVT_1986_SKILL_05", dreaming).lines.join("").includes("看著顏色"));
   });
 
   it("ending voice keeps one memory from each year", () => {
@@ -200,8 +200,8 @@ describe("logic audit v2.2", () => {
       "阿澄",
     );
     assert.ok(voice.includes("阿澄"));
-    assert.ok(voice.includes("繼續食飯"));
-    assert.ok(voice.includes("跟住睇"));
+    assert.ok(voice.includes("繼續吃飯"));
+    assert.ok(voice.includes("接著看"));
     assert.ok(voice.includes("踏出"));
   });
 
@@ -209,12 +209,12 @@ describe("logic audit v2.2", () => {
     const base = { ...freshState(), phase: "repair" as const, gender: "girl" as const, result: { text: "你踏出一步。", deltas: [], skills: [] } };
     const talk = reducer(base, { type: "repair", talk: true });
     const silent = reducer(base, { type: "repair", talk: false });
-    assert.ok(talk.result?.text.includes("屋企近"));
+    assert.ok(talk.result?.text.includes("家裡近"));
     assert.ok(talk.result?.text.includes("緊"));
     assert.equal(talk.derived.STATE_FAMILY_HARMONY, base.derived.STATE_FAMILY_HARMONY + 2);
     assert.equal(talk.derived.STATE_STRESS, base.derived.STATE_STRESS + 1);
     assert.ok(silent.result?.text.includes("靜"));
-    assert.ok(silent.result?.text.includes("少咗一句"));
+    assert.ok(silent.result?.text.includes("少了一句"));
     assert.equal(silent.derived.STATE_FAMILY_HARMONY, base.derived.STATE_FAMILY_HARMONY - 1);
     assert.equal(silent.derived.STATE_PEACE, base.derived.STATE_PEACE + 1);
   });
@@ -224,7 +224,7 @@ describe("logic audit v2.2", () => {
     const choices = choicesFor("EVT_1986_SKILL_05", state);
     const ask = choices.find((item) => item.id === "D");
     assert.ok(ask);
-    assert.equal(ask?.label, "你有個奇怪問題想問");
+    assert.equal(ask?.label, "你有個奇怪的問題想問");
     assert.equal(ask?.effect.primary?.STAT_SPEECH, undefined);
     assert.equal(ask?.effect.derived?.STATE_STRESS, 1);
   });
@@ -307,7 +307,7 @@ describe("logic audit v2.2", () => {
     }
     for (const spec of TAG_LEDGER) {
       const seenInPlay = reads(game, spec.id) || reads(ui, spec.id);
-      assert.equal(seenInPlay, spec.consumerKind !== "DEBUG" && spec.consumerKind !== "MEMORY", spec.id);
+      assert.equal(seenInPlay, true, spec.id);
     }
     for (const spec of SKILL_LEDGER) {
       const where = spec.consumerKind === "BATTLE" ? ui : game;
@@ -347,15 +347,15 @@ describe("logic audit v2.2", () => {
     assert.equal(choicesFor("EVT_1986_SKILL_05", share).some((item) => item.id === "E"), true);
     assert.equal(choicesFor("EVT_1986_SKILL_05", freshState()).some((item) => item.id === "E"), false);
     const company = { ...freshState(), skills: ["SKL_06"] };
-    assert.ok(choicesFor("EVT_1986_ECHO_08", company).find((item) => item.id === "A")?.result.includes("識陪屋企人"));
+    assert.ok(choicesFor("EVT_1986_ECHO_08", company).find((item) => item.id === "A")?.result.includes("懂得陪家人"));
     const carry = { ...freshState(), skills: ["SKL_08"] };
     assert.equal(choicesFor("EVT_1986_ECHO_08", carry).find((item) => item.id === "C")?.effect.derived?.STATE_STRESS, 1);
     const favour = { ...freshState(), skills: ["SKL_11"] };
     assert.equal(choicesFor("EVT_1986_ECHO_08", favour).find((item) => item.id === "B")?.effect.derived?.STATE_PEACE, 2);
     const walked = { ...freshState(), skills: ["SKL_09"] };
-    assert.ok(fifteenLines(walked).join("").includes("自己行過"));
+    assert.ok(fifteenLines(walked).join("").includes("自己走過"));
     const lowNews = { ...freshState(), personalityTags: ["TAG_NEWS_ENGAGEMENT_LOW"] };
-    assert.ok(fifteenLines(lowNews).join("").includes("顧住食飯"));
+    assert.ok(fifteenLines(lowNews).join("").includes("顧著吃飯"));
   });
 
   it("a choice does not announce dream or reality, and 1986 opens 1996 first", () => {
@@ -382,19 +382,19 @@ describe("logic audit v2.2", () => {
     assert.ok(cardFor("EVT_1986_SKILL_05", ask).lines.join("").includes("實際"));
     assert.ok(fifteenLines(ask).join("").includes("自己先開口問"));
     const eat = remember("MEM_NEWS_01", "C", { personalityTags: ["TAG_NEWS_ENGAGEMENT_LOW"] });
-    assert.ok(cardFor("EVT_1985_FAMILY_03", eat).lines.join("").includes("繼續食飯"));
-    assert.ok(cardFor("EVT_1986_SKILL_05", eat).lines.join("").includes("唔急住揀"));
-    assert.ok(fifteenLines(eat).join("").includes("唔急住問"));
+    assert.ok(cardFor("EVT_1985_FAMILY_03", eat).lines.join("").includes("繼續吃飯"));
+    assert.ok(cardFor("EVT_1986_SKILL_05", eat).lines.join("").includes("不急著選"));
+    assert.ok(fifteenLines(eat).join("").includes("不急著問"));
     const mom = remember("MEM_MOM_TIRED", "A", { flags: ["FLAG_HELPED_MOM_01"] });
     assert.ok(cardFor("EVT_1985_SCHOOL_01", mom).lines.join("").includes("收過玩具"));
     assert.ok(cardFor("EVT_1986_MARKET_07", mom).lines.join("").includes("收過玩具"));
     assert.ok(fifteenLines(mom).join("").includes("伸出去"));
     const ball = remember("MEM_RED_BALL", "B", { flags: ["FLAG_SHARED_BALL"] });
-    assert.ok(cardFor("EVT_1986_SKILL_05", ball).lines.join("").includes("揮你過去坐"));
-    assert.ok(fifteenLines(ball).join("").includes("輪住"));
+    assert.ok(cardFor("EVT_1986_SKILL_05", ball).lines.join("").includes("招你過去坐"));
+    assert.ok(fifteenLines(ball).join("").includes("輪流"));
     const dad = remember("MEM_DAD_WORK", "B");
-    assert.ok(cardFor("EVT_1986_ECHO_08", dad).lines.join("").includes("應過佢去返工"));
-    assert.ok(fifteenLines(dad).join("").includes("應一聲"));
+    assert.ok(cardFor("EVT_1986_ECHO_08", dad).lines.join("").includes("答應過他去上班"));
+    assert.ok(fifteenLines(dad).join("").includes("應了一聲"));
   });
 
   it("battle costs come from one table, and prepared approaches are not a dead road", () => {
