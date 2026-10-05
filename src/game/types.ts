@@ -62,7 +62,12 @@ export type Effect = {
 export type Delta = { label: string; value: number };
 
 export type MemoryRecord = {
+  /** Prototype lookup key. Same as memoryTypeId. */
   id: string;
+  /** Event family. Repeated years keep the same type. */
+  memoryTypeId?: string;
+  /** One occurrence. A later year must not reuse this id. */
+  instanceId?: string;
   eventId: string;
   choiceId: string;
   variant: string;

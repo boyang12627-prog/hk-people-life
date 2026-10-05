@@ -186,3 +186,37 @@ export function judgeBalance(reports: BalanceReport[]) {
   const status: GateStatus = fails.length > 0 ? "FAIL" : reviews.length > 0 ? "REVIEW" : "PASS";
   return { status, fails, reviews };
 }
+
+/** Deterministic timing. No decision drop. Safe + tidy + practiced read, guard when a voice is close. */
+export function provePerfect(): BattleKind {
+  const primary = { ...INITIAL_PRIMARY, STAT_GRIT: 8, STAT_VIT: 8 };
+  const sim = createBattle({
+    approach: "safe",
+    hp: spiritHp(primary, 5),
+    sp: driveSp(primary, 80),
+    tidy: true,
+    see: false,
+    ask: false,
+    practiced: true,
+  });
+  for (let i = 0; i < 800 && !sim.over; i += 1) {
+    const close = sim.waves.some((wave) => wave.x > sim.x && wave.x - sim.x < 14);
+    const ready = (name: BattleAction) => sim.cd[name] <= 0 && (name === "walk" || sim.sp >= BATTLE_COST[name]);
+    let action: BattleAction | null = null;
+    if (close && ready("guard")) action = "guard";
+    else if (sim.stress >= 18 && ready("read")) action = "read";
+    else if (ready("walk")) action = "walk";
+    if (action) actBattle(sim, action, true);
+    stepBattle(sim, 0.1);
+  }
+  return sim.over ?? "fail";
+}
+
+export function balanceSummary(reports: BalanceReport[]) {
+  return reports.map((report) => ({
+    label: report.label,
+    n: report.n,
+    win: Number((report.winRate * 100).toFixed(1)),
+    perfect: Number((report.rate.perfect * 100).toFixed(1)),
+  }));
+}

@@ -1,4 +1,4 @@
-import { ACTIVITIES, battleStory, buildQueue, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
+import { ACTIVITIES, battleStory, buildQueue, fifteenAct, knownEventIds, knownMemoryChoice, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
 import {
   clamp,
   COUNTER_RANGE,
@@ -23,6 +23,7 @@ import {
   type ResultView,
   type State,
 } from "./types";
+import { FLAG_LEDGER, INDEX_LEDGER, RETIRED_FLAGS, TAG_LEDGER } from "./ledger";
 
 export const SAVE_KEY = "hklife-p01-v12";
 export const LEGACY_SAVE_KEY = "hklife-p01-v11";
@@ -173,6 +174,7 @@ export type Action =
   | { type: "repair"; talk: boolean }
   | { type: "explore"; go: boolean }
   | { type: "nextYear" }
+  | { type: "fifteenAct" }
   | { type: "restart" };
 
 export function reducer(state: State, action: Action): State {
@@ -193,7 +195,7 @@ export function reducer(state: State, action: Action): State {
         return openNext({ ...state, note: null });
       }
       if (state.phase === "result") return openNext({ ...state, result: null });
-      if (state.phase === "fifteen") return { ...state, phase: "ending" };
+      if (state.phase === "fifteen") return commitFifteen(state);
       return state;
     case "choose":
       return choose(state, action.choice);
@@ -210,6 +212,8 @@ export function reducer(state: State, action: Action): State {
     case "nextYear":
       if (state.yearIndex >= YEARS.length - 1) return { ...state, phase: "fifteen" };
       return openYear({ ...state, yearIndex: state.yearIndex + 1 });
+    case "fifteenAct":
+      return commitFifteen(state);
     case "restart":
       return freshState(Math.floor(Math.random() * 1_000_000_000));
     default:
@@ -262,6 +266,8 @@ function choose(state: State, choice: Choice): State {
     const year = yearOf(state);
     const record: MemoryRecord = {
       ...choice.memory,
+      memoryTypeId: choice.memory.id,
+      instanceId: `${choice.memory.id}_${year.year}`,
       variant,
       year: year.year,
       age: year.age,
@@ -305,6 +311,8 @@ function settleBattle(state: State): State {
   const year = yearOf(state);
   const record: MemoryRecord = {
     id: "MEM_FIRST_SCHOOL",
+    memoryTypeId: "MEM_FIRST_SCHOOL",
+    instanceId: `MEM_FIRST_SCHOOL_${year.year}`,
     eventId: "EVT_1985_SCHOOL_01",
     choiceId: `${approach}_${kind}`,
     variant: `${approach}_${kind}`,
@@ -357,6 +365,8 @@ function exploreOffer(state: State, go: boolean): State {
     const year = yearOf(state);
     const record: MemoryRecord = {
       id: "MEM_FIRST_INDEPENDENCE",
+      memoryTypeId: "MEM_FIRST_INDEPENDENCE",
+      instanceId: `MEM_FIRST_INDEPENDENCE_${year.year}_skip`,
       eventId: "EVT_1986_ECHO_08",
       choiceId: "skip",
       variant: "declined",
@@ -423,6 +433,27 @@ function yearEnd(state: State): State {
   return { ...state, counter, derived, phase: "year-end", eventId: null, queue: [], result: null, note: null };
 }
 
+function commitFifteen(state: State): State {
+  if (state.phase !== "fifteen") return state;
+  const act = fifteenAct(state);
+  const record: MemoryRecord = {
+    id: "MEM_FIFTEEN",
+    memoryTypeId: "MEM_FIFTEEN",
+    instanceId: "MEM_FIFTEEN_1996",
+    eventId: "EVT_1996",
+    choiceId: act.id,
+    variant: act.id,
+    year: 1996,
+    age: 15,
+    npc: "NPC_MOM_01",
+    emotion: "return",
+    weight: 2,
+    echo: act.line,
+    snapshot: snapshotOf(state),
+  };
+  return { ...state, phase: "ending", memories: upsertMemory(state.memories, record), eventId: null, queue: [] };
+}
+
 function snapshotOf(state: State): NonNullable<MemoryRecord["snapshot"]> {
   return {
     dream: state.derived.VALUE_DREAM,
@@ -432,8 +463,10 @@ function snapshotOf(state: State): NonNullable<MemoryRecord["snapshot"]> {
 }
 
 function upsertMemory(list: MemoryRecord[], record: MemoryRecord) {
-  const rest = list.filter((item) => item.id !== record.id);
-  return [...rest, record];
+  const memoryTypeId = record.memoryTypeId ?? record.id;
+  const instanceId = record.instanceId ?? `${memoryTypeId}_${record.year}`;
+  const next = { ...record, id: memoryTypeId, memoryTypeId, instanceId };
+  return [...list.filter((item) => (item.instanceId ?? `${item.memoryTypeId ?? item.id}_${item.year}`) !== instanceId), next];
 }
 
 export function applyEffect(state: State, effect: Effect): { state: State; deltas: Delta[]; skills: string[] } {
@@ -582,7 +615,11 @@ export function validateState(raw: Record<string, unknown>): State | null {
   }
   const memories = Array.isArray(raw.memories)
     ? raw.memories.filter(isRecord).flatMap((item) => {
-        if (typeof item.id !== "string" || !item.id) return [];
+        const id = typeof item.memoryTypeId === "string" && item.memoryTypeId ? item.memoryTypeId : typeof item.id === "string" ? item.id : "";
+        const choiceId = typeof item.choiceId === "string" ? item.choiceId : "";
+        const eventId = typeof item.eventId === "string" ? item.eventId : "";
+        if (!id || !knownMemoryChoice(id, choiceId, eventId)) return [];
+        const year = typeof item.year === "number" && Number.isFinite(item.year) ? Math.floor(item.year) : 1984;
         const snapshot = isRecord(item.snapshot)
           ? {
               dream: typeof item.snapshot.dream === "number" && Number.isFinite(item.snapshot.dream) ? clamp(item.snapshot.dream, DERIVED_RANGE.min, DERIVED_RANGE.max) : derived.VALUE_DREAM,
@@ -591,45 +628,52 @@ export function validateState(raw: Record<string, unknown>): State | null {
             }
           : { dream: derived.VALUE_DREAM, reality: derived.VALUE_REALITY, family: derived.STATE_FAMILY_HARMONY };
         const record: MemoryRecord = {
-          id: item.id,
-          eventId: typeof item.eventId === "string" ? item.eventId : "",
-          choiceId: typeof item.choiceId === "string" ? item.choiceId : "",
+          id,
+          memoryTypeId: id,
+          instanceId: typeof item.instanceId === "string" && item.instanceId ? item.instanceId : `${id}_${year}`,
+          eventId,
+          choiceId,
           variant: typeof item.variant === "string" ? item.variant : "base",
-          year: typeof item.year === "number" ? item.year : 1984,
-          age: typeof item.age === "number" ? item.age : 3,
+          year,
+          age: typeof item.age === "number" && Number.isFinite(item.age) ? Math.floor(item.age) : 3,
           npc: typeof item.npc === "string" ? item.npc : "",
           emotion: typeof item.emotion === "string" ? item.emotion : "",
-          weight: typeof item.weight === "number" ? item.weight : 1,
+          weight: typeof item.weight === "number" && Number.isFinite(item.weight) ? item.weight : 1,
           echo: typeof item.echo === "string" ? item.echo : "",
           snapshot,
         };
         return [record];
       })
     : [];
+  const knownFlags = new Set([...FLAG_LEDGER, ...INDEX_LEDGER].map((item) => item.id));
+  const retired = new Set<string>(RETIRED_FLAGS);
+  const knownTags = new Set(TAG_LEDGER.map((item) => item.id));
+  const knownSkills = new Set(Object.keys(SKILL_NAME));
   const rawFlags = strings(raw.flags);
-  const personalityTags = strings(raw.personalityTags);
+  const personalityTags = strings(raw.personalityTags).filter((tag) => knownTags.has(tag));
   const flags: string[] = [];
   for (const flag of rawFlags) {
+    if (retired.has(flag)) continue;
     if (flag.startsWith("TAG_")) {
-      if (!personalityTags.includes(flag)) personalityTags.push(flag);
-    } else flags.push(flag);
+      if (knownTags.has(flag) && !personalityTags.includes(flag)) personalityTags.push(flag);
+    } else if (knownFlags.has(flag) && !flags.includes(flag)) flags.push(flag);
   }
-  return {
+  const drafted: State = {
     ...base,
     phase: raw.phase as State["phase"],
     gender: raw.gender === "boy" || raw.gender === "girl" ? raw.gender : null,
-    yearIndex: typeof raw.yearIndex === "number" ? clamp(raw.yearIndex, 0, 2) : 0,
+    yearIndex: typeof raw.yearIndex === "number" ? clamp(Math.floor(raw.yearIndex), 0, 2) : 0,
     primary,
     derived,
     counter,
     npc,
     flags,
     personalityTags,
-    skills: strings(raw.skills),
+    skills: strings(raw.skills).filter((id) => knownSkills.has(id)),
     memories,
     seed: typeof raw.seed === "number" ? raw.seed : base.seed,
-    apLeft: typeof raw.apLeft === "number" ? raw.apLeft : 2,
-    spent: strings(raw.spent),
+    apLeft: typeof raw.apLeft === "number" && Number.isFinite(raw.apLeft) ? clamp(Math.floor(raw.apLeft), 0, 2) : 2,
+    spent: strings(raw.spent).filter((id) => id in ACTIVITIES),
     queue: strings(raw.queue),
     eventId: typeof raw.eventId === "string" ? raw.eventId : null,
     note: typeof raw.note === "string" ? raw.note : null,
@@ -645,4 +689,30 @@ export function validateState(raw: Record<string, unknown>): State | null {
     name: typeof raw.name === "string" ? raw.name.slice(0, 8) : "",
     schemaVersion: 2,
   };
+  return reconcile(drafted);
+}
+
+function reconcile(state: State): State {
+  const yearIds = new Set(knownEventIds(state.yearIndex));
+  const known = new Set(knownEventIds());
+  let next: State = {
+    ...state,
+    apLeft: clamp(state.apLeft, 0, 2),
+    queue: state.queue.filter((id) => yearIds.has(id) && id !== state.eventId),
+    eventId: state.eventId && known.has(state.eventId) ? state.eventId : null,
+  };
+  const eventInYear = !!next.eventId && yearIds.has(next.eventId);
+  if ((next.phase === "event" || next.phase === "battle" || next.phase === "battle-result" || next.phase === "repair") && !eventInYear) {
+    next = { ...next, phase: "year", eventId: null };
+  }
+  if ((next.phase === "battle" || next.phase === "battle-result") && !next.approach) {
+    next = { ...next, phase: next.eventId && yearIds.has(next.eventId) ? "event" : "year" };
+  }
+  if ((next.phase === "result" || next.phase === "note" || next.phase === "repair") && !next.result) {
+    next = { ...next, phase: next.eventId && yearIds.has(next.eventId) ? "event" : "year" };
+  }
+  if (next.phase === "explore-offer" && next.yearIndex !== 2) next = { ...next, phase: "year", eventId: null };
+  if (next.phase === "year") next = { ...next, eventId: null, apLeft: 2 };
+  if (next.phase === "activities") next = { ...next, apLeft: clamp(Math.min(next.apLeft, Math.max(0, 2 - next.spent.length)), 0, 2) };
+  return next;
 }

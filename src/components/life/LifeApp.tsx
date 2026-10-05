@@ -7,6 +7,7 @@ import {
   cardFor,
   choicesFor,
   fifteenLines,
+  fifteenAct,
   lifeVoice,
   orientationLine,
   PRIMARY_LABEL,
@@ -124,7 +125,7 @@ export function LifeApp() {
         </Paper>
       ) : null}
       {state.phase === "year-end" ? <YearEnd state={state} onNext={() => { tap(); dispatch({ type: "nextYear" }); }} /> : null}
-      {state.phase === "fifteen" ? <Fifteen state={state} onNext={() => { tap(); dispatch({ type: "ack" }); }} /> : null}
+      {state.phase === "fifteen" ? <Fifteen state={state} onAct={() => { tap(); dispatch({ type: "fifteenAct" }); }} /> : null}
       {state.phase === "ending" ? <Ending state={state} onRestart={() => { tap(); dispatch({ type: "restart" }); }} /> : null}
     </main>
   );
@@ -291,7 +292,8 @@ function YearEnd({ state, onNext }: { state: State; onNext: () => void }) {
   );
 }
 
-function Fifteen({ state, onNext }: { state: State; onNext: () => void }) {
+function Fifteen({ state, onAct }: { state: State; onAct: () => void }) {
+  const act = fifteenAct(state);
   return (
     <Paper scene="home" kicker="1996 · 十五歲" title="自己回家">
       {fifteenLines(state).map((line) => (
@@ -299,7 +301,7 @@ function Fifteen({ state, onNext }: { state: State; onNext: () => void }) {
           {line}
         </p>
       ))}
-      <Primary onClick={onNext}>看看自己變成誰</Primary>
+      <Primary onClick={onAct}>{act.label}</Primary>
     </Paper>
   );
 }

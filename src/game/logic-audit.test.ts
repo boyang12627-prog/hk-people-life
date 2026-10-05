@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { actBattle, BATTLE_COST, createBattle } from "./battleSim.ts";
 import { readFileSync } from "node:fs";
-import { judgeBalance, runGateSample } from "./battleBalance.ts";
-import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
-import { cardFor, choicesFor, fifteenLines, heardNews, lifeVoice, variantOf, yearLean, YEARS } from "./content.ts";
+import { judgeBalance, provePerfect, runGateSample } from "./battleBalance.ts";
+import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, ledgerSummary, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
+import { cardFor, choicesFor, fifteenAct, fifteenLines, heardNews, lifeVoice, variantOf, yearLean, YEARS } from "./content.ts";
 import { applyEffect, freshState, parseSave, reducer, type Action } from "./engine.ts";
 import type { State } from "./types.ts";
 
@@ -27,7 +27,7 @@ function chooseId(state: State, id: string) {
   return reducer(state, { type: "choose", choice });
 }
 
-describe("logic audit v2.2", () => {
+describe("logic audit v2.4", () => {
   it("news C is not remembered as heard", () => {
     let state = run(freshState(1), [{ type: "gender", gender: "girl", name: "阿澄" }]);
     state = spend(state, ["ACT_REST", "ACT_MARKET"]);
@@ -404,8 +404,75 @@ describe("logic audit v2.2", () => {
     assert.equal(ui.includes("walk: 2"), false);
     const gate = judgeBalance(runGateSample(200));
     assert.deepEqual(gate.fails, []);
+    assert.equal(provePerfect(), "perfect");
+  });
+
+  it("dead marks stay out of play, and the dad answer is visible at fifteen", () => {
+    const produced = new Set<string>();
+    for (const id of YEARS.flatMap((year) => [...year.events, ...year.dailies])) {
+      for (const choice of choicesFor(id, freshState())) for (const flag of choice.effect.flags ?? []) produced.add(flag);
+    }
+    assert.equal(produced.has("FLAG_DAD_OVERTIME_MEMORY"), false);
+    assert.equal(produced.has("FLAG_FIRST_INDEPENDENCE"), false);
+    assert.equal(INDEX_LEDGER.some((item) => item.id === "FLAG_HEARD_ADULT_FUTURE" && item.consumerKind === "DEBUG"), true);
+    assert.equal(MEMORY_LEDGER.length, 0);
+    const summary = ledgerSummary();
+    assert.ok(summary.retired >= 5);
+    assert.equal(summary.indexOnly, 1);
+    const answered = { ...freshState(), counter: { ...freshState().counter, PLAYER_DAD_CHOICE_RESPONSE: 1 } };
+    assert.ok(fifteenLines(answered).join("").includes("沒有再等"));
+    const walked = { ...freshState(), skills: ["SKL_09"] };
+    assert.equal(fifteenAct(walked).id, "walk");
+    const plain = freshState();
+    const acted = reducer({ ...plain, phase: "fifteen" }, { type: "fifteenAct" });
+    assert.equal(acted.phase, "ending");
+    assert.equal(acted.memories.some((item) => item.memoryTypeId === "MEM_FIFTEEN" && item.instanceId === "MEM_FIFTEEN_1996"), true);
+  });
+
+  it("save rehydrate drops unknown ids and keeps repeated memory instances", () => {
+    const dirty = freshState();
+    const saved = parseSave(JSON.stringify({
+      ...dirty,
+      phase: "event",
+      yearIndex: 0,
+      apLeft: 9,
+      eventId: "NOPE",
+      queue: ["NOPE", "EVT_1984_NEWS_01", "EVT_1986_ECHO_08"],
+      skills: ["SKL_01", "SKL_NOPE"],
+      flags: ["FLAG_PARENT_EXPLAIN", "FLAG_DAD_OVERTIME_MEMORY", "FLAG_NOPE"],
+      memories: [
+        { id: "MEM_NEWS_01", choiceId: "C", eventId: "EVT_1984_NEWS_01", year: 1984 },
+        { id: "MEM_GHOST", choiceId: "A", eventId: "EVT_NOPE" },
+        { id: "MEM_DAD_WORK", instanceId: "MEM_DAD_WORK_1986", choiceId: "A", eventId: "EVT_1986_FAMILY_06", year: 1986 },
+        { id: "MEM_DAD_WORK", instanceId: "MEM_DAD_WORK_1996", choiceId: "B", eventId: "EVT_1986_FAMILY_06", year: 1996 },
+      ],
+    }));
+    assert.ok(saved);
+    assert.equal(saved?.phase, "year");
+    assert.equal(saved?.eventId, null);
+    assert.equal(saved?.apLeft, 2);
+    assert.deepEqual(saved?.queue, ["EVT_1984_NEWS_01"]);
+    assert.deepEqual(saved?.skills, ["SKL_01"]);
+    assert.deepEqual(saved?.flags, ["FLAG_PARENT_EXPLAIN"]);
+    assert.equal(saved?.memories.some((item) => item.id === "MEM_GHOST"), false);
+    assert.equal(saved?.memories.filter((item) => item.memoryTypeId === "MEM_DAD_WORK").length, 2);
+    assert.ok(cardFor("EVT_1986_ECHO_08", saved!).lines.join("").includes("答應過他去上班"));
+    const crowded = selectOverflow();
+    assert.equal(crowded.includes("老師說得很慢"), false);
+    assert.ok(crowded.includes("實際"));
   });
 });
+
+function selectOverflow() {
+  const state = {
+    ...freshState(),
+    flags: ["FLAG_PARENT_EXPLAIN", "FLAG_AVOID_CONFLICT", "FLAG_CURIOUS_SCHOOL", "FLAG_TEACHER_SLOW"],
+    skills: ["SKL_05"],
+    derived: { ...freshState().derived, VALUE_DREAM: 70, VALUE_REALITY: 50 },
+    npc: { ...freshState().npc, NPC_FRIEND_01: { relation: 1, trust: 6, available: true } },
+  };
+  return cardFor("EVT_1986_SKILL_05", state).lines.join("");
+}
 
 function remember(id: string, choiceId: string, extra: Partial<State> = {}) {
   const base = freshState();

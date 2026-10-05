@@ -203,7 +203,7 @@ export const INDEX_LEDGER: IndexSpec[] = [
   {
     id: "FLAG_HEARD_ADULT_FUTURE",
     producer: ["EVT_1984_NEWS_01 A", "EVT_1984_NEWS_01 B"],
-    consumer: ["nobody. heardNews reads MEM_NEWS_01 choiceId, not this flag"],
+    consumer: ["INDEX only. heardNews reads MEM_NEWS_01. Do not branch content on this flag"],
     consumerKind: "DEBUG",
     fallback: "No flag means not heard. Memory choiceId is the fact.",
     scope: "life",
@@ -212,30 +212,15 @@ export const INDEX_LEDGER: IndexSpec[] = [
   },
 ];
 
-export const MEMORY_LEDGER: MemoryMarkSpec[] = [
-  {
-    id: "FLAG_DAD_OVERTIME_MEMORY",
-    producer: ["EVT_1986_FAMILY_06"],
-    consumer: ["MEM_DAD_WORK is the fact. Ending reads the memory, not this flag"],
-    consumerKind: "MEMORY",
-    fallback: "Ending has no dad-work sentence.",
-    scope: "life",
-    debugLabel: "記得阿爸返工",
-    owner: "dad",
-  },
-  {
-    id: "FLAG_FIRST_INDEPENDENCE",
-    producer: ["EVT_1986_ECHO_08"],
-    consumer: ["MEM_FIRST_INDEPENDENCE is the fact. Ending reads the memory, not this flag"],
-    consumerKind: "MEMORY",
-    fallback: "Skip memory covers an explicit refusal.",
-    scope: "life",
-    debugLabel: "到過邨口",
-    owner: "echo",
-  },
-];
+export const MEMORY_LEDGER: MemoryMarkSpec[] = [];
 
-export const RETIRED_FLAGS = ["FLAG_GATE_RISK", "FLAG_SELF_COMFORT", "NPC_DAD_OVERTIME_COUNT"] as const;
+export const RETIRED_FLAGS = [
+  "FLAG_GATE_RISK",
+  "FLAG_SELF_COMFORT",
+  "NPC_DAD_OVERTIME_COUNT",
+  "FLAG_DAD_OVERTIME_MEMORY",
+  "FLAG_FIRST_INDEPENDENCE",
+] as const;
 
 export const TAG_LEDGER: FlagSpec[] = [
   {
@@ -269,6 +254,32 @@ export const TAG_LEDGER: FlagSpec[] = [
     owner: "personality",
   },
 ];
+
+export const COUNTER_LEDGER = [
+  {
+    id: "PLAYER_DAD_CHOICE_RESPONSE",
+    producer: "EVT_1986_FAMILY_06 A=1 B=2 C=3",
+    consumer: "1996 fifteenLines",
+    owner: "dad",
+  },
+] as const;
+
+export function ledgerSummary() {
+  const owners: Record<string, number> = {};
+  for (const spec of [...FLAG_LEDGER, ...INDEX_LEDGER, ...TAG_LEDGER]) {
+    owners[spec.owner] = (owners[spec.owner] ?? 0) + 1;
+  }
+  return {
+    formal: FLAG_LEDGER.length,
+    indexOnly: INDEX_LEDGER.length,
+    memoryOnly: MEMORY_LEDGER.length,
+    retired: RETIRED_FLAGS.length,
+    tags: TAG_LEDGER.length,
+    skills: SKILL_LEDGER.length,
+    counters: COUNTER_LEDGER.length,
+    owners,
+  };
+}
 
 export const SKILL_LEDGER: { id: string; consumer: string; consumerKind: "BATTLE" | "EVENT" | "ENDING" }[] = [
   { id: "SKL_01", consumer: "battle practiced read", consumerKind: "BATTLE" },
