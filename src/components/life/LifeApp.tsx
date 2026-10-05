@@ -43,7 +43,7 @@ export function LifeApp() {
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col overflow-x-hidden px-4 py-5">
+    <main className="mx-auto h-dvh w-full max-w-lg overflow-y-auto overscroll-contain px-4 py-3 pb-24">
       <Top state={state} />
       {state.phase === "title" ? <Title onStart={() => { tap(); dispatch({ type: "begin" }); }} /> : null}
       {state.phase === "gender" ? (
@@ -127,8 +127,24 @@ export function LifeApp() {
       {state.phase === "year-end" ? <YearEnd state={state} onNext={() => { tap(); dispatch({ type: "nextYear" }); }} /> : null}
       {state.phase === "fifteen" ? <Fifteen state={state} onAct={() => { tap(); dispatch({ type: "fifteenAct" }); }} /> : null}
       {state.phase === "ending" ? <Ending state={state} onRestart={() => { tap(); dispatch({ type: "restart" }); }} /> : null}
+      {hasBody(state) ? null : (
+        <Paper scene="home" kicker="這頁沒有畫面" title="重新開始">
+          <p className="text-pretty text-base leading-7">這一頁沒有東西可以選。重新開始這三年。</p>
+          <Primary onClick={() => dispatch({ type: "restart" })}>重新開始</Primary>
+        </Paper>
+      )}
     </main>
   );
+}
+
+function hasBody(state: State) {
+  if (state.phase === "title" || state.phase === "gender" || state.phase === "year" || state.phase === "activities") return true;
+  if (state.phase === "explore-offer" || state.phase === "year-end" || state.phase === "fifteen" || state.phase === "ending") return true;
+  if (state.phase === "note" || state.phase === "result" || state.phase === "repair") return !!state.result;
+  if (state.phase === "event") return !!state.eventId;
+  if (state.phase === "battle") return !!state.approach;
+  if (state.phase === "battle-result") return !!state.battle && !!state.approach;
+  return false;
 }
 
 function Top({ state }: { state: State }) {
@@ -149,8 +165,7 @@ function Top({ state }: { state: State }) {
 function Title({ onStart }: { onStart: () => void }) {
   return (
     <Paper scene="estate" kicker="幼年" title="小時候那三年">
-      <p className="text-pretty text-base leading-7">一九八四到一九八六。你在屋邨長大，吃飯，走到幼稚園門口。</p>
-      <p className="mt-3 text-pretty text-base leading-7">你一路在選。過了這三年，才看見自己變成誰。</p>
+      <p className="text-pretty text-base leading-7">一九八四到一九八六。你在屋邨長大。你一路在選，過了這三年，才看見自己變成誰。</p>
       <Primary onClick={onStart}>開始</Primary>
     </Paper>
   );
@@ -161,18 +176,18 @@ function GenderPick({ onPick }: { onPick: (gender: Gender, name: string) => void
   const clean = name.trim().slice(0, 8);
   return (
     <Paper scene="home" kicker="開始之前" title="你是？">
-      <p className="text-pretty text-base leading-7">男孩或女孩，故事都是屋邨這三年。想留個名字也可以，不寫也行。</p>
-      <label className="mt-4 block text-sm text-ink/70">
+      <p className="text-pretty text-base leading-7">男孩或女孩。想留個名字也可以，不寫也行。</p>
+      <label className="mt-3 block text-sm text-ink/70">
         別人怎麼叫你
         <input
           value={name}
           maxLength={8}
           placeholder="不寫也行"
           onChange={(event) => setName(event.target.value)}
-          className="mt-1 min-h-12 w-full rounded-xl border border-line bg-paper px-3 text-base text-ink"
+          className="mt-1 min-h-11 w-full rounded-xl border border-line bg-paper px-3 text-base text-ink"
         />
       </label>
-      <div className="mt-4 grid grid-cols-2 gap-2">
+      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto grid w-full max-w-lg grid-cols-2 gap-2 bg-bg/95 px-4 py-3">
         <button type="button" onClick={() => onPick("boy", clean)} className="min-h-12 rounded-xl bg-amber text-base font-medium text-ink">
           男孩
         </button>
@@ -375,8 +390,8 @@ const SENSE: Record<SceneId, string> = {
 function Paper({ scene, kicker, title, children }: { scene: SceneId; kicker: string; title: string; children: ReactNode }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-line/40">
-      <img src={`/scenes/${scene}.jpg`} alt="" className="h-44 w-full object-cover sm:h-52" />
-      <div className="bg-paper px-4 py-4 text-ink">
+      <img src={`/scenes/${scene}.jpg`} alt="" className="h-16 w-full object-cover" />
+      <div className="bg-paper px-4 py-3 text-ink">
         <p className="text-xs text-ink/60">{SENSE[scene]}</p>
         <p className="mt-2 text-xs tracking-wide text-ink/60">{kicker}</p>
         <h1 className="mt-1 font-serif text-2xl leading-snug text-pretty">{title}</h1>
@@ -419,9 +434,11 @@ function ChoiceButton({ label, hint, onClick }: { label: string; hint?: string; 
 
 function Primary({ children, onClick }: { children: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="mt-4 min-h-12 w-full rounded-xl bg-amber text-base font-medium text-ink">
-      {children}
-    </button>
+    <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-lg bg-bg/95 px-4 py-3">
+      <button type="button" onClick={onClick} className="min-h-12 w-full rounded-xl bg-amber text-base font-medium text-ink">
+        {children}
+      </button>
+    </div>
   );
 }
 

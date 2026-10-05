@@ -19,9 +19,14 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
   body {
     margin: 0;
-    min-height: 100dvh;
     background: var(--color-bg);
     color: var(--color-paper);
     font-family: var(--font-sans);
@@ -41,6 +46,11 @@
 
 .meter {
   transition: width 240ms ease;
+}
+
+main {
+  scrollbar-width: thin;
+  scrollbar-color: #c9843a #1c1916;
 }
 
 @media (prefers-reduced-motion: reduce) {
