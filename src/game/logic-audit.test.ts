@@ -607,6 +607,9 @@ describe("logic audit v2.4", () => {
     assert.equal(exam.maxRounds, 10);
     assert.equal(PRIMARY_EXAM.scene, "study");
     assert.equal(PRIMARY_EXAM.gated, false);
+    const audit = readFileSync(new URL("../../scripts/audit-balance.ts", import.meta.url), "utf8");
+    assert.match(audit, /if \(spec\.gated\)/);
+    assert.match(audit, /not gated/);
     assert.equal(PRIMARY_EXAM.skills.prepared, "SKL_013");
     assert.equal(PRIMARY_EXAM.skills.stabilize, "SKL_018");
     assert.notEqual(PRIMARY_EXAM.voice.ask.label, KINDY_DOOR.voice.ask.label);

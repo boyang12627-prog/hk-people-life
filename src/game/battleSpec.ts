@@ -65,7 +65,7 @@ export type BattleSpec = {
   skipKind: "win";
   maxRounds: number;
   startGoal: number;
-  /** Product gate. A catalog fight can exist before its numbers are trusted. */
+  /** Catalog fight. Numbers are shared with other specs. Do not gate on this. */
   gated: boolean;
   enemyPattern: EnemyPattern;
   voice: {
