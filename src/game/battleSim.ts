@@ -1,4 +1,4 @@
-import type { Approach, BattleKind } from "./types";
+import type { Approach, BattleKind, TurnOwner } from "./types";
 import { KINDY_DOOR, type BattleSpec, type EnemyPattern, type Threat } from "./battleSpec";
 
 export type BattleAction = "walk" | "guard" | "read" | "see" | "ask";
@@ -27,9 +27,46 @@ export type BattleSim = {
   ask: boolean;
   prepared: boolean;
   spec: BattleSpec;
+  turnOwner: TurnOwner;
+  playerSpeed: number;
+  enemySpeed: number;
+  /** Who moves before the other when one side is clearly faster. Tie is not listed. */
+  initiativeOrder: TurnOwner[];
+  /** What the pressure side is about to do. Same words as the threat hint. */
+  intent: string;
+  /** Round covered by the last guard. 0 if the child has not guarded. */
+  guardUntilRound: number;
+  temporaryBuffs: string[];
+  usedTechniques: string[];
+  stableFirst: boolean;
+  pressureFirst: boolean;
+  bonusQuick: boolean;
+  awaitingBonus: boolean;
 };
 
-/** Only cost table. The turn UI and the balance sim both read this. Walk is free: a child can always step. */
+/** Mind, a memory passive, a short buff, and gear. No source is invented here. */
+export function battleSpeed(parts: { mind: number; passive?: number; buff?: number; gear?: number }) {
+  return Math.max(0, Math.floor(parts.mind + (parts.passive ?? 0) + (parts.buff ?? 0) + (parts.gear ?? 0)));
+}
+
+/**
+ * The spec only defines two gaps. Five or more: that side acts first.
+ * Ten or more for the child: one extra small action every third round.
+ * A smaller gap does not change the old order, and is not called "you first".
+ */
+export function initiativeFor(playerSpeed: number, enemySpeed: number) {
+  const gap = playerSpeed - enemySpeed;
+  const stableFirst = gap >= 5;
+  const pressureFirst = gap <= -5;
+  return {
+    stableFirst,
+    pressureFirst,
+    bonusQuick: gap >= 10,
+    initiativeOrder: (stableFirst ? ["player", "pressure"] : pressureFirst ? ["pressure", "player"] : []) as TurnOwner[],
+  };
+}
+
+const BONUS_ACTION = new Set<BattleAction>(["walk", "guard"]);
 export const BATTLE_COST: Record<BattleAction, number> = {
   walk: 0,
   guard: 2,
@@ -47,11 +84,20 @@ export function createBattle(input: {
   ask: boolean;
   prepared: boolean;
   spec?: BattleSpec;
+  mind?: number;
+  passiveSpeed?: number;
+  buffSpeed?: number;
+  gearSpeed?: number;
+  enemySpeed?: number;
 }): BattleSim {
   const spec = input.spec ?? KINDY_DOOR;
   let stress = input.approach === "safe" ? 16 : input.approach === "curious" ? 22 : 20;
   if (input.stabilize) stress = Math.max(0, stress - 8);
-  return {
+  const playerSpeed = battleSpeed({ mind: input.mind ?? 5, passive: input.passiveSpeed, buff: input.buffSpeed, gear: input.gearSpeed });
+  const enemySpeed = input.enemySpeed ?? spec.pressureSpeed;
+  const order = initiativeFor(playerSpeed, enemySpeed);
+  const threat = spec.enemyPattern.threatFor(1);
+  const sim: BattleSim = {
     round: 1,
     maxRounds: spec.maxRounds,
     goal: spec.startGoal,
@@ -66,13 +112,27 @@ export function createBattle(input: {
     hint: spec.voice.openings[input.approach],
     enemyHint: "",
     hasActed: false,
-    threat: spec.enemyPattern.threatFor(1),
+    threat,
     pattern: spec.enemyPattern,
     see: input.see,
     ask: input.ask,
     prepared: input.prepared,
     spec,
+    turnOwner: order.pressureFirst ? "pressure" : "player",
+    playerSpeed,
+    enemySpeed,
+    initiativeOrder: order.initiativeOrder,
+    intent: threat.hint,
+    guardUntilRound: 0,
+    temporaryBuffs: [],
+    usedTechniques: [],
+    stableFirst: order.stableFirst,
+    pressureFirst: order.pressureFirst,
+    bonusQuick: order.bonusQuick,
+    awaitingBonus: false,
   };
+  if (order.pressureFirst) openPressure(sim);
+  return sim;
 }
 
 /**
@@ -114,6 +174,7 @@ export function actBattle(sim: BattleSim, name: BattleAction, enabled: boolean) 
     sim.hint = voice.walk.hint;
   } else if (name === "guard") {
     sim.brace = true;
+    sim.guardUntilRound = sim.round;
     sim.stress = Math.max(0, sim.stress - 6);
     sim.goal = Math.min(100, sim.goal + 5);
     sim.hint = voice.guard.hint;
@@ -158,9 +219,16 @@ function applyEnemy(sim: BattleSim) {
   if (sim.stress >= 80) sim.hp = Math.max(0, sim.hp - hp);
 }
 
-/** One full exchange: your action, then the doorway, then the next threat. Null means you froze. */
+/** One full exchange. Null means you froze. A bonus click may only walk or guard. */
 export function resolveTurn(sim: BattleSim, action: BattleAction | null) {
   if (sim.over) return;
+  if (sim.awaitingBonus) {
+    sim.awaitingBonus = false;
+    if (action && BONUS_ACTION.has(action)) actBattle(sim, action, true);
+    else sim.enemyHint = "";
+    closeAfterPlayer(sim);
+    return;
+  }
   sim.enemyHint = "";
   if (action) {
     const paid = actBattle(sim, action, action === "see" ? sim.see : action === "ask" ? sim.ask : true);
@@ -171,13 +239,34 @@ export function resolveTurn(sim: BattleSim, action: BattleAction | null) {
   }
   settle(sim);
   if (sim.over) return;
-  applyEnemy(sim);
-  settle(sim);
-  if (sim.over) return;
+  if (sim.bonusQuick && sim.round % 3 === 0) {
+    sim.awaitingBonus = true;
+    sim.turnOwner = "player";
+    return;
+  }
+  closeAfterPlayer(sim);
+}
+
+function closeAfterPlayer(sim: BattleSim) {
+  if (!sim.pressureFirst) {
+    applyEnemy(sim);
+    settle(sim);
+    if (sim.over) return;
+  }
   if (sim.round >= sim.maxRounds) {
     timeUp(sim);
     return;
   }
   sim.round += 1;
   sim.threat = sim.pattern.threatFor(sim.round);
+  sim.intent = sim.threat.hint;
+  sim.turnOwner = sim.pressureFirst ? "pressure" : "player";
+  if (sim.pressureFirst) openPressure(sim);
+}
+
+function openPressure(sim: BattleSim) {
+  applyEnemy(sim);
+  settle(sim);
+  sim.hasActed = true;
+  sim.turnOwner = "player";
 }

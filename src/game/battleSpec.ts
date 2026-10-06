@@ -65,6 +65,8 @@ export type BattleSpec = {
   skipKind: "win";
   maxRounds: number;
   startGoal: number;
+  /** Pressure side's speed. Compared with the child's battle speed. Not a damage number. */
+  pressureSpeed: number;
   /** Catalog fight. Numbers are shared with other specs. Do not gate on this. */
   gated: boolean;
   enemyPattern: EnemyPattern;
@@ -101,6 +103,7 @@ export const KINDY_DOOR: BattleSpec = {
   skipKind: "win",
   maxRounds: 8,
   startGoal: 12,
+  pressureSpeed: 5,
   gated: true,
   enemyPattern: KINDY_SEPARATION,
   voice: {
@@ -151,6 +154,7 @@ export const PRIMARY_EXAM: BattleSpec = {
   skipKind: "win",
   maxRounds: 10,
   startGoal: 8,
+  pressureSpeed: 5,
   gated: false,
   enemyPattern: PRIMARY_EXAM_PRESSURE,
   voice: {

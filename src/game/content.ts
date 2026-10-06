@@ -481,6 +481,10 @@ function buildMemoryCatalog() {
     flags: [],
     personalityTags: [],
     skills: Object.keys(SKILL_NAME),
+    equipment: [],
+    equipped: [],
+    techniques: [],
+    techniqueProgress: {},
     memories: [],
     seed: 1,
     apLeft: 2,
@@ -495,7 +499,7 @@ function buildMemoryCatalog() {
     battle: null,
     offeredExplore: false,
     name: "",
-    schemaVersion: 2,
+    schemaVersion: 3,
   };
   const catalog = new Map<string, { eventId: string; choices: Set<string> }>();
   for (const id of knownEventIds()) {

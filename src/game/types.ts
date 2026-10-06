@@ -88,6 +88,29 @@ export type BattleOutcome = {
   hp: number;
 };
 
+/** A thing the child actually has. No item is granted in 1984–1986 yet. */
+export type Equipment = {
+  id: string;
+  slot: "hand" | "body" | "bag";
+  sourceQuest: string;
+  availableFromYear: number;
+  availableToYear?: number;
+  battle?: { atk?: number; def?: number; speed?: number; stressResist?: number };
+  memoryHook?: string;
+};
+
+/** How a life skill is used under pressure. None are granted yet. */
+export type Technique = {
+  id: string;
+  sourceSkill?: string;
+  kind: "passive" | "active" | "reaction";
+  cost?: number;
+  cooldownRounds?: number;
+  effect: string;
+};
+
+export type TurnOwner = "player" | "pressure";
+
 export type Phase =
   | "title"
   | "gender"
@@ -117,6 +140,13 @@ export type State = {
   flags: string[];
   personalityTags: string[];
   skills: string[];
+  /** Owned item ids. Empty until a quest gives one. */
+  equipment: string[];
+  /** Ids currently in a slot. Empty until the child can equip. */
+  equipped: string[];
+  /** Learned technique ids. Empty until skills unlock them. */
+  techniques: string[];
+  techniqueProgress: Record<string, number>;
   memories: MemoryRecord[];
   seed: number;
   apLeft: number;
@@ -131,7 +161,7 @@ export type State = {
   battle: BattleOutcome | null;
   offeredExplore: boolean;
   name: string;
-  schemaVersion: 2;
+  schemaVersion: 3;
 };
 
 export const INITIAL_PRIMARY: Primary = {

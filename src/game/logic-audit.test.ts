@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { actBattle, BATTLE_COST, createBattle, resolveTurn } from "./battleSim.ts";
+import { actBattle, BATTLE_COST, battleSpeed, createBattle, initiativeFor, resolveTurn } from "./battleSim.ts";
 import { readFileSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
 import { KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
@@ -242,11 +242,14 @@ describe("logic audit v2.4", () => {
     const raw = JSON.stringify({ ...legacy, counter, memories: [{ id: "MEM_NEWS_01", choiceId: "C", eventId: "EVT_1984_NEWS_01" }] });
     const migrated = parseSave(raw);
     assert.ok(migrated);
-    assert.equal(migrated?.schemaVersion, 2);
+    assert.equal(migrated?.schemaVersion, 3);
     assert.equal(migrated?.counter.WORLD_DAD_WORK_OCCURRENCES, 4);
     assert.equal(migrated?.memories[0]?.snapshot?.dream, legacy.derived.VALUE_DREAM);
     const envelope = JSON.stringify({ schemaVersion: 2, savedAt: "2026-10-04T00:00:00.000Z", state: freshState() });
     assert.equal(parseSave(envelope)?.phase, "title");
+    assert.equal(parseSave(envelope)?.schemaVersion, 3);
+    assert.deepEqual(parseSave(envelope)?.equipment, []);
+    assert.deepEqual(parseSave(envelope)?.techniques, []);
     const dirty = freshState();
     const broken = JSON.stringify({
       ...dirty,
@@ -616,6 +619,51 @@ describe("logic audit v2.4", () => {
     resolveTurn(exam, "read");
     assert.equal(exam.hint.includes("默"), true);
     assert.equal(YEARS.some((year) => year.events.includes("BTL_PRIMARY_EXAM")), false);
+    const tied = createBattle({ approach: "social", hp: 80, sp: 40, stabilize: false, see: false, ask: false, prepared: false, mind: 5 });
+    assert.equal(tied.playerSpeed, 5);
+    assert.equal(tied.stableFirst, false);
+    assert.equal(tied.pressureFirst, false);
+    assert.equal(tied.bonusQuick, false);
+    assert.deepEqual(tied.initiativeOrder, []);
+    const ahead = initiativeFor(10, 5);
+    assert.equal(ahead.stableFirst, true);
+    assert.equal(ahead.bonusQuick, false);
+    const quick = createBattle({
+      approach: "social",
+      hp: 80,
+      sp: 40,
+      stabilize: false,
+      see: false,
+      ask: false,
+      prepared: false,
+      mind: 5,
+      passiveSpeed: 10,
+    });
+    assert.equal(quick.bonusQuick, true);
+    assert.equal(battleSpeed({ mind: 5, passive: 10 }), 15);
+    resolveTurn(quick, "walk");
+    resolveTurn(quick, "walk");
+    resolveTurn(quick, "walk");
+    assert.equal(quick.awaitingBonus, true);
+    assert.equal(quick.round, 3);
+    const goal = quick.goal;
+    resolveTurn(quick, "read");
+    assert.equal(quick.goal, goal);
+    assert.equal(quick.awaitingBonus, false);
+    const slow = createBattle({
+      approach: "social",
+      hp: 80,
+      sp: 40,
+      stabilize: false,
+      see: false,
+      ask: false,
+      prepared: false,
+      mind: 0,
+      enemySpeed: 10,
+    });
+    assert.equal(slow.pressureFirst, true);
+    assert.equal(slow.stress, 28);
+    assert.equal(slow.turnOwner, "player");
   });
 });
 

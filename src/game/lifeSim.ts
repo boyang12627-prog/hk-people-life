@@ -41,6 +41,7 @@ function stepLife(state: State, seed: number, step: number, policy: LifePolicy, 
       ask: state.skills.includes(KINDY_DOOR.skills.ask),
       prepared: state.skills.includes(KINDY_DOOR.skills.prepared),
       spec: KINDY_DOOR,
+      mind: state.primary.STAT_MIND,
     });
     const kind = resolveAuto(battle);
     return reducer(state, { type: "battleEnd", outcome: { kind, stress: battle.stress, hp: battle.hp } });

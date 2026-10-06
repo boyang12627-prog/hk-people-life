@@ -10,15 +10,16 @@ type Props = {
   hp: number;
   sp: number;
   skills: readonly string[];
+  mind: number;
   onEnd: (outcome: BattleOutcome) => void;
 };
 
-export function Battle({ spec, approach, hp, sp, skills, onEnd }: Props) {
+export function Battle({ spec, approach, hp, sp, skills, mind, onEnd }: Props) {
   const stabilize = skills.includes(spec.skills.stabilize);
   const see = skills.includes(spec.skills.see);
   const ask = skills.includes(spec.skills.ask);
   const prepared = skills.includes(spec.skills.prepared);
-  const startRef = useRef({ approach, hp, sp, stabilize, see, ask, prepared, spec });
+  const startRef = useRef({ approach, hp, sp, stabilize, see, ask, prepared, spec, mind });
   const simRef = useRef<BattleSim>(createBattle(startRef.current));
   const onEndRef = useRef(onEnd);
   const reportedRef = useRef(false);
@@ -56,6 +57,8 @@ export function Battle({ spec, approach, hp, sp, skills, onEnd }: Props) {
   };
 
   const broke = (name: BattleAction) => name !== "walk" && sim.sp < BATTLE_COST[name];
+  const bonusOnly = sim.awaitingBonus;
+  const bonusLocked = (name: BattleAction) => bonusOnly && name !== "walk" && name !== "guard";
   const locked = Boolean(sim.over) || reportedRef.current;
   const entered = sim.over === "win" || sim.over === "perfect";
 
@@ -70,6 +73,8 @@ export function Battle({ spec, approach, hp, sp, skills, onEnd }: Props) {
             <p className="text-xs text-ink/60">
               第 {sim.round} / {sim.maxRounds} 步 · {spec.label}
             </p>
+            {sim.stableFirst ? <p className="text-xs text-ink/60">你先。</p> : null}
+            {sim.pressureFirst ? <p className="text-xs text-ink/60">對方先。</p> : null}
             <div className="mt-2 flex gap-1" aria-hidden="true">
               {Array.from({ length: sim.maxRounds }, (_, index) => (
                 <span key={index} className={`h-1.5 flex-1 rounded-full ${index < sim.round ? "bg-ink" : "bg-line"}`} />
@@ -110,22 +115,23 @@ export function Battle({ spec, approach, hp, sp, skills, onEnd }: Props) {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2">
-            <TurnButton label={spec.voice.walk.label} detail={spec.voice.walk.detail} disabled={locked} onClick={() => choose("walk")} />
-            <TurnButton label={spec.voice.guard.label} detail={costDetail("guard", spec.voice.guard.detail)} disabled={locked || broke("guard")} onClick={() => choose("guard")} />
+            <TurnButton label={spec.voice.walk.label} detail={spec.voice.walk.detail} disabled={locked || bonusLocked("walk")} onClick={() => choose("walk")} />
+            <TurnButton label={spec.voice.guard.label} detail={costDetail("guard", spec.voice.guard.detail)} disabled={locked || broke("guard") || bonusLocked("guard")} onClick={() => choose("guard")} />
             <TurnButton
               label={spec.voice.read.label}
               detail={costDetail("read", prepared ? spec.voice.read.detail : (spec.voice.read.weakDetail ?? spec.voice.read.detail))}
-              disabled={locked || broke("read")}
+              disabled={locked || broke("read") || bonusLocked("read")}
               onClick={() => choose("read")}
             />
             {see ? (
-              <TurnButton label={spec.voice.see.label} detail={costDetail("see", spec.voice.see.detail)} disabled={locked || broke("see")} onClick={() => choose("see")} />
+              <TurnButton label={spec.voice.see.label} detail={costDetail("see", spec.voice.see.detail)} disabled={locked || broke("see") || bonusLocked("see")} onClick={() => choose("see")} />
             ) : null}
             {ask ? (
-              <TurnButton label={spec.voice.ask.label} detail={costDetail("ask", spec.voice.ask.detail)} disabled={locked || broke("ask")} onClick={() => choose("ask")} />
+              <TurnButton label={spec.voice.ask.label} detail={costDetail("ask", spec.voice.ask.detail)} disabled={locked || broke("ask") || bonusLocked("ask")} onClick={() => choose("ask")} />
             ) : null}
           </div>
           <p className="text-sm text-pretty text-paper/70">
+            {bonusOnly ? "還可以再走一步，或停一停。" : null}
             {prepared ? spec.voice.noteReady : spec.voice.noteWeak} {spec.voice.note}
           </p>
           <div className="grid grid-cols-2 gap-2">

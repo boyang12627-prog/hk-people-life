@@ -51,7 +51,7 @@ export function simulateOnce(input: {
   const primary = { ...INITIAL_PRIMARY, STAT_GRIT: input.grit, STAT_VIT: input.vit } as Primary;
   const hp = spiritHp(primary, input.approach === "safe" ? 5 : 0);
   const sp = driveSp(primary, input.mood);
-  const sim = createBattle({ approach: input.approach, hp, sp, ...input.kit, spec: input.spec ?? KINDY_DOOR });
+  const sim = createBattle({ approach: input.approach, hp, sp, ...input.kit, spec: input.spec ?? KINDY_DOOR, mind: primary.STAT_MIND });
   const rand = rng(input.seed);
   const used: Record<BattleAction, number> = { walk: 0, guard: 0, read: 0, see: 0, ask: 0 };
   for (let i = 0; i < sim.maxRounds + 1 && !sim.over; i += 1) {
@@ -59,6 +59,11 @@ export function simulateOnce(input: {
     const action = hesitate ? null : decide(sim, input.policy);
     if (action) used[action] += 1;
     resolveTurn(sim, action);
+    if (sim.awaitingBonus) {
+      const bonus: BattleAction = sim.threat.heavy && sim.sp >= BATTLE_COST.guard ? "guard" : "walk";
+      used[bonus] += 1;
+      resolveTurn(sim, bonus);
+    }
   }
   return { kind: (sim.over ?? "fail") as BattleKind, used, t: sim.round };
 }
@@ -211,6 +216,7 @@ export function provePerfect(spec: BattleSpec = KINDY_DOOR): BattleKind {
     if (sim.threat.heavy && sim.sp >= BATTLE_COST.guard) action = "guard";
     else if (sim.stress >= 40 && sim.sp >= BATTLE_COST.read) action = "read";
     resolveTurn(sim, action);
+    if (sim.awaitingBonus) resolveTurn(sim, sim.threat.heavy && sim.sp >= BATTLE_COST.guard ? "guard" : "walk");
   }
   return sim.over ?? "fail";
 }
@@ -229,6 +235,7 @@ export function resolveAuto(sim: BattleSim, policy: Policy = "steady") {
   let steps = 0;
   while (!sim.over && steps < sim.maxRounds + 1) {
     resolveTurn(sim, decide(sim, policy));
+    if (sim.awaitingBonus) resolveTurn(sim, sim.threat.heavy && sim.sp >= BATTLE_COST.guard ? "guard" : "walk");
     steps += 1;
   }
   if (!sim.over) sim.over = "fail";

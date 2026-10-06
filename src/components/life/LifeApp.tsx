@@ -79,6 +79,7 @@ export function LifeApp() {
           hp={spiritHp(state.primary, state.approach === "safe" ? 5 : 0)}
           sp={driveSp(state.primary, state.derived.STATE_MOOD)}
           skills={state.skills}
+          mind={state.primary.STAT_MIND}
           onEnd={(outcome) => {
             playTone(outcome.kind === "fail" || outcome.kind === "bad" ? "hit" : "good");
             dispatch({ type: "battleEnd", outcome });

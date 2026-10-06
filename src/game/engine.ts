@@ -27,10 +27,10 @@ import { FLAG_LEDGER, INDEX_LEDGER, RETIRED_FLAGS, TAG_LEDGER } from "./ledger";
 
 export const SAVE_KEY = "hklife-p01-v12";
 export const LEGACY_SAVE_KEY = "hklife-p01-v11";
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export type SaveEnvelope = {
-  schemaVersion: 2;
+  schemaVersion: 2 | 3;
   savedAt: string;
   state: State;
 };
@@ -103,6 +103,10 @@ export function freshState(seed = 198401): State {
     flags: [],
     personalityTags: [],
     skills: [],
+    equipment: [],
+    equipped: [],
+    techniques: [],
+    techniqueProgress: {},
     memories: [],
     seed,
     apLeft: 2,
@@ -117,7 +121,7 @@ export function freshState(seed = 198401): State {
     battle: null,
     offeredExplore: false,
     name: "",
-    schemaVersion: 2,
+    schemaVersion: 3,
   };
 }
 
@@ -139,9 +143,9 @@ export function loadState(): State | null {
 export function saveState(state: State) {
   if (typeof localStorage === "undefined") return;
   const envelope: SaveEnvelope = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     savedAt: new Date().toISOString(),
-    state: { ...state, schemaVersion: 2 },
+    state: { ...state, schemaVersion: 3 },
   };
   localStorage.setItem(SAVE_KEY, JSON.stringify(envelope));
   localStorage.removeItem(LEGACY_SAVE_KEY);
@@ -155,7 +159,7 @@ export function parseSave(raw: string): State | null {
     return null;
   }
   if (!isRecord(data)) return null;
-  if (data.schemaVersion === 2 && isRecord(data.state)) return validateState(data.state);
+  if ((data.schemaVersion === 2 || data.schemaVersion === 3) && isRecord(data.state)) return validateState(data.state);
   if (typeof data.phase === "string") return validateState(data);
   return null;
 }
@@ -649,6 +653,15 @@ export function validateState(raw: Record<string, unknown>): State | null {
   const retired = new Set<string>(RETIRED_FLAGS);
   const knownTags = new Set(TAG_LEDGER.map((item) => item.id));
   const knownSkills = new Set(Object.keys(SKILL_NAME));
+  const knownGear = new Set<string>();
+  const knownTech = new Set<string>();
+  const techniqueProgress: Record<string, number> = {};
+  if (isRecord(raw.techniqueProgress)) {
+    for (const [id, value] of Object.entries(raw.techniqueProgress)) {
+      if (!knownTech.has(id) || typeof value !== "number" || !Number.isFinite(value)) continue;
+      techniqueProgress[id] = clamp(Math.floor(value), 0, 99);
+    }
+  }
   const rawFlags = strings(raw.flags);
   const personalityTags = strings(raw.personalityTags).filter((tag) => knownTags.has(tag));
   const flags: string[] = [];
@@ -670,6 +683,10 @@ export function validateState(raw: Record<string, unknown>): State | null {
     flags,
     personalityTags,
     skills: strings(raw.skills).filter((id) => knownSkills.has(id)),
+    equipment: strings(raw.equipment).filter((id) => knownGear.has(id)),
+    equipped: strings(raw.equipped).filter((id) => knownGear.has(id)),
+    techniques: strings(raw.techniques).filter((id) => knownTech.has(id)),
+    techniqueProgress,
     memories,
     seed: typeof raw.seed === "number" ? raw.seed : base.seed,
     apLeft: typeof raw.apLeft === "number" && Number.isFinite(raw.apLeft) ? clamp(Math.floor(raw.apLeft), 0, 2) : 2,
@@ -687,7 +704,7 @@ export function validateState(raw: Record<string, unknown>): State | null {
         : null,
     offeredExplore: raw.offeredExplore === true,
     name: typeof raw.name === "string" ? raw.name.slice(0, 8) : "",
-    schemaVersion: 2,
+    schemaVersion: 3,
   };
   return reconcile(drafted);
 }
