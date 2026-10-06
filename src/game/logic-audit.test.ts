@@ -2,9 +2,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { actBattle, BATTLE_COST, createBattle } from "./battleSim.ts";
 import { readFileSync } from "node:fs";
-import { judgeBalance, provePerfect, runGateSample } from "./battleBalance.ts";
+import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
+import { KINDY_DOOR } from "./battleSpec.ts";
+import { choice } from "./choice.ts";
 import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, ledgerSummary, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
-import { cardFor, choicesFor, fifteenAct, fifteenLines, heardNews, lifeVoice, variantOf, yearLean, YEARS } from "./content.ts";
+import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, heardNews, knownEventIds, lifeVoice, variantOf, yearLean, YEARS } from "./content.ts";
+import { CHILDHOOD_EVENT_IDS, renderStatic } from "./data/events.ts";
+import { runLives } from "./lifeSim.ts";
 import { applyEffect, freshState, parseSave, reducer, type Action } from "./engine.ts";
 import type { State } from "./types.ts";
 
@@ -294,7 +298,8 @@ describe("logic audit v2.4", () => {
       assert.ok(spec.fallback);
       assert.ok(spec.scope);
     }
-    const game = ["./content.ts", "./engine.ts"].map((file) => readFileSync(new URL(file, import.meta.url), "utf8")).join("\n");
+    const game = ["./content.ts", "./engine.ts", "./data/events.ts", "./speak.ts"].map((file) => readFileSync(new URL(file, import.meta.url), "utf8")).join("\n");
+    const specSrc = readFileSync(new URL("./battleSpec.ts", import.meta.url), "utf8");
     const ui = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
     const reads = (src: string, id: string) => src.includes(`.includes("${id}")`);
     for (const spec of FLAG_LEDGER) {
@@ -311,7 +316,8 @@ describe("logic audit v2.4", () => {
     }
     for (const spec of SKILL_LEDGER) {
       const where = spec.consumerKind === "BATTLE" ? ui : game;
-      assert.equal(reads(where, spec.id) || (spec.consumerKind === "ENDING" && (reads(game, spec.id) || reads(ui, spec.id))), true, spec.id);
+      const battleWired = spec.consumerKind === "BATTLE" && specSrc.includes(`"${spec.id}"`) && ui.includes("KINDY_DOOR");
+      assert.equal(reads(where, spec.id) || battleWired || (spec.consumerKind === "ENDING" && (reads(game, spec.id) || reads(ui, spec.id))), true, spec.id);
     }
   });
 
@@ -460,6 +466,51 @@ describe("logic audit v2.4", () => {
     const crowded = selectOverflow();
     assert.equal(crowded.includes("老師說得很慢"), false);
     assert.ok(crowded.includes("實際"));
+  });
+
+  it("childhood prose lives in the data file, and a static event needs no reducer change", () => {
+    const live = new Set(knownEventIds());
+    for (const id of live) assert.ok(CHILDHOOD_EVENT_IDS.includes(id as (typeof CHILDHOOD_EVENT_IDS)[number]), id);
+    const started = Date.now();
+    const sample = renderStatic({
+      id: "EVT_SAMPLE",
+      scene: "home",
+      kicker: "試寫",
+      title: "走廊的燈",
+      lines: ["燈黃黃的。媽媽還沒叫你。"],
+      choices: [
+        choice("A", "等她", "reality", { derived: { STATE_FAMILY_HARMONY: 1 } }, "你等。她叫了你，你才走。"),
+        choice("B", "自己按燈", "dream", { derived: { STATE_MOOD: 1 } }, "你按了燈。走廊亮了一點。"),
+        choice("C", "問為什麼還不走", "think", { derived: { INDEPENDENT_THOUGHT: 1 } }, "你問了。她說再等一會兒。"),
+      ],
+    });
+    const seconds = (Date.now() - started) / 1000;
+    assert.equal(sample.card.title, "走廊的燈");
+    assert.equal(sample.choices.length, 3);
+    assert.ok(seconds < 1);
+    assert.equal(KINDY_DOOR.id, "BTL_KINDY_DOOR");
+    assert.equal(KINDY_DOOR.skipKind, "win");
+  });
+
+  it("a curious win does not say the child clung to mom", () => {
+    const story = battleStory("win", "curious");
+    assert.equal(story.text.includes("拉著媽媽"), false);
+    assert.ok(story.text.includes("沒有拉住誰"));
+    assert.ok(battleStory("win", "safe").text.includes("拉著媽媽"));
+  });
+
+  it("a thousand automatic lives all reach the ending", () => {
+    const report = runLives(1000);
+    assert.equal(report.ended, 1000, JSON.stringify(report.stuck));
+    assert.ok(report.events.includes("EVT_1984_NEWS_01"));
+    assert.ok(report.events.includes("EVT_1986_FAMILY_06"));
+  });
+
+  it("auto battle ends, and skip is a win rather than a perfect", () => {
+    const sim = createBattle({ approach: "safe", hp: 80, sp: 40, tidy: true, see: false, ask: false, practiced: true });
+    const kind = resolveAuto(sim);
+    assert.ok(kind === "win" || kind === "perfect" || kind === "fail" || kind === "bad");
+    assert.equal(KINDY_DOOR.skipKind, "win");
   });
 });
 

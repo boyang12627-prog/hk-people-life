@@ -16,6 +16,7 @@ import {
   yearLean,
   yearOf,
 } from "@/game/content";
+import { KINDY_DOOR } from "@/game/battleSpec";
 import { canRetry, freshState, loadState, reducer, saveState } from "@/game/engine";
 import { driveSp, spiritHp, type Gender, type SceneId, type State } from "@/game/types";
 
@@ -76,10 +77,10 @@ export function LifeApp() {
           approach={state.approach}
           hp={spiritHp(state.primary, state.approach === "safe" ? 5 : 0)}
           sp={driveSp(state.primary, state.derived.STATE_MOOD)}
-          tidy={state.skills.includes("SKL_07")}
-          see={state.skills.includes("SKL_02")}
-          ask={state.skills.includes("SKL_04")}
-          practiced={state.skills.includes("SKL_01")}
+          tidy={state.skills.includes(KINDY_DOOR.skills.tidy)}
+          see={state.skills.includes(KINDY_DOOR.skills.see)}
+          ask={state.skills.includes(KINDY_DOOR.skills.ask)}
+          practiced={state.skills.includes(KINDY_DOOR.skills.practiced)}
           onEnd={(outcome) => {
             playTone(outcome.kind === "fail" || outcome.kind === "bad" ? "hit" : "good");
             dispatch({ type: "battleEnd", outcome });

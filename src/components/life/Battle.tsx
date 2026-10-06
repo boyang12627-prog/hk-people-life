@@ -1,6 +1,8 @@
 import { useEffect, useRef, type RefObject } from "react";
+import { resolveAuto } from "@/game/battleBalance";
+import { KINDY_DOOR } from "@/game/battleSpec";
 import { actBattle, BATTLE_COST, createBattle, stepBattle, type BattleAction, type BattleSim } from "@/game/battleSim";
-import type { Approach, BattleOutcome } from "@/game/types";
+import type { Approach, BattleKind, BattleOutcome } from "@/game/types";
 
 type Props = {
   approach: Approach;
@@ -106,6 +108,13 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
     actBattle(simRef.current, name, enabled);
   };
 
+  const endAs = (kind: BattleKind, hint: string) => {
+    const sim = simRef.current;
+    if (sim.over) return;
+    sim.hint = hint;
+    sim.over = kind;
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <div className="overflow-hidden rounded-2xl border border-line/40">
@@ -172,6 +181,18 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
         {practiced ? "你懂得跟著讀。跟著讀，壓力會落得多一些。" : "你還沒跟熟。跟著讀也可以，但聲音很細。"}
         氣力用來走、停、跟著讀。今天進不去，可以再試，不會結束。
       </p>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper"
+          onClick={() => endAs(KINDY_DOOR.skipKind, "你沒有打完。你還是進去了。")}
+        >
+          跳過，算進去了
+        </button>
+        <button type="button" className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper" onClick={() => endAs(resolveAuto(simRef.current), "你跟著走完這段路。")}>
+          自動走進去
+        </button>
+      </div>
     </div>
   );
 }

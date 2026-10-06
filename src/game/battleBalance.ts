@@ -220,3 +220,16 @@ export function balanceSummary(reports: BalanceReport[]) {
     perfect: Number((report.rate.perfect * 100).toFixed(1)),
   }));
 }
+
+/** Playtest auto. Steady policy, no missed inputs. Stops as fail if the fight never ends. */
+export function resolveAuto(sim: BattleSim, policy: Policy = "steady") {
+  let steps = 0;
+  while (!sim.over && steps < 800) {
+    const action = decide(sim, policy);
+    if (action) actBattle(sim, action, action === "see" ? sim.see : action === "ask" ? sim.ask : true);
+    stepBattle(sim, 0.12);
+    steps += 1;
+  }
+  if (!sim.over) sim.over = "fail";
+  return sim.over;
+}
