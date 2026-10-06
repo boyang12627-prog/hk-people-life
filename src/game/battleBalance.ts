@@ -1,4 +1,5 @@
 import { spiritHp, driveSp, INITIAL_PRIMARY, type Approach, type BattleKind, type Primary } from "./types";
+import { KINDY_DOOR, type BattleSpec } from "./battleSpec";
 import { BATTLE_COST, createBattle, resolveTurn, type BattleAction, type BattleSim } from "./battleSim";
 
 export type Policy = "walk" | "read" | "guard" | "steady" | "smart";
@@ -37,11 +38,20 @@ function decide(sim: BattleSim, policy: Policy): BattleAction | null {
 
 export type Kit = { practiced: boolean; tidy: boolean; see: boolean; ask: boolean };
 
-export function simulateOnce(input: { seed: number; approach: Approach; policy: Policy; kit: Kit; grit: number; vit: number; mood: number }) {
+export function simulateOnce(input: {
+  seed: number;
+  approach: Approach;
+  policy: Policy;
+  kit: Kit;
+  grit: number;
+  vit: number;
+  mood: number;
+  spec?: BattleSpec;
+}) {
   const primary = { ...INITIAL_PRIMARY, STAT_GRIT: input.grit, STAT_VIT: input.vit } as Primary;
   const hp = spiritHp(primary, input.approach === "safe" ? 5 : 0);
   const sp = driveSp(primary, input.mood);
-  const sim = createBattle({ approach: input.approach, hp, sp, ...input.kit });
+  const sim = createBattle({ approach: input.approach, hp, sp, ...input.kit, spec: input.spec ?? KINDY_DOOR });
   const rand = rng(input.seed);
   const used: Record<BattleAction, number> = { walk: 0, guard: 0, read: 0, see: 0, ask: 0 };
   for (let i = 0; i < sim.maxRounds + 1 && !sim.over; i += 1) {
@@ -61,7 +71,7 @@ export type BalanceReport = {
   skillUse: Record<BattleAction, number>;
 };
 
-function runCell(n: number, approach: Approach, policy: Policy, label: string, kit: Kit, seedStart: number) {
+function runCell(n: number, approach: Approach, policy: Policy, label: string, kit: Kit, seedStart: number, spec: BattleSpec = KINDY_DOOR) {
   const tally: Record<BattleKind, number> = { perfect: 0, win: 0, fail: 0, bad: 0 };
   const skillUse: Record<BattleAction, number> = { walk: 0, guard: 0, read: 0, see: 0, ask: 0 };
   let seed = seedStart;
@@ -75,6 +85,7 @@ function runCell(n: number, approach: Approach, policy: Policy, label: string, k
       grit: 3 + Math.floor(rand() * 4),
       vit: 3 + Math.floor(rand() * 4),
       mood: 40 + Math.floor(rand() * 45),
+      spec,
     });
     tally[result.kind] += 1;
     for (const key of Object.keys(skillUse) as BattleAction[]) skillUse[key] += result.used[key];
@@ -110,7 +121,7 @@ export function runBalance(n = 1000): BalanceReport[] {
   for (const approach of APPROACHES) {
     for (const policy of policies) {
       for (const kit of kits) {
-        const cell = runCell(n, approach, policy, kit.label, kit.kit, seed);
+        const cell = runCell(n, approach, policy, kit.label, kit.kit, seed, KINDY_DOOR);
         seed = cell.seed;
         reports.push(cell.report);
       }
@@ -130,7 +141,7 @@ export function runGateSample(n = 200): BalanceReport[] {
   let seed = 1;
   for (const approach of APPROACHES) {
     for (const kit of kits) {
-      const cell = runCell(n, approach, "steady", kit.label, kit.kit, seed);
+      const cell = runCell(n, approach, "steady", kit.label, kit.kit, seed, KINDY_DOOR);
       seed = cell.seed;
       reports.push(cell.report);
     }
@@ -197,7 +208,7 @@ export function provePerfect(): BattleKind {
   for (let i = 0; i < sim.maxRounds && !sim.over; i += 1) {
     let action: BattleAction = "walk";
     if (sim.threat.heavy && sim.sp >= BATTLE_COST.guard) action = "guard";
-    else if (sim.stress >= 12 && sim.sp >= BATTLE_COST.read) action = "read";
+    else if (sim.stress >= 40 && sim.sp >= BATTLE_COST.read) action = "read";
     resolveTurn(sim, action);
   }
   return sim.over ?? "fail";

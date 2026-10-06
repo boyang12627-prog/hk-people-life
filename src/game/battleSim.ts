@@ -16,7 +16,11 @@ export type BattleSim = {
   brace: boolean;
   dodge: boolean;
   over: BattleKind | null;
+  /** What you just did. Not the doorway. */
   hint: string;
+  /** What the doorway did after you moved. Empty until that happens. */
+  enemyHint: string;
+  hasActed: boolean;
   threat: Threat;
   pattern: EnemyPattern;
   see: boolean;
@@ -54,7 +58,7 @@ export function createBattle(input: {
         : "媽媽鬆開手。你開過口，現在要自己走過去。";
   return {
     round: 1,
-    maxRounds: spec.maxRounds,
+    maxRounds: spec.enemyPattern.maxRounds,
     goal: spec.startGoal,
     hp: input.hp,
     maxHp: input.hp,
@@ -65,6 +69,8 @@ export function createBattle(input: {
     dodge: false,
     over: null,
     hint,
+    enemyHint: "",
+    hasActed: false,
     threat: spec.enemyPattern.threatFor(1),
     pattern: spec.enemyPattern,
     see: input.see,
@@ -79,6 +85,8 @@ export function createBattle(input: {
  * A goal of 95 on round 4 does nothing. 88 is not a shortcut during the fight.
  * When the last round is over and you are still standing, goal >= 88 counts as in,
  * if stress stayed under 96. So 95 at the bell is a win. 95 on round 4 is not.
+ * This fight is won by getting into the room. There is no enemy-pressure bar to empty.
+ * A later fight can add one. Do not treat a loud voice as something you defeat.
  */
 function settle(sim: BattleSim) {
   if (sim.hp <= 0) sim.over = sim.stress >= 80 ? "bad" : "fail";
@@ -97,9 +105,11 @@ export function actBattle(sim: BattleSim, name: BattleAction, enabled: boolean) 
   if (sim.over || !enabled) return false;
   const cost = BATTLE_COST[name];
   if (sim.sp < cost) {
+    sim.hasActed = true;
     sim.hint = "氣力不夠。可以向前走，或者先停下。";
     return false;
   }
+  sim.hasActed = true;
   sim.sp -= cost;
   if (name === "walk") {
     sim.goal = Math.min(100, sim.goal + 14);
@@ -133,7 +143,7 @@ function applyEnemy(sim: BattleSim) {
   let hp = threat.hp;
   if (sim.dodge) {
     sim.dodge = false;
-    sim.hint = "你看得出哪一下會撞過來，避開了。";
+    sim.enemyHint = "你看得出哪一下會撞過來，避開了。";
     stress = 0;
     hp = 0;
   } else if (sim.brace) {
@@ -141,9 +151,9 @@ function applyEnemy(sim: BattleSim) {
     stress = Math.ceil(stress / 2);
     hp = Math.ceil(hp / 2);
     sim.sp = Math.min(sim.maxSp, sim.sp + 3);
-    sim.hint = "你擋住了。聲音小了一半。";
+    sim.enemyHint = "你擋住了。聲音小了一半。";
   } else {
-    sim.hint = threat.heavy ? "那一聲很大。你退後半步。" : "陌生的聲音撞過來。你停了一下。";
+    sim.enemyHint = threat.heavy ? "那一聲很大。你退後半步。" : "有人拉住你的衣袖。";
   }
   sim.stress = Math.min(100, sim.stress + stress);
   // 精神力 is not a second stress bar. A voice raises stress first.
@@ -154,10 +164,12 @@ function applyEnemy(sim: BattleSim) {
 /** One full exchange: your action, then the doorway, then the next threat. Null means you froze. */
 export function resolveTurn(sim: BattleSim, action: BattleAction | null) {
   if (sim.over) return;
+  sim.enemyHint = "";
   if (action) {
     const paid = actBattle(sim, action, action === "see" ? sim.see : action === "ask" ? sim.ask : true);
     if (!paid) return;
   } else {
+    sim.hasActed = true;
     sim.hint = "你站著。那一聲還是來了。";
   }
   settle(sim);

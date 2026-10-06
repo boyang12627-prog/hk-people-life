@@ -37,19 +37,24 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
     if (sim.over || reportedRef.current) return;
     resolveTurn(sim, name);
     setTick((n) => n + 1);
-    if (sim.over) report(sim.over);
   };
 
   const endAs = (kind: BattleKind, hint: string) => {
     if (reportedRef.current) return;
     if (!sim.over) sim.over = kind;
+    sim.hasActed = true;
     sim.hint = hint;
     setTick((n) => n + 1);
-    report(sim.over ?? kind);
+  };
+
+  const finish = () => {
+    if (!sim.over) return;
+    report(sim.over);
   };
 
   const broke = (name: BattleAction) => name !== "walk" && sim.sp < BATTLE_COST[name];
   const locked = Boolean(sim.over) || reportedRef.current;
+  const entered = sim.over === "win" || sim.over === "perfect";
 
   return (
     <div className="flex flex-col gap-3" data-round={tick}>
@@ -58,9 +63,16 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
           <img src={`/scenes/${KINDY_DOOR.scene}.jpg`} alt="" className="h-full w-full object-cover" />
         </div>
         <div className="grid gap-3 bg-paper px-4 py-3 text-ink">
-          <p className="text-xs text-ink/60">
-            第 {sim.round} / {sim.maxRounds} 步 · 門口的聲音
-          </p>
+          <div>
+            <p className="text-xs text-ink/60">
+              第 {sim.round} / {sim.maxRounds} 步 · 門口的聲音
+            </p>
+            <div className="mt-2 flex gap-1" aria-hidden="true">
+              {Array.from({ length: sim.maxRounds }, (_, index) => (
+                <span key={index} className={`h-1.5 flex-1 rounded-full ${index < sim.round ? "bg-ink" : "bg-line"}`} />
+              ))}
+            </div>
+          </div>
           <Meter label="精神力" value={sim.hp} max={sim.maxHp} tone="bg-estate" />
           <Meter label="氣力" value={sim.sp} max={sim.maxSp} tone="bg-amber" />
           <Meter label="壓力" value={sim.stress} max={100} tone="bg-ink" />
@@ -71,50 +83,69 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
               <p className="text-sm text-pretty text-paper">{sim.threat.hint}</p>
             </div>
           )}
-          <div>
-            <p className="text-xs text-muted">剛才</p>
-            <p className="min-h-10 text-sm text-pretty text-ink/70">{sim.hint}</p>
-          </div>
+          {sim.hasActed ? (
+            <div>
+              <p className="text-xs text-muted">剛才</p>
+              <p className="text-sm text-pretty text-ink/70">{sim.hint}</p>
+              {sim.enemyHint ? (
+                <>
+                  <p className="mt-2 text-xs text-muted">門口</p>
+                  <p className="text-sm text-pretty text-ink/70">{sim.enemyHint}</p>
+                </>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-sm text-pretty text-ink/70">{sim.hint}</p>
+          )}
+          {sim.over ? <p className="text-sm text-ink">{entered ? "你進去了。" : "你回到門口。"}</p> : null}
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <TurnButton label="向前行" detail="不耗氣力，走近一步" disabled={locked} onClick={() => choose("walk")} />
-        <TurnButton label="停下呼吸" detail={`氣力 ${BATTLE_COST.guard}，這一聲小一半`} disabled={locked || broke("guard")} onClick={() => choose("guard")} />
-        <TurnButton
-          label="跟著讀"
-          detail={practiced ? `氣力 ${BATTLE_COST.read}，你跟得熟` : `氣力 ${BATTLE_COST.read}，還沒跟熟`}
-          disabled={locked || broke("read")}
-          onClick={() => choose("read")}
-        />
-        {see ? (
-          <TurnButton label="看臉色" detail={`氣力 ${BATTLE_COST.see}，避開下一聲`} disabled={locked || broke("see")} onClick={() => choose("see")} />
-        ) : null}
-        {ask ? (
-          <TurnButton label="問問題" detail={`氣力 ${BATTLE_COST.ask}，走近少少`} disabled={locked || broke("ask")} onClick={() => choose("ask")} />
-        ) : null}
-      </div>
-      <p className="text-sm text-pretty text-paper/70">
-        {practiced ? "你懂得跟著讀。跟著讀，壓力會落得多一些。" : "你還沒跟熟。跟著讀也可以，但聲音很細。"}
-        先看這一聲大不大，再決定走還是停。今天進不去，可以再試，不會結束。
-      </p>
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          disabled={locked}
-          className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper disabled:opacity-40"
-          onClick={() => endAs(KINDY_DOOR.skipKind, "你沒有打完。你還是進去了。")}
-        >
-          跳過，算進去了
+      {sim.over ? (
+        <button type="button" className="min-h-12 rounded-xl bg-amber px-4 text-base font-medium text-ink" onClick={finish}>
+          看這一次
         </button>
-        <button
-          type="button"
-          disabled={locked}
-          className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper disabled:opacity-40"
-          onClick={() => endAs(resolveAuto(sim), "你跟著走完這段路。")}
-        >
-          自動走進去
-        </button>
-      </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <TurnButton label="向前行" detail="不耗氣力，走近一步" disabled={locked} onClick={() => choose("walk")} />
+            <TurnButton label="停下呼吸" detail={`氣力 ${BATTLE_COST.guard}，這一聲小一半`} disabled={locked || broke("guard")} onClick={() => choose("guard")} />
+            <TurnButton
+              label="跟著讀"
+              detail={practiced ? `氣力 ${BATTLE_COST.read}，你跟得熟` : `氣力 ${BATTLE_COST.read}，還沒跟熟`}
+              disabled={locked || broke("read")}
+              onClick={() => choose("read")}
+            />
+            {see ? (
+              <TurnButton label="看臉色" detail={`氣力 ${BATTLE_COST.see}，避開下一聲`} disabled={locked || broke("see")} onClick={() => choose("see")} />
+            ) : null}
+            {ask ? (
+              <TurnButton label="問問題" detail={`氣力 ${BATTLE_COST.ask}，走近少少`} disabled={locked || broke("ask")} onClick={() => choose("ask")} />
+            ) : null}
+          </div>
+          <p className="text-sm text-pretty text-paper/70">
+            {practiced ? "你懂得跟著讀。跟著讀，壓力會落得多一些。" : "你還沒跟熟。跟著讀也可以，但聲音很細。"}
+            先看這一聲大不大，再決定走還是停。今天進不去，可以再試，不會結束。
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={locked}
+              className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper disabled:opacity-40"
+              onClick={() => endAs(KINDY_DOOR.skipKind, "你沒有打完。你還是進去了。")}
+            >
+              跳過，算進去了
+            </button>
+            <button
+              type="button"
+              disabled={locked}
+              className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper disabled:opacity-40"
+              onClick={() => endAs(resolveAuto(sim), "你跟著走完這段路。")}
+            >
+              自動走進去
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

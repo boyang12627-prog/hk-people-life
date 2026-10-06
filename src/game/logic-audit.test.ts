@@ -534,18 +534,31 @@ describe("logic audit v2.4", () => {
 
   it("door pattern is loud four times, spirit waits for stress, and 88 is only the bell", () => {
     const pattern = KINDY_DOOR.enemyPattern;
-    assert.equal(KINDY_DOOR.maxRounds, pattern.maxRounds);
+    assert.equal(pattern.maxRounds, 8);
+    assert.equal("maxRounds" in KINDY_DOOR, false);
     assert.equal(KINDY_DOOR.startGoal, 12);
-    for (const round of [1, 3, 5, 8]) assert.equal(pattern.threatFor(round).heavy, false, String(round));
+    for (const round of [1, 3, 5]) assert.equal(pattern.threatFor(round).heavy, false, String(round));
     for (const round of [2, 4, 6, 7]) assert.equal(pattern.threatFor(round).heavy, true, String(round));
+    assert.equal(pattern.threatFor(8).heavy, false);
+    assert.ok(pattern.threatFor(8).hint.includes("門口有光"));
     const ui = readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8");
     assert.ok(ui.includes("下一聲"));
     assert.ok(ui.includes("剛才"));
+    assert.ok(ui.includes("門口"));
+    assert.ok(ui.includes("你進去了"));
+    assert.ok(ui.includes("hasActed"));
+
+    const fresh = createBattle({ approach: "social", hp: 80, sp: 40, tidy: false, see: false, ask: false, practiced: false });
+    assert.equal(fresh.hasActed, false);
+    assert.equal(fresh.maxRounds, pattern.maxRounds);
 
     const calm = createBattle({ approach: "social", hp: 80, sp: 40, tidy: false, see: false, ask: false, practiced: false });
     calm.stress = 10;
     calm.threat = { stress: 9, hp: 5, heavy: false, hint: "輕" };
     resolveTurn(calm, "walk");
+    assert.equal(calm.hint, "你向前走一步。");
+    assert.ok(calm.enemyHint.includes("衣袖"));
+    assert.equal(calm.hasActed, true);
     assert.ok(calm.stress < 80);
     assert.equal(calm.hp, 80);
 
