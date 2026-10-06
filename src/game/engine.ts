@@ -24,7 +24,7 @@ import {
   type State,
 } from "./types";
 import { FLAG_LEDGER, INDEX_LEDGER, RETIRED_FLAGS, TAG_LEDGER } from "./ledger";
-import { catalogGear, EQUIPMENT_CATALOG, TECHNIQUE_CATALOG, techniquesForSkills } from "./catalog";
+import { catalogGear, EQUIPMENT_CATALOG, questOf, TECHNIQUE_CATALOG, techniquesForSkills } from "./catalog";
 
 export const SAVE_KEY = "hklife-p01-v12";
 export const LEGACY_SAVE_KEY = "hklife-p01-v11";
@@ -541,21 +541,60 @@ export function applyEffect(state: State, effect: Effect): { state: State; delta
   }
   const equipment = [...state.equipment];
   const equipped = [...state.equipped];
+  let memories = state.memories;
   const year = yearOf(state).year;
   for (const id of effect.equipment ?? []) {
     const item = catalogGear(id);
     if (!item || year < item.availableFromYear) continue;
     if (item.availableToYear !== undefined && year > item.availableToYear) continue;
-    if (!equipment.includes(id)) equipment.push(id);
+    const owned = equipment.includes(id);
+    if (!owned) equipment.push(id);
     const slotTaken = equipped.some((held) => catalogGear(held)?.slot === item.slot);
     if (!slotTaken && !equipped.includes(id)) equipped.push(id);
+    if (!owned && item.memoryHook) {
+      const quest = questOf(item.sourceQuest);
+      if (quest) {
+        memories = upsertMemory(memories, {
+          id: item.memoryHook,
+          memoryTypeId: item.memoryHook,
+          instanceId: `${item.memoryHook}_${year}`,
+          eventId: quest.eventId,
+          choiceId: quest.choiceId,
+          variant: "base",
+          year,
+          age: yearOf(state).age,
+          npc: quest.npc,
+          emotion: "kept",
+          weight: 1,
+          echo: quest.echo,
+          snapshot: snapshotOf({ ...state, derived }),
+        });
+      }
+    }
   }
   const techniques = techniquesForSkills(skills);
-  return { state: { ...state, primary, derived, counter, npc, flags, personalityTags, skills, equipment, equipped, techniques }, deltas, skills: gained };
+  return { state: { ...state, primary, derived, counter, npc, flags, personalityTags, skills, equipment, equipped, techniques, memories }, deltas, skills: gained };
 }
 
 function pushDelta(deltas: Delta[], label: string, value: number) {
   if (value !== 0) deltas.push({ label, value });
+}
+
+/** Own and wear stay separate. The child still auto-wears a free slot. These are for later. */
+export function equipItem(state: State, id: string): State {
+  const item = catalogGear(id);
+  if (!item || !state.equipment.includes(id)) return state;
+  const equipped = state.equipped.filter((held) => held !== id && catalogGear(held)?.slot !== item.slot);
+  return { ...state, equipped: [...equipped, id] };
+}
+
+export function unequipItem(state: State, id: string): State {
+  if (!state.equipped.includes(id)) return state;
+  return { ...state, equipped: state.equipped.filter((held) => held !== id) };
+}
+
+export function replaceItem(state: State, id: string): State {
+  return equipItem(state, id);
 }
 
 export function canRetry(state: State) {

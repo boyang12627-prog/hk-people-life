@@ -252,7 +252,10 @@ export function orientationLine(dream: number, reality: number) {
 export function fifteenLines(state: State) {
   const lines = ["家裡的電視還開著。", "你第一次自己回家。媽媽問你幾點回來。", "你沒有再解釋那麼多。"];
   if (state.skills.includes("SKL_09")) lines.splice(2, 0, "這條路你小時候自己走過。現在沒有人拉著你。");
-  if (state.equipment.includes("EQP_PLASTIC_WATCH")) lines.push("你手腕上那隻塑膠錶仍然不會走。士多沒有買那輛車。錶是阿姨放進你手裡的。");
+  const keptWatch = state.memories.some((item) => (item.memoryTypeId ?? item.id) === "MEM_TOY_WATCH");
+  const stillHeld = state.equipment.includes("EQP_PLASTIC_WATCH");
+  if (keptWatch && stillHeld) lines.push("你手腕上那隻塑膠錶仍然不會走。士多沒有買那輛車。錶是阿姨放進你手裡的。");
+  else if (keptWatch) lines.push("那隻不會走的塑膠錶不在手上了。士多沒有買那輛車。你記得阿姨把它放進你手裡。");
   const response = state.counter.PLAYER_DAD_CHOICE_RESPONSE;
   if (response === 1) lines.push("你小時候把約定放下，自己去玩了。這天你沒有再等誰。");
   else if (response === 2) lines.push("你答應過他去上班。這天回家，你只應了一聲。");

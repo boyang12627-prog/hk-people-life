@@ -89,7 +89,7 @@ export type BattleOutcome = {
   hp: number;
 };
 
-/** A thing the child actually has. No item is granted in 1984–1986 yet. */
+/** A thing the child can carry. Attack on the item is not a kindergarten hit. */
 export type Equipment = {
   id: string;
   slot: "hand" | "body" | "bag";
@@ -100,7 +100,7 @@ export type Equipment = {
   memoryHook?: string;
 };
 
-/** How a life skill is used under pressure. None are granted yet. */
+/** A listed way to use one skill. Most skills never get a row. */
 export type Technique = {
   id: string;
   sourceSkill?: string;

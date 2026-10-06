@@ -7,6 +7,8 @@
  */
 import type { Approach, SceneId } from "./types";
 
+export type BattleAxis = "attack" | "defense" | "speed" | "stressResist" | "technique";
+
 export type Threat = { stress: number; hp: number; heavy: boolean; hint: string; landed: string };
 
 /** What each step sounds like. How many steps the fight lasts lives on the spec. */
@@ -67,6 +69,11 @@ export type BattleSpec = {
   startGoal: number;
   /** Pressure side's speed. Compared with the child's battle speed. Not a damage number. */
   pressureSpeed: number;
+  /**
+   * Which words this fight uses. Kindergarten is speed and stress resist, not a hit-point boss.
+   * Attack and defense exist for a later fight. This doorway does not read them.
+   */
+  axes: readonly BattleAxis[];
   /** Catalog fight. Numbers are shared with other specs. Do not gate on this. */
   gated: boolean;
   enemyPattern: EnemyPattern;
@@ -104,6 +111,7 @@ export const KINDY_DOOR: BattleSpec = {
   maxRounds: 8,
   startGoal: 12,
   pressureSpeed: 5,
+  axes: ["speed", "stressResist"],
   gated: true,
   enemyPattern: KINDY_SEPARATION,
   voice: {
@@ -155,6 +163,7 @@ export const PRIMARY_EXAM: BattleSpec = {
   maxRounds: 10,
   startGoal: 8,
   pressureSpeed: 5,
+  axes: ["technique"],
   gated: false,
   enemyPattern: PRIMARY_EXAM_PRESSURE,
   voice: {

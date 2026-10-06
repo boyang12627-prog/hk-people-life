@@ -45,11 +45,15 @@ export type BattleSim = {
   bonusQuick: boolean;
   awaitingBonus: boolean;
   stressResist: number;
+  /** Kept at 0 unless this fight's axes include attack. The doorway does not add it to the goal. */
+  attack: number;
+  defense: number;
 };
 
 /** Mind, a memory passive, a short buff, and gear. No source is invented here. */
 export function battleSpeed(parts: { mind: number; passive?: number; buff?: number; gear?: number }) {
-  const gear = Math.min(SPEED_RULE.maxGearSpeed, Math.max(0, Math.floor(parts.gear ?? 0)));
+  const gearCap = SPEED_RULE.maxGearSpeed * SPEED_RULE.gearSlots;
+  const gear = Math.min(gearCap, Math.max(0, Math.floor(parts.gear ?? 0)));
   const buff = Math.min(SPEED_RULE.maxBuffSpeed, Math.max(0, Math.floor(parts.buff ?? 0)));
   return Math.max(0, Math.floor(parts.mind) + Math.floor(parts.passive ?? 0) + buff + gear);
 }
@@ -94,12 +98,19 @@ export function createBattle(input: {
   buffSpeed?: number;
   gearSpeed?: number;
   stressResist?: number;
+  attack?: number;
+  defense?: number;
   enemySpeed?: number;
 }): BattleSim {
   const spec = input.spec ?? KINDY_DOOR;
   let stress = input.approach === "safe" ? 16 : input.approach === "curious" ? 22 : 20;
   if (input.stabilize) stress = Math.max(0, stress - 8);
-  const playerSpeed = battleSpeed({ mind: input.mind ?? 5, passive: input.passiveSpeed, buff: input.buffSpeed, gear: input.gearSpeed });
+  const playerSpeed = battleSpeed({
+    mind: input.mind ?? 5,
+    passive: input.passiveSpeed,
+    buff: input.buffSpeed,
+    gear: spec.axes.includes("speed") ? input.gearSpeed : 0,
+  });
   const enemySpeed = input.enemySpeed ?? spec.pressureSpeed;
   const order = initiativeFor(playerSpeed, enemySpeed);
   const threat = spec.enemyPattern.threatFor(1);
@@ -136,7 +147,9 @@ export function createBattle(input: {
     pressureFirst: order.pressureFirst,
     bonusQuick: order.bonusQuick,
     awaitingBonus: false,
-    stressResist: Math.min(SPEED_RULE.maxStressResist, Math.max(0, Math.floor(input.stressResist ?? 0))),
+    stressResist: spec.axes.includes("stressResist") ? Math.min(SPEED_RULE.maxStressResist, Math.max(0, Math.floor(input.stressResist ?? 0))) : 0,
+    attack: spec.axes.includes("attack") ? Math.max(0, Math.floor(input.attack ?? 0)) : 0,
+    defense: spec.axes.includes("defense") ? Math.max(0, Math.floor(input.defense ?? 0)) : 0,
   };
   if (order.pressureFirst) openPressure(sim);
   return sim;
