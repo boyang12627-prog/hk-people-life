@@ -57,6 +57,7 @@ export type Effect = {
   flags?: string[];
   tags?: string[];
   skills?: string[];
+  equipment?: string[];
 };
 
 export type Delta = { label: string; value: number };

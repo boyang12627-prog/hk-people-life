@@ -51,7 +51,14 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
     lines: ["玻璃櫃裡有一輛新車。你沒有零用錢。", "媽媽已經走開兩步。"],
     choices: [
       choice("A", "拉住媽媽要看", "dream", { derived: { STATE_MOOD: 2 }, npc: { NPC_MOM_01: { trust: -1 } } }, "你拉住她。媽媽歎了口氣，讓你看十秒。「看完要走。」"),
-      choice("B", "自己看完就走", "think", { derived: { INDEPENDENT_THOUGHT: 1, STATE_MOOD: 1 } }, "你看清楚那輛車，然後自己追上去。沒有人買。你記得那個樣子。"),
+      choice(
+        "B",
+        "自己看完就走",
+        "think",
+        { derived: { INDEPENDENT_THOUGHT: 1, STATE_MOOD: 1 }, equipment: ["EQP_PLASTIC_WATCH"] },
+        "你看清楚那輛車，然後自己追上去。沒有人買。櫃台旁邊有一隻不會走的塑膠錶。阿姨說：「這個不必錢。」你把它握在手裡。",
+        mem("MEM_TOY_WATCH", "MINI_84_TOY", "B", "NPC_AUNT_01", "kept", "你沒有買那輛車。手上多了一隻不會走的塑膠錶。"),
+      ),
       choice("C", "不看，跟著走", "reality", { derived: { VALUE_REALITY: 1, STATE_FAMILY_HARMONY: 1, STATE_MOOD: -1 } }, "你跟著走。車留在櫃裡。媽媽沒發現你停過。"),
     ],
   },
@@ -223,8 +230,8 @@ export function cardFor(id: string, state: State): Card {
       const lean = gapLine(state, "你看著顏色，多過數字。", "你先聽到爸爸說的。你知道「實際」兩個字。");
       if (lean) spoken.push({ priority: 2, text: lean });
       if (state.derived.INDEPENDENT_THOUGHT >= 50) spoken.push({ priority: 2, text: "你還沒問出口，已經自己想了兩句。沒有人聽見。" });
-      if (state.npc.NPC_TEACH_01.trust >= 35) spoken.push({ priority: 3, text: "老師記得你自己走進課室。" });
-      else if (state.flags.includes("FLAG_TEACHER_SLOW")) spoken.push({ priority: 3, text: "老師說得很慢，等你跟上。" });
+      if (state.npc.NPC_TEACH_01.trust >= 35) spoken.push({ priority: 2, text: "老師記得你自己走進課室。" });
+      else if (state.flags.includes("FLAG_TEACHER_SLOW")) spoken.push({ priority: 2, text: "老師說得很慢，等你跟上。" });
       lines.push(...selectByPriority(spoken, 4));
       return { scene: "kindy", kicker: "1986 · 第一次選", title: "畫畫，還是數數？", lines };
     }
@@ -278,7 +285,7 @@ export function cardFor(id: string, state: State): Card {
       if (state.flags.includes("FLAG_MARKET_KINDNESS")) spoken.push({ priority: 2, text: "阿姨塞過一條菜。外面沒有人伸手向你要錢。" });
       if (state.npc.NPC_MOM_01.trust >= 75) spoken.push({ priority: 2, text: "媽媽的手伸在你後面，還沒拉你。" });
       else if (state.npc.NPC_MOM_01.trust <= 65) spoken.push({ priority: 2, text: "媽媽站得遠。她一出聲你就聽到。" });
-      if (state.primary.STAT_FATE >= 6) spoken.push({ priority: 3, text: "你踏出去的那一下，她遲了半秒才叫你。" });
+      if (state.primary.STAT_FATE >= 6) spoken.push({ priority: 2, text: "你踏出去的那一下，她遲了半秒才叫你。" });
       lines.push(...selectByPriority(spoken, 4));
       return { scene: "estate", kicker: "1986 · 屋邨門口", title: "如果我自己走呢", lines };
     }

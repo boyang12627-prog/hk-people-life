@@ -624,7 +624,7 @@ describe("logic audit v2.4", () => {
     assert.equal(tied.stableFirst, false);
     assert.equal(tied.pressureFirst, false);
     assert.equal(tied.bonusQuick, false);
-    assert.deepEqual(tied.initiativeOrder, []);
+    assert.deepEqual(tied.initiativeOrder, ["player", "pressure"]);
     const ahead = initiativeFor(10, 5);
     assert.equal(ahead.stableFirst, true);
     assert.equal(ahead.bonusQuick, false);
@@ -641,6 +641,9 @@ describe("logic audit v2.4", () => {
     });
     assert.equal(quick.bonusQuick, true);
     assert.equal(battleSpeed({ mind: 5, passive: 10 }), 15);
+    assert.equal(battleSpeed({ mind: 5, gear: 9, buff: 9 }), 7);
+    const watched = battleSpeed({ mind: 5, gear: 1 });
+    assert.equal(initiativeFor(watched, 5).stableFirst, false);
     resolveTurn(quick, "walk");
     resolveTurn(quick, "walk");
     resolveTurn(quick, "walk");
@@ -664,6 +667,29 @@ describe("logic audit v2.4", () => {
     assert.equal(slow.pressureFirst, true);
     assert.equal(slow.stress, 28);
     assert.equal(slow.turnOwner, "player");
+  });
+
+  it("one watch, one technique, and the echo are real", () => {
+    const toy = choicesFor("MINI_84_TOY", freshState());
+    const looked = applyEffect(freshState(), toy.find((item) => item.id === "B")!.effect);
+    assert.deepEqual(looked.state.equipment, ["EQP_PLASTIC_WATCH"]);
+    assert.deepEqual(looked.state.equipped, ["EQP_PLASTIC_WATCH"]);
+    const tugged = applyEffect(freshState(), toy.find((item) => item.id === "A")!.effect);
+    assert.deepEqual(tugged.state.equipment, []);
+    const face = applyEffect(freshState(), { skills: ["SKL_02"] });
+    assert.deepEqual(face.state.techniques, ["TECH_READ_FACE"]);
+    assert.ok(fifteenLines({ ...freshState(), equipment: ["EQP_PLASTIC_WATCH"] }).join("").includes("不會走"));
+    const junk = { ...freshState(), equipment: ["EQP_DIGI_DEVICE_01"], equipped: ["EQP_DIGI_DEVICE_01"] };
+    assert.deepEqual(parseSave(JSON.stringify(junk))?.equipment, []);
+    const bare = createBattle({ approach: "social", hp: 80, sp: 40, stabilize: false, see: false, ask: false, prepared: false });
+    const held = createBattle({ approach: "social", hp: 80, sp: 40, stabilize: false, see: false, ask: false, prepared: false, stressResist: 1 });
+    bare.stress = 10;
+    held.stress = 10;
+    bare.threat = { stress: 8, hp: 0, heavy: false, hint: "輕", landed: "撞" };
+    held.threat = { stress: 8, hp: 0, heavy: false, hint: "輕", landed: "撞" };
+    resolveTurn(bare, "walk");
+    resolveTurn(held, "walk");
+    assert.equal(held.stress, bare.stress - 1);
   });
 });
 

@@ -10,16 +10,20 @@ type Props = {
   hp: number;
   sp: number;
   skills: readonly string[];
+  techniques: readonly string[];
   mind: number;
+  gearSpeed: number;
+  stressResist: number;
+  held?: string;
   onEnd: (outcome: BattleOutcome) => void;
 };
 
-export function Battle({ spec, approach, hp, sp, skills, mind, onEnd }: Props) {
+export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearSpeed, stressResist, held, onEnd }: Props) {
   const stabilize = skills.includes(spec.skills.stabilize);
-  const see = skills.includes(spec.skills.see);
+  const see = techniques.includes("TECH_READ_FACE");
   const ask = skills.includes(spec.skills.ask);
   const prepared = skills.includes(spec.skills.prepared);
-  const startRef = useRef({ approach, hp, sp, stabilize, see, ask, prepared, spec, mind });
+  const startRef = useRef({ approach, hp, sp, stabilize, see, ask, prepared, spec, mind, gearSpeed, stressResist });
   const simRef = useRef<BattleSim>(createBattle(startRef.current));
   const onEndRef = useRef(onEnd);
   const reportedRef = useRef(false);
@@ -85,6 +89,7 @@ export function Battle({ spec, approach, hp, sp, skills, mind, onEnd }: Props) {
           <Meter label="氣力" value={sim.sp} max={sim.maxSp} tone="bg-amber" />
           <Meter label="壓力" value={sim.stress} max={100} tone="bg-ink" />
           <Meter label={spec.goalLabel} value={sim.goal} max={100} tone="bg-estate" />
+          {held ? <p className="text-sm text-pretty text-ink/70">{held}</p> : null}
           {sim.over ? null : (
             <div className="rounded-xl bg-bg px-3 py-2">
               <p className="text-xs text-amber">下一聲</p>

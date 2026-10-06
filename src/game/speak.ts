@@ -1,8 +1,8 @@
 import type { State } from "./types";
 
-export type Spoken = { text: string; priority: 0 | 1 | 2 | 3 };
+export type Spoken = { text: string; priority: 0 | 1 | 2 };
 
-/** P0 always. Then up to two P1 lines. P2 and P3 only fill whatever budget is left. */
+/** P0 always. Then up to two P1 lines. P2 fills whatever budget is left. There is no P3. */
 export function selectByPriority(lines: Spoken[], budget: number): string[] {
   const kept = lines.filter((line) => line.priority === 0);
   let important = 0;

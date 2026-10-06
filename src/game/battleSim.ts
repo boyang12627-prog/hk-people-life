@@ -1,4 +1,5 @@
 import type { Approach, BattleKind, TurnOwner } from "./types";
+import { SPEED_RULE } from "./catalog";
 import { KINDY_DOOR, type BattleSpec, type EnemyPattern, type Threat } from "./battleSpec";
 
 export type BattleAction = "walk" | "guard" | "read" | "see" | "ask";
@@ -30,39 +31,43 @@ export type BattleSim = {
   turnOwner: TurnOwner;
   playerSpeed: number;
   enemySpeed: number;
-  /** Who moves before the other when one side is clearly faster. Tie is not listed. */
+  /** Tie and a real lead both list the child first. Only a lead of firstGap sets stableFirst. */
   initiativeOrder: TurnOwner[];
-  /** What the pressure side is about to do. Same words as the threat hint. */
   intent: string;
-  /** Round covered by the last guard. 0 if the child has not guarded. */
+  /** Recorded when you guard. The hit still checks `brace`. Nothing else reads this. */
   guardUntilRound: number;
+  /** Reserved. No buff is written. */
   temporaryBuffs: string[];
+  /** Reserved. A technique is not spent through this list yet. */
   usedTechniques: string[];
   stableFirst: boolean;
   pressureFirst: boolean;
   bonusQuick: boolean;
   awaitingBonus: boolean;
+  stressResist: number;
 };
 
 /** Mind, a memory passive, a short buff, and gear. No source is invented here. */
 export function battleSpeed(parts: { mind: number; passive?: number; buff?: number; gear?: number }) {
-  return Math.max(0, Math.floor(parts.mind + (parts.passive ?? 0) + (parts.buff ?? 0) + (parts.gear ?? 0)));
+  const gear = Math.min(SPEED_RULE.maxGearSpeed, Math.max(0, Math.floor(parts.gear ?? 0)));
+  const buff = Math.min(SPEED_RULE.maxBuffSpeed, Math.max(0, Math.floor(parts.buff ?? 0)));
+  return Math.max(0, Math.floor(parts.mind) + Math.floor(parts.passive ?? 0) + buff + gear);
 }
 
 /**
- * The spec only defines two gaps. Five or more: that side acts first.
- * Ten or more for the child: one extra small action every third round.
- * A smaller gap does not change the old order, and is not called "you first".
+ * Tie: the child acts first, and the screen does not say so.
+ * firstGap or more: say who is first. bonusGap or more: one extra walk or guard every third round.
  */
 export function initiativeFor(playerSpeed: number, enemySpeed: number) {
   const gap = playerSpeed - enemySpeed;
-  const stableFirst = gap >= 5;
-  const pressureFirst = gap <= -5;
+  const stableFirst = gap >= SPEED_RULE.firstGap;
+  const pressureFirst = gap <= -SPEED_RULE.firstGap;
+  const childFirst = !pressureFirst;
   return {
     stableFirst,
     pressureFirst,
-    bonusQuick: gap >= 10,
-    initiativeOrder: (stableFirst ? ["player", "pressure"] : pressureFirst ? ["pressure", "player"] : []) as TurnOwner[],
+    bonusQuick: gap >= SPEED_RULE.bonusGap,
+    initiativeOrder: (childFirst ? ["player", "pressure"] : ["pressure", "player"]) as TurnOwner[],
   };
 }
 
@@ -88,6 +93,7 @@ export function createBattle(input: {
   passiveSpeed?: number;
   buffSpeed?: number;
   gearSpeed?: number;
+  stressResist?: number;
   enemySpeed?: number;
 }): BattleSim {
   const spec = input.spec ?? KINDY_DOOR;
@@ -130,6 +136,7 @@ export function createBattle(input: {
     pressureFirst: order.pressureFirst,
     bonusQuick: order.bonusQuick,
     awaitingBonus: false,
+    stressResist: Math.min(SPEED_RULE.maxStressResist, Math.max(0, Math.floor(input.stressResist ?? 0))),
   };
   if (order.pressureFirst) openPressure(sim);
   return sim;
@@ -213,6 +220,7 @@ function applyEnemy(sim: BattleSim) {
   } else {
     sim.enemyHint = threat.landed;
   }
+  stress = Math.max(0, stress - sim.stressResist);
   sim.stress = Math.min(100, sim.stress + stress);
   // 精神力 is not a second stress bar. A voice raises stress first.
   // Spirit only cracks once stress is already at 80 or more.

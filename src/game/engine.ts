@@ -24,6 +24,7 @@ import {
   type State,
 } from "./types";
 import { FLAG_LEDGER, INDEX_LEDGER, RETIRED_FLAGS, TAG_LEDGER } from "./ledger";
+import { catalogGear, EQUIPMENT_CATALOG, TECHNIQUE_CATALOG, techniquesForSkills } from "./catalog";
 
 export const SAVE_KEY = "hklife-p01-v12";
 export const LEGACY_SAVE_KEY = "hklife-p01-v11";
@@ -538,7 +539,19 @@ export function applyEffect(state: State, effect: Effect): { state: State; delta
       gained.push(SKILL_NAME[skill] ?? skill);
     }
   }
-  return { state: { ...state, primary, derived, counter, npc, flags, personalityTags, skills }, deltas, skills: gained };
+  const equipment = [...state.equipment];
+  const equipped = [...state.equipped];
+  const year = yearOf(state).year;
+  for (const id of effect.equipment ?? []) {
+    const item = catalogGear(id);
+    if (!item || year < item.availableFromYear) continue;
+    if (item.availableToYear !== undefined && year > item.availableToYear) continue;
+    if (!equipment.includes(id)) equipment.push(id);
+    const slotTaken = equipped.some((held) => catalogGear(held)?.slot === item.slot);
+    if (!slotTaken && !equipped.includes(id)) equipped.push(id);
+  }
+  const techniques = techniquesForSkills(skills);
+  return { state: { ...state, primary, derived, counter, npc, flags, personalityTags, skills, equipment, equipped, techniques }, deltas, skills: gained };
 }
 
 function pushDelta(deltas: Delta[], label: string, value: number) {
@@ -653,8 +666,8 @@ export function validateState(raw: Record<string, unknown>): State | null {
   const retired = new Set<string>(RETIRED_FLAGS);
   const knownTags = new Set(TAG_LEDGER.map((item) => item.id));
   const knownSkills = new Set(Object.keys(SKILL_NAME));
-  const knownGear = new Set<string>();
-  const knownTech = new Set<string>();
+  const knownGear = new Set(EQUIPMENT_CATALOG.map((item) => item.id));
+  const knownTech = new Set(TECHNIQUE_CATALOG.map((item) => item.id));
   const techniqueProgress: Record<string, number> = {};
   if (isRecord(raw.techniqueProgress)) {
     for (const [id, value] of Object.entries(raw.techniqueProgress)) {
@@ -684,8 +697,8 @@ export function validateState(raw: Record<string, unknown>): State | null {
     personalityTags,
     skills: strings(raw.skills).filter((id) => knownSkills.has(id)),
     equipment: strings(raw.equipment).filter((id) => knownGear.has(id)),
-    equipped: strings(raw.equipped).filter((id) => knownGear.has(id)),
-    techniques: strings(raw.techniques).filter((id) => knownTech.has(id)),
+    equipped: strings(raw.equipped).filter((id) => knownGear.has(id) && strings(raw.equipment).includes(id)),
+    techniques: techniquesForSkills(strings(raw.skills).filter((id) => knownSkills.has(id))),
     techniqueProgress,
     memories,
     seed: typeof raw.seed === "number" ? raw.seed : base.seed,

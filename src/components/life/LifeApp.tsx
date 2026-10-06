@@ -17,6 +17,7 @@ import {
   yearOf,
 } from "@/game/content";
 import { KINDY_DOOR } from "@/game/battleSpec";
+import { gearSpeed, gearStressResist } from "@/game/catalog";
 import { canRetry, freshState, loadState, reducer, saveState } from "@/game/engine";
 import { driveSp, spiritHp, type Gender, type SceneId, type State } from "@/game/types";
 
@@ -79,7 +80,11 @@ export function LifeApp() {
           hp={spiritHp(state.primary, state.approach === "safe" ? 5 : 0)}
           sp={driveSp(state.primary, state.derived.STATE_MOOD)}
           skills={state.skills}
+          techniques={state.techniques}
           mind={state.primary.STAT_MIND}
+          gearSpeed={gearSpeed(state.equipped)}
+          stressResist={gearStressResist(state.equipped)}
+          held={state.equipped.includes("EQP_PLASTIC_WATCH") ? "手上有一隻不會走的塑膠錶。" : undefined}
           onEnd={(outcome) => {
             playTone(outcome.kind === "fail" || outcome.kind === "bad" ? "hit" : "good");
             dispatch({ type: "battleEnd", outcome });

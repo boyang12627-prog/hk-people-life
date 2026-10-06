@@ -1,5 +1,6 @@
 import { resolveAuto } from "./battleBalance";
 import { KINDY_DOOR } from "./battleSpec";
+import { gearSpeed, gearStressResist } from "./catalog";
 import { createBattle } from "./battleSim";
 import type { Choice } from "./choice";
 import { choicesFor, yearOf, YEARS } from "./content";
@@ -37,11 +38,13 @@ function stepLife(state: State, seed: number, step: number, policy: LifePolicy, 
       hp: spiritHp(state.primary, state.approach === "safe" ? 5 : 0),
       sp: driveSp(state.primary, state.derived.STATE_MOOD),
       stabilize: state.skills.includes(KINDY_DOOR.skills.stabilize),
-      see: state.skills.includes(KINDY_DOOR.skills.see),
+      see: state.techniques.includes("TECH_READ_FACE"),
       ask: state.skills.includes(KINDY_DOOR.skills.ask),
       prepared: state.skills.includes(KINDY_DOOR.skills.prepared),
       spec: KINDY_DOOR,
       mind: state.primary.STAT_MIND,
+      gearSpeed: gearSpeed(state.equipped),
+      stressResist: gearStressResist(state.equipped),
     });
     const kind = resolveAuto(battle);
     return reducer(state, { type: "battleEnd", outcome: { kind, stress: battle.stress, hp: battle.hp } });
