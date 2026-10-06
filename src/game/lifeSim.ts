@@ -4,7 +4,7 @@ import { createBattle } from "./battleSim";
 import type { Choice } from "./choice";
 import { choicesFor, yearOf, YEARS } from "./content";
 import { freshState, reducer } from "./engine";
-import type { State } from "./types";
+import { driveSp, spiritHp, type State } from "./types";
 
 export type LifePolicy = "first" | "last" | "mix";
 
@@ -34,8 +34,8 @@ function stepLife(state: State, seed: number, step: number, policy: LifePolicy, 
   if (state.phase === "battle" && state.approach) {
     const battle = createBattle({
       approach: state.approach,
-      hp: 80,
-      sp: 40,
+      hp: spiritHp(state.primary, state.approach === "safe" ? 5 : 0),
+      sp: driveSp(state.primary, state.derived.STATE_MOOD),
       tidy: state.skills.includes(KINDY_DOOR.skills.tidy),
       see: state.skills.includes(KINDY_DOOR.skills.see),
       ask: state.skills.includes(KINDY_DOOR.skills.ask),

@@ -1,9 +1,8 @@
-import { INITIAL_COUNTERS, INITIAL_DERIVED, INITIAL_PRIMARY, type Approach, type BattleKind, type Effect, type Gender, type SceneId, type State, type Tendency } from "./types";
-import { cardFor, choicesFor, type Card, type Choice } from "./data/events";
+import { INITIAL_COUNTERS, INITIAL_DERIVED, INITIAL_PRIMARY, type Approach, type BattleKind, type Effect, type SceneId, type State, type Tendency } from "./types";
+import { cardFor, choicesFor, STATIC_EVENTS, type Card, type Choice } from "./data/events";
 import { heardNews, newsCold, picked, selectByPriority, type Spoken } from "./speak";
 
 export { cardFor, choicesFor, type Card, type Choice };
-export { heardNews, newsCold, selectByPriority };
 
 export const TENDENCY_LABEL: Record<Tendency, string> = {
   dream: "夢想",
@@ -139,16 +138,10 @@ export const ACTIVITIES: Record<string, { id: string; label: string; detail: str
 const EVENT_SCENE: Record<string, SceneId> = {
   EVT_1984_NEWS_01: "home",
   EVT_1984_FAMILY_02: "home",
-  MINI_84_TOY: "market",
   EVT_1985_SCHOOL_01: "kindy",
-  MINI_85_RAIN: "home",
-  MINI_85_GRANDMA: "home",
   EVT_1985_FAMILY_03: "home",
   EVT_1985_FRIEND_04: "kindy",
   EVT_1986_SKILL_05: "kindy",
-  MINI_86_ESTATE: "estate",
-  MINI_86_TV: "home",
-  MINI_86_HELP: "corridor",
   EVT_1986_FAMILY_06: "home",
   EVT_1986_MARKET_07: "market",
   EVT_1986_ECHO_08: "estate",
@@ -167,6 +160,7 @@ export function buildQueue(yearIndex: number, seed: number) {
 }
 
 export function sceneFor(id: string | null, fallback: SceneId): SceneId {
+  if (id && STATIC_EVENTS[id]) return STATIC_EVENTS[id].scene;
   if (id && EVENT_SCENE[id]) return EVENT_SCENE[id];
   return fallback;
 }

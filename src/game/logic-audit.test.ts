@@ -4,11 +4,11 @@ import { actBattle, BATTLE_COST, createBattle } from "./battleSim.ts";
 import { readFileSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
 import { KINDY_DOOR } from "./battleSpec.ts";
-import { choice } from "./choice.ts";
 import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, ledgerSummary, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
-import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, heardNews, knownEventIds, lifeVoice, variantOf, yearLean, YEARS } from "./content.ts";
-import { CHILDHOOD_EVENT_IDS, renderStatic } from "./data/events.ts";
+import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, knownEventIds, lifeVoice, sceneFor, variantOf, yearLean, YEARS } from "./content.ts";
+import { CHILDHOOD_EVENT_IDS, DAILY_STATIC_IDS, renderStatic, STATIC_EVENTS } from "./data/events.ts";
 import { runLives } from "./lifeSim.ts";
+import { heardNews } from "./speak.ts";
 import { applyEffect, freshState, parseSave, reducer, type Action } from "./engine.ts";
 import type { State } from "./types.ts";
 
@@ -298,14 +298,28 @@ describe("logic audit v2.4", () => {
       assert.ok(spec.fallback);
       assert.ok(spec.scope);
     }
-    const game = ["./content.ts", "./engine.ts", "./data/events.ts", "./speak.ts"].map((file) => readFileSync(new URL(file, import.meta.url), "utf8")).join("\n");
-    const specSrc = readFileSync(new URL("./battleSpec.ts", import.meta.url), "utf8");
-    const ui = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    const sources: Record<string, string> = {
+      "content.ts": readFileSync(new URL("./content.ts", import.meta.url), "utf8"),
+      "engine.ts": readFileSync(new URL("./engine.ts", import.meta.url), "utf8"),
+      "data/events.ts": readFileSync(new URL("./data/events.ts", import.meta.url), "utf8"),
+      "speak.ts": readFileSync(new URL("./speak.ts", import.meta.url), "utf8"),
+      "battleSpec.ts": readFileSync(new URL("./battleSpec.ts", import.meta.url), "utf8"),
+      "LifeApp.tsx": readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8"),
+    };
+    const game = ["content.ts", "engine.ts", "data/events.ts", "speak.ts"].map((name) => sources[name]).join("\n");
+    const specSrc = sources["battleSpec.ts"];
+    const ui = sources["LifeApp.tsx"];
+    const readersOf = (id: string) =>
+      Object.entries(sources)
+        .filter(([, src]) => src.includes(`.includes("${id}")`))
+        .map(([name]) => name);
     const reads = (src: string, id: string) => src.includes(`.includes("${id}")`);
+    const codeReaders = FLAG_LEDGER.filter((spec) => spec.consumerKind === "CODE").map((spec) => `${spec.id}:${readersOf(spec.id).join("+") || "NONE"}`);
+    console.log(`flag readers ${codeReaders.join(" | ")}`);
     for (const spec of FLAG_LEDGER) {
       assert.ok(spec.consumerKind === "CODE" || spec.consumerKind === "ENDING");
-      if (spec.consumerKind === "CODE") assert.equal(reads(game, spec.id), true, spec.id);
-      if (spec.consumerKind === "ENDING") assert.equal(reads(game, spec.id) || reads(ui, spec.id), true, spec.id);
+      if (spec.consumerKind === "CODE") assert.equal(reads(game, spec.id), true, `${spec.id} read by [${readersOf(spec.id).join(", ") || "none"}]`);
+      if (spec.consumerKind === "ENDING") assert.equal(reads(game, spec.id) || reads(ui, spec.id), true, `${spec.id} read by [${readersOf(spec.id).join(", ") || "none"}]`);
     }
     for (const spec of [...INDEX_LEDGER, ...MEMORY_LEDGER]) {
       assert.equal(reads(game, spec.id) || reads(ui, spec.id), false, spec.id);
@@ -408,6 +422,14 @@ describe("logic audit v2.4", () => {
     assert.equal(BATTLE_COST.walk, 1);
     assert.ok(ui.includes("BATTLE_COST"));
     assert.equal(ui.includes("walk: 2"), false);
+    assert.equal(ui.includes('"/scenes/kindy.jpg"'), false);
+    assert.ok(ui.includes("KINDY_DOOR.scene"));
+    assert.equal(/useRef\(onEnd\);\s*onEndRef\.current = onEnd/.test(ui), false);
+    assert.ok(ui.includes("COST_KEYS"));
+    const simSrc = readFileSync(new URL("./lifeSim.ts", import.meta.url), "utf8");
+    assert.equal(simSrc.includes("hp: 80"), false);
+    assert.ok(simSrc.includes("spiritHp"));
+    assert.ok(simSrc.includes("driveSp"));
     const gate = judgeBalance(runGateSample(200));
     assert.deepEqual(gate.fails, []);
     assert.equal(provePerfect(), "perfect");
@@ -468,26 +490,31 @@ describe("logic audit v2.4", () => {
     assert.ok(crowded.includes("實際"));
   });
 
-  it("childhood prose lives in the data file, and a static event needs no reducer change", () => {
+  it("daily events are static data, and a new static event does not need a switch", () => {
     const live = new Set(knownEventIds());
     for (const id of live) assert.ok(CHILDHOOD_EVENT_IDS.includes(id as (typeof CHILDHOOD_EVENT_IDS)[number]), id);
+    const src = readFileSync(new URL("./data/events.ts", import.meta.url), "utf8");
+    const cardFn = src.slice(src.indexOf("export function cardFor"), src.indexOf("export function choicesFor"));
+    const choiceFn = src.slice(src.indexOf("export function choicesFor"));
+    for (const id of DAILY_STATIC_IDS) {
+      assert.equal(cardFn.includes(`case "${id}"`), false, id);
+      assert.equal(choiceFn.includes(`case "${id}"`), false, id);
+      assert.equal(cardFor(id, freshState()).title, STATIC_EVENTS[id].title);
+      assert.equal(choicesFor(id, freshState()).length, 3);
+      assert.equal(sceneFor(id, "home"), STATIC_EVENTS[id].scene);
+    }
     const started = Date.now();
-    const sample = renderStatic({
-      id: "EVT_SAMPLE",
-      scene: "home",
-      kicker: "試寫",
-      title: "走廊的燈",
-      lines: ["燈黃黃的。媽媽還沒叫你。"],
-      choices: [
-        choice("A", "等她", "reality", { derived: { STATE_FAMILY_HARMONY: 1 } }, "你等。她叫了你，你才走。"),
-        choice("B", "自己按燈", "dream", { derived: { STATE_MOOD: 1 } }, "你按了燈。走廊亮了一點。"),
-        choice("C", "問為什麼還不走", "think", { derived: { INDEPENDENT_THOUGHT: 1 } }, "你問了。她說再等一會兒。"),
-      ],
-    });
+    const sample = renderStatic(STATIC_EVENTS.EVT_STATIC_LAMP);
     const seconds = (Date.now() - started) / 1000;
     assert.equal(sample.card.title, "走廊的燈");
     assert.equal(sample.choices.length, 3);
     assert.ok(seconds < 1);
+    assert.equal(cardFor("EVT_STATIC_LAMP", freshState()).title, "走廊的燈");
+    assert.equal(
+      YEARS.some((year) => year.events.includes("EVT_STATIC_LAMP") || year.dailies.includes("EVT_STATIC_LAMP")),
+      false,
+    );
+    assert.equal(KINDY_DOOR.scene, "kindy");
     assert.equal(KINDY_DOOR.id, "BTL_KINDY_DOOR");
     assert.equal(KINDY_DOOR.skipKind, "win");
   });

@@ -18,12 +18,15 @@ type Props = {
 const INK = "#241c14";
 const AMBER = "#c9843a";
 const PAPER = "#f3ead7";
+const COST_KEYS = Object.keys(BATTLE_COST) as BattleAction[];
 
 export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const simRef = useRef<BattleSim>(createBattle({ approach, hp, sp, tidy, see, ask, practiced }));
+  const startRef = useRef({ approach, hp, sp, tidy, see, ask, practiced });
+  const simRef = useRef<BattleSim>(createBattle(startRef.current));
   const onEndRef = useRef(onEnd);
-  onEndRef.current = onEnd;
+  const rafRef = useRef(0);
+  const reportedRef = useRef(false);
   const hintRef = useRef<HTMLParagraphElement>(null);
   const hpRef = useRef<HTMLDivElement>(null);
   const spRef = useRef<HTMLDivElement>(null);
@@ -32,21 +35,24 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
   const hpLabel = useRef<HTMLSpanElement>(null);
   const spLabel = useRef<HTMLSpanElement>(null);
   const stressLabel = useRef<HTMLSpanElement>(null);
+  const skipRef = useRef<HTMLButtonElement>(null);
+  const autoRef = useRef<HTMLButtonElement>(null);
   const buttons = useRef<Partial<Record<BattleAction, HTMLButtonElement | null>>>({});
+
+  useEffect(() => {
+    onEndRef.current = onEnd;
+  }, [onEnd]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const sim = createBattle({ approach, hp, sp, tidy, see, ask, practiced });
-    simRef.current = sim;
+    const sim = simRef.current;
     const image = new Image();
-    image.src = "/scenes/kindy.jpg";
-    let raf = 0;
+    image.src = `/scenes/${KINDY_DOOR.scene}.jpg`;
     let last = performance.now();
     let dead = false;
-    let reported = false;
     let hud = 0;
 
     const paintHud = () => {
@@ -58,13 +64,14 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
       if (spLabel.current) spLabel.current.textContent = String(Math.round(sim.sp));
       if (stressLabel.current) stressLabel.current.textContent = String(Math.round(sim.stress));
       if (hintRef.current) hintRef.current.textContent = sim.hint;
-      const costs = BATTLE_COST;
-      (Object.keys(costs) as BattleAction[]).forEach((name) => {
+      for (const name of COST_KEYS) {
         const button = buttons.current[name];
-        if (!button) return;
-        const broke = name !== "walk" && sim.sp < costs[name];
+        if (!button) continue;
+        const broke = name !== "walk" && sim.sp < BATTLE_COST[name];
         button.disabled = sim.cd[name] > 0 || broke;
-      });
+      }
+      if (skipRef.current) skipRef.current.disabled = Boolean(sim.over);
+      if (autoRef.current) autoRef.current.disabled = Boolean(sim.over);
       const shell = canvas.parentElement;
       if (shell) shell.style.transform = sim.shake > 0 ? "translateX(3px)" : "none";
     };
@@ -89,20 +96,20 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
         hud = 0;
         paintHud();
       }
-      if (sim.over && !reported) {
-        reported = true;
+      if (sim.over && !reportedRef.current) {
+        reportedRef.current = true;
         paintHud();
         onEndRef.current({ kind: sim.over, stress: sim.stress, hp: sim.hp });
         return;
       }
-      raf = requestAnimationFrame(loop);
+      rafRef.current = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
+    rafRef.current = requestAnimationFrame(loop);
     return () => {
       dead = true;
-      cancelAnimationFrame(raf);
+      cancelAnimationFrame(rafRef.current);
     };
-  }, [approach, ask, hp, practiced, see, sp, tidy]);
+  }, []);
 
   const press = (name: BattleAction, enabled = true) => {
     actBattle(simRef.current, name, enabled);
@@ -110,9 +117,16 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
 
   const endAs = (kind: BattleKind, hint: string) => {
     const sim = simRef.current;
-    if (sim.over) return;
+    if (!sim || reportedRef.current) return;
+    if (!sim.over) sim.over = kind;
     sim.hint = hint;
-    sim.over = kind;
+    if (skipRef.current) skipRef.current.disabled = true;
+    if (autoRef.current) autoRef.current.disabled = true;
+    const outcome = sim.over ?? kind;
+    cancelAnimationFrame(rafRef.current);
+    reportedRef.current = true;
+    if (hintRef.current) hintRef.current.textContent = hint;
+    onEndRef.current({ kind: outcome, stress: sim.stress, hp: sim.hp });
   };
 
   return (
@@ -183,13 +197,19 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
       </p>
       <div className="grid grid-cols-2 gap-2">
         <button
+          ref={skipRef}
           type="button"
-          className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper"
+          className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper disabled:opacity-40"
           onClick={() => endAs(KINDY_DOOR.skipKind, "你沒有打完。你還是進去了。")}
         >
           跳過，算進去了
         </button>
-        <button type="button" className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper" onClick={() => endAs(resolveAuto(simRef.current), "你跟著走完這段路。")}>
+        <button
+          ref={autoRef}
+          type="button"
+          className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper disabled:opacity-40"
+          onClick={() => endAs(resolveAuto(simRef.current), "你跟著走完這段路。")}
+        >
           自動走進去
         </button>
       </div>

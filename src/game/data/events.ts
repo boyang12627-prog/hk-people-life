@@ -34,56 +34,109 @@ export type StaticEvent = {
 export function renderStatic(event: StaticEvent): { card: Card; choices: Choice[] } {
   return {
     card: { scene: event.scene, kicker: event.kicker, title: event.title, lines: [...event.lines] },
-    choices: event.choices,
+    choices: [...event.choices],
   };
 }
 
+/**
+ * Pure prose. cardFor / choicesFor return these before the dynamic switch.
+ * EVT_STATIC_LAMP is a pipeline sample: not in YEARS, not a new chapter.
+ */
+export const STATIC_EVENTS: Record<string, StaticEvent> = {
+  MINI_84_TOY: {
+    id: "MINI_84_TOY",
+    scene: "market",
+    kicker: "日常 · 1984",
+    title: "士多有一輛新車",
+    lines: ["玻璃櫃裡有一輛新車。你沒有零用錢。", "媽媽已經走開兩步。"],
+    choices: [
+      choice("A", "拉住媽媽要看", "dream", { derived: { STATE_MOOD: 2 }, npc: { NPC_MOM_01: { trust: -1 } } }, "你拉住她。媽媽歎了口氣，讓你看十秒。「看完要走。」"),
+      choice("B", "自己看完就走", "think", { derived: { INDEPENDENT_THOUGHT: 1, STATE_MOOD: 1 } }, "你看清楚那輛車，然後自己追上去。沒有人買。你記得那個樣子。"),
+      choice("C", "不看，跟著走", "reality", { derived: { VALUE_REALITY: 1, STATE_FAMILY_HARMONY: 1, STATE_MOOD: -1 } }, "你跟著走。車留在櫃裡。媽媽沒發現你停過。"),
+    ],
+  },
+  MINI_85_RAIN: {
+    id: "MINI_85_RAIN",
+    scene: "home",
+    kicker: "日常 · 1985",
+    title: "下大雨",
+    lines: ["下大雨，平台去不了。", "外面一片白，看不見對面。屋裡只有一部風扇和你。"],
+    choices: [
+      choice("A", "畫畫", "dream", { derived: { VALUE_DREAM: 2, STATE_MOOD: 1 }, counter: { ART_PROGRESS: 1 } }, "雨下得很大。你把紙塗到邊上都有顏色。"),
+      choice("B", "聽收音機", "think", { derived: { VALUE_REALITY: 1, INDEPENDENT_THOUGHT: 1, STATE_PEACE: 1 }, counter: { MIND_PROGRESS: 1 } }, "收音機轉台，有人講，有人唱。你不明白，但你聽著。你記住那個節奏。"),
+      choice("C", "睡一陣", "balance", { derived: { STATE_STRESS: -4, STATE_PEACE: 2, STATE_MOOD: 1 } }, "你睡了。雨聲遠了。這個下午沒有什麼趕著要做。"),
+    ],
+  },
+  MINI_85_GRANDMA: {
+    id: "MINI_85_GRANDMA",
+    scene: "home",
+    kicker: "日常 · 1985",
+    title: "嫲嫲揭開煲蓋",
+    lines: ["湯很香。嫲嫲說，以前這棟樓要自己走樓梯。", "碗很熱，你用手托住。"],
+    choices: [
+      choice("A", "聽她講", "reality", { npc: { NPC_GRAND_01: { trust: 3, relation: 2 } }, derived: { INDEPENDENT_THOUGHT: 1 } }, "你聽。你不知道全部，但你知道這棟樓以前更難走。"),
+      choice("B", "走去玩", "dream", { derived: { STATE_MOOD: 2 }, npc: { NPC_GRAND_01: { relation: -1 } } }, "你留下碗湯，走到玩具那裡。嫲嫲沒有叫你回來。"),
+      choice("C", "問為什麼要走樓梯", "think", { derived: { INDEPENDENT_THOUGHT: 2 }, npc: { NPC_GRAND_01: { trust: 2 } } }, "嫲嫲笑：「因為那時候沒有這些按鈕。」你記住「以前」兩個字。"),
+    ],
+  },
+  MINI_86_ESTATE: {
+    id: "MINI_86_ESTATE",
+    scene: "estate",
+    kicker: "日常 · 1986",
+    title: "平台有人叫你",
+    lines: ["有個孩子在平台揮手。你未必認識他。", "媽媽在樓上晾衣服，還沒叫你回去。"],
+    choices: [
+      choice("A", "揮回去", "dream", { derived: { STATE_MOOD: 2, VALUE_DREAM: 1 } }, "你揮回去。你還不知道他的名字，但你應了他。"),
+      choice("B", "站到一邊看", "think", { derived: { INDEPENDENT_THOUGHT: 1, STATE_PEACE: 1 } }, "你看別人怎麼玩。你還沒加入，但你記住怎麼玩。"),
+      choice("C", "上去找媽媽", "reality", { derived: { STATE_FAMILY_HARMONY: 2, STATE_MOOD: -1 } }, "你走回樓上。媽媽的衣服還沒乾。你站在她旁邊。"),
+    ],
+  },
+  MINI_86_TV: {
+    id: "MINI_86_TV",
+    scene: "home",
+    kicker: "日常 · 1986",
+    title: "電視又開著",
+    lines: ["飯還沒吃完。電視裡有人唱歌，有人說話。", "爸爸還沒出聲叫你轉台。"],
+    choices: [
+      choice("A", "再看一會兒", "dream", { derived: { STATE_MOOD: 2, VALUE_DREAM: 1 } }, "你看。唱歌比新聞容易聽。飯涼得慢。"),
+      choice("B", "吃完再看", "reality", { derived: { VALUE_REALITY: 1, STATE_FAMILY_HARMONY: 1 } }, "你扒飯。電視繼續播。你選了碗先。"),
+      choice("C", "問他們在看什麼", "think", { derived: { INDEPENDENT_THOUGHT: 1 }, primary: { STAT_SPEECH: 1 } }, "爸爸答得很短：「唱歌。」你知道不只是唱歌，但你問過。"),
+    ],
+  },
+  MINI_86_HELP: {
+    id: "MINI_86_HELP",
+    scene: "corridor",
+    kicker: "日常 · 1986",
+    title: "塑膠袋太重",
+    lines: ["媽媽兩隻手都提著袋子。走廊的燈黃黃的。", "她沒有叫你，但她走得很慢。"],
+    choices: [
+      choice("A", "伸手托住一袋", "reality", { derived: { STATE_FAMILY_HARMONY: 2, VALUE_REALITY: 1 }, primary: { STAT_STR: 1 }, tags: ["TAG_RESPONSIBILITY"] }, "袋帶勒手。媽媽看你一眼，沒有講大道理。"),
+      choice("B", "先跑去開門", "balance", { derived: { STATE_FAMILY_HARMONY: 1, VALUE_DREAM: 1, STATE_STRESS: 1 } }, "你跑去按燈。袋子仍然是她提。你只是開了門。"),
+      choice("C", "當作沒看見", "dream", { derived: { STATE_MOOD: 1, STATE_FAMILY_HARMONY: -1 } }, "你看著牆上那幅畫。媽媽自己把袋子放下。她沒有罵你。"),
+    ],
+  },
+  EVT_STATIC_LAMP: {
+    id: "EVT_STATIC_LAMP",
+    scene: "corridor",
+    kicker: "試寫 · 未進年份",
+    title: "走廊的燈",
+    lines: ["燈黃黃的。媽媽還沒叫你。", "袋子放在腳邊。門還沒開。"],
+    choices: [
+      choice("A", "等她", "reality", { derived: { STATE_FAMILY_HARMONY: 1 } }, "你等。她叫了你，你才走。"),
+      choice("B", "自己按燈", "dream", { derived: { STATE_MOOD: 1 } }, "你按了燈。走廊亮了一點。"),
+      choice("C", "問為什麼還不走", "think", { derived: { INDEPENDENT_THOUGHT: 1 } }, "你問了。她說再等一會兒。"),
+    ],
+  },
+};
+
+export const DAILY_STATIC_IDS = ["MINI_84_TOY", "MINI_85_RAIN", "MINI_85_GRANDMA", "MINI_86_ESTATE", "MINI_86_TV", "MINI_86_HELP"] as const;
+
 export function cardFor(id: string, state: State): Card {
+  const staticEvt = STATIC_EVENTS[id];
+  if (staticEvt) return renderStatic(staticEvt).card;
   const gender = state.gender ?? "girl";
   const grown = grownWord(gender);
   switch (id) {
-    case "MINI_84_TOY":
-      return {
-        scene: "market",
-        kicker: "日常 · 1984",
-        title: "士多有一輛新車",
-        lines: ["玻璃櫃裡有一輛新車。你沒有零用錢。", "媽媽已經走開兩步。"],
-      };
-    case "MINI_85_RAIN":
-      return {
-        scene: "home",
-        kicker: "日常 · 1985",
-        title: "下大雨",
-        lines: ["下大雨，平台去不了。", "外面一片白，看不見對面。屋裡只有一部風扇和你。"],
-      };
-    case "MINI_85_GRANDMA":
-      return {
-        scene: "home",
-        kicker: "日常 · 1985",
-        title: "嫲嫲揭開煲蓋",
-        lines: ["湯很香。嫲嫲說，以前這棟樓要自己走樓梯。", "碗很熱，你用手托住。"],
-      };
-    case "MINI_86_ESTATE":
-      return {
-        scene: "estate",
-        kicker: "日常 · 1986",
-        title: "平台有人叫你",
-        lines: ["有個孩子在平台揮手。你未必認識他。", "媽媽在樓上晾衣服，還沒叫你回去。"],
-      };
-    case "MINI_86_TV":
-      return {
-        scene: "home",
-        kicker: "日常 · 1986",
-        title: "電視又開著",
-        lines: ["飯還沒吃完。電視裡有人唱歌，有人說話。", "爸爸還沒出聲叫你轉台。"],
-      };
-    case "MINI_86_HELP":
-      return {
-        scene: "corridor",
-        kicker: "日常 · 1986",
-        title: "塑膠袋太重",
-        lines: ["媽媽兩隻手都提著袋子。走廊的燈黃黃的。", "她沒有叫你，但她走得很慢。"],
-      };
     case "EVT_1984_NEWS_01": {
       const cold = newsCold(state);
       const lines = cold
@@ -235,44 +288,10 @@ export function cardFor(id: string, state: State): Card {
 }
 
 export function choicesFor(id: string, state: State): Choice[] {
+  const staticEvt = STATIC_EVENTS[id];
+  if (staticEvt) return renderStatic(staticEvt).choices;
   const heard = heardNews(state);
   switch (id) {
-    case "MINI_84_TOY":
-      return [
-        choice("A", "拉住媽媽要看", "dream", { derived: { STATE_MOOD: 2 }, npc: { NPC_MOM_01: { trust: -1 } } }, "你拉住她。媽媽歎了口氣，讓你看十秒。「看完要走。」"),
-        choice("B", "自己看完就走", "think", { derived: { INDEPENDENT_THOUGHT: 1, STATE_MOOD: 1 } }, "你看清楚那輛車，然後自己追上去。沒有人買。你記得那個樣子。"),
-        choice("C", "不看，跟著走", "reality", { derived: { VALUE_REALITY: 1, STATE_FAMILY_HARMONY: 1, STATE_MOOD: -1 } }, "你跟著走。車留在櫃裡。媽媽沒發現你停過。"),
-      ];
-    case "MINI_85_RAIN":
-      return [
-        choice("A", "畫畫", "dream", { derived: { VALUE_DREAM: 2, STATE_MOOD: 1 }, counter: { ART_PROGRESS: 1 } }, "雨下得很大。你把紙塗到邊上都有顏色。"),
-        choice("B", "聽收音機", "think", { derived: { VALUE_REALITY: 1, INDEPENDENT_THOUGHT: 1, STATE_PEACE: 1 }, counter: { MIND_PROGRESS: 1 } }, "收音機轉台，有人講，有人唱。你不明白，但你聽著。你記住那個節奏。"),
-        choice("C", "睡一陣", "balance", { derived: { STATE_STRESS: -4, STATE_PEACE: 2, STATE_MOOD: 1 } }, "你睡了。雨聲遠了。這個下午沒有什麼趕著要做。"),
-      ];
-    case "MINI_85_GRANDMA":
-      return [
-        choice("A", "聽她講", "reality", { npc: { NPC_GRAND_01: { trust: 3, relation: 2 } }, derived: { INDEPENDENT_THOUGHT: 1 } }, "你聽。你不知道全部，但你知道這棟樓以前更難走。"),
-        choice("B", "走去玩", "dream", { derived: { STATE_MOOD: 2 }, npc: { NPC_GRAND_01: { relation: -1 } } }, "你留下碗湯，走到玩具那裡。嫲嫲沒有叫你回來。"),
-        choice("C", "問為什麼要走樓梯", "think", { derived: { INDEPENDENT_THOUGHT: 2 }, npc: { NPC_GRAND_01: { trust: 2 } } }, "嫲嫲笑：「因為那時候沒有這些按鈕。」你記住「以前」兩個字。"),
-      ];
-    case "MINI_86_ESTATE":
-      return [
-        choice("A", "揮回去", "dream", { derived: { STATE_MOOD: 2, VALUE_DREAM: 1 } }, "你揮回去。你還不知道他的名字，但你應了他。"),
-        choice("B", "站到一邊看", "think", { derived: { INDEPENDENT_THOUGHT: 1, STATE_PEACE: 1 } }, "你看別人怎麼玩。你還沒加入，但你記住怎麼玩。"),
-        choice("C", "上去找媽媽", "reality", { derived: { STATE_FAMILY_HARMONY: 2, STATE_MOOD: -1 } }, "你走回樓上。媽媽的衣服還沒乾。你站在她旁邊。"),
-      ];
-    case "MINI_86_TV":
-      return [
-        choice("A", "再看一會兒", "dream", { derived: { STATE_MOOD: 2, VALUE_DREAM: 1 } }, "你看。唱歌比新聞容易聽。飯涼得慢。"),
-        choice("B", "吃完再看", "reality", { derived: { VALUE_REALITY: 1, STATE_FAMILY_HARMONY: 1 } }, "你扒飯。電視繼續播。你選了碗先。"),
-        choice("C", "問他們在看什麼", "think", { derived: { INDEPENDENT_THOUGHT: 1 }, primary: { STAT_SPEECH: 1 } }, "爸爸答得很短：「唱歌。」你知道不只是唱歌，但你問過。"),
-      ];
-    case "MINI_86_HELP":
-      return [
-        choice("A", "伸手托住一袋", "reality", { derived: { STATE_FAMILY_HARMONY: 2, VALUE_REALITY: 1 }, primary: { STAT_STR: 1 }, tags: ["TAG_RESPONSIBILITY"] }, "袋帶勒手。媽媽看你一眼，沒有講大道理。"),
-        choice("B", "先跑去開門", "balance", { derived: { STATE_FAMILY_HARMONY: 1, VALUE_DREAM: 1, STATE_STRESS: 1 } }, "你跑去按燈。袋子仍然是她提。你只是開了門。"),
-        choice("C", "當作沒看見", "dream", { derived: { STATE_MOOD: 1, STATE_FAMILY_HARMONY: -1 } }, "你看著牆上那幅畫。媽媽自己把袋子放下。她沒有罵你。"),
-      ];
     case "EVT_1984_NEWS_01":
       return [
         choice(
