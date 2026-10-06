@@ -44,7 +44,7 @@ export function LifeApp() {
   };
 
   return (
-    <main className="mx-auto h-dvh w-full max-w-lg overflow-y-auto overscroll-contain px-4 py-3 pb-24">
+    <main className="mx-auto min-h-dvh w-full max-w-lg overflow-y-auto overscroll-contain px-4 py-3 pb-6">
       <Top state={state} />
       {state.phase === "title" ? <Title onStart={() => { tap(); dispatch({ type: "begin" }); }} /> : null}
       {state.phase === "gender" ? (
@@ -186,7 +186,7 @@ function GenderPick({ onPick }: { onPick: (gender: Gender, name: string) => void
           className="mt-1 min-h-11 w-full rounded-xl border border-line bg-paper px-3 text-base text-ink"
         />
       </label>
-      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto grid w-full max-w-lg grid-cols-2 gap-2 bg-bg/95 px-4 py-3">
+      <div className="mt-4 grid grid-cols-2 gap-2">
         <button type="button" onClick={() => onPick("boy", clean)} className="min-h-12 rounded-xl bg-amber text-base font-medium text-ink">
           男孩
         </button>
@@ -434,11 +434,9 @@ function ChoiceButton({ label, hint, onClick }: { label: string; hint?: string; 
 
 function Primary({ children, onClick }: { children: string; onClick: () => void }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-lg bg-bg/95 px-4 py-3">
-      <button type="button" onClick={onClick} className="min-h-12 w-full rounded-xl bg-amber text-base font-medium text-ink">
-        {children}
-      </button>
-    </div>
+    <button type="button" onClick={onClick} className="mt-4 min-h-12 w-full rounded-xl bg-amber text-base font-medium text-ink">
+      {children}
+    </button>
   );
 }
 
