@@ -1,8 +1,8 @@
 import type { Approach, BattleKind } from "./types";
+import { KINDY_DOOR, type BattleSpec, type EnemyPattern, type Threat } from "./battleSpec";
 
 export type BattleAction = "walk" | "guard" | "read" | "see" | "ask";
-
-export type Threat = { stress: number; hp: number; heavy: boolean; hint: string };
+export type { Threat };
 
 export type BattleSim = {
   round: number;
@@ -18,6 +18,7 @@ export type BattleSim = {
   over: BattleKind | null;
   hint: string;
   threat: Threat;
+  pattern: EnemyPattern;
   see: boolean;
   ask: boolean;
   practiced: boolean;
@@ -32,15 +33,6 @@ export const BATTLE_COST: Record<BattleAction, number> = {
   ask: 6,
 };
 
-const MAX_ROUNDS = 8;
-
-function threatFor(round: number): Threat {
-  if (round % 3 === 0) {
-    return { stress: 24, hp: 10, heavy: true, hint: "下一聲會很大。有人快要哭出來。" };
-  }
-  return { stress: 9, hp: 5, heavy: false, hint: "有人拉你的衣袖。聲音不大，但在拉。" };
-}
-
 export function createBattle(input: {
   approach: Approach;
   hp: number;
@@ -49,7 +41,9 @@ export function createBattle(input: {
   see: boolean;
   ask: boolean;
   practiced: boolean;
+  spec?: BattleSpec;
 }): BattleSim {
+  const spec = input.spec ?? KINDY_DOOR;
   let stress = input.approach === "safe" ? 16 : input.approach === "curious" ? 22 : 20;
   if (input.tidy) stress = Math.max(0, stress - 8);
   const hint =
@@ -60,8 +54,8 @@ export function createBattle(input: {
         : "媽媽鬆開手。你開過口，現在要自己走過去。";
   return {
     round: 1,
-    maxRounds: MAX_ROUNDS,
-    goal: 12,
+    maxRounds: spec.maxRounds,
+    goal: spec.startGoal,
     hp: input.hp,
     maxHp: input.hp,
     sp: input.sp,
@@ -71,13 +65,21 @@ export function createBattle(input: {
     dodge: false,
     over: null,
     hint,
-    threat: threatFor(1),
+    threat: spec.enemyPattern.threatFor(1),
+    pattern: spec.enemyPattern,
     see: input.see,
     ask: input.ask,
     practiced: input.practiced,
   };
 }
 
+/**
+ * Two doors, on purpose. They are not the same check.
+ * Mid-fight, only goal >= 100 ends it: you stepped through before the next cry.
+ * A goal of 95 on round 4 does nothing. 88 is not a shortcut during the fight.
+ * When the last round is over and you are still standing, goal >= 88 counts as in,
+ * if stress stayed under 96. So 95 at the bell is a win. 95 on round 4 is not.
+ */
 function settle(sim: BattleSim) {
   if (sim.hp <= 0) sim.over = sim.stress >= 80 ? "bad" : "fail";
   else if (sim.stress >= 100) sim.over = "bad";
@@ -100,12 +102,13 @@ export function actBattle(sim: BattleSim, name: BattleAction, enabled: boolean) 
   }
   sim.sp -= cost;
   if (name === "walk") {
-    sim.goal = Math.min(100, sim.goal + 13);
+    sim.goal = Math.min(100, sim.goal + 14);
     sim.stress = Math.min(100, sim.stress + 1);
     sim.hint = "你向前走一步。";
   } else if (name === "guard") {
     sim.brace = true;
     sim.stress = Math.max(0, sim.stress - 6);
+    sim.goal = Math.min(100, sim.goal + 5);
     sim.hint = "你停下呼吸。";
   } else if (name === "read") {
     const cut = sim.practiced ? 18 : 6;
@@ -143,7 +146,9 @@ function applyEnemy(sim: BattleSim) {
     sim.hint = threat.heavy ? "那一聲很大。你退後半步。" : "陌生的聲音撞過來。你停了一下。";
   }
   sim.stress = Math.min(100, sim.stress + stress);
-  sim.hp = Math.max(0, sim.hp - hp);
+  // 精神力 is not a second stress bar. A voice raises stress first.
+  // Spirit only cracks once stress is already at 80 or more.
+  if (sim.stress >= 80) sim.hp = Math.max(0, sim.hp - hp);
 }
 
 /** One full exchange: your action, then the doorway, then the next threat. Null means you froze. */
@@ -165,5 +170,5 @@ export function resolveTurn(sim: BattleSim, action: BattleAction | null) {
     return;
   }
   sim.round += 1;
-  sim.threat = threatFor(sim.round);
+  sim.threat = sim.pattern.threatFor(sim.round);
 }

@@ -65,8 +65,16 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
           <Meter label="氣力" value={sim.sp} max={sim.maxSp} tone="bg-amber" />
           <Meter label="壓力" value={sim.stress} max={100} tone="bg-ink" />
           <Meter label="入到課室" value={sim.goal} max={100} tone="bg-estate" />
-          <p className="text-sm text-pretty text-ink">{sim.over ? sim.hint : sim.threat.hint}</p>
-          <p className="min-h-10 text-sm text-pretty text-ink/70">{sim.hint}</p>
+          {sim.over ? null : (
+            <div className="rounded-xl bg-bg px-3 py-2">
+              <p className="text-xs text-amber">下一聲</p>
+              <p className="text-sm text-pretty text-paper">{sim.threat.hint}</p>
+            </div>
+          )}
+          <div>
+            <p className="text-xs text-muted">剛才</p>
+            <p className="min-h-10 text-sm text-pretty text-ink/70">{sim.hint}</p>
+          </div>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">

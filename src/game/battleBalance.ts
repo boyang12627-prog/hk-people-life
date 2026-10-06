@@ -197,7 +197,7 @@ export function provePerfect(): BattleKind {
   for (let i = 0; i < sim.maxRounds && !sim.over; i += 1) {
     let action: BattleAction = "walk";
     if (sim.threat.heavy && sim.sp >= BATTLE_COST.guard) action = "guard";
-    else if (sim.stress >= 28 && sim.sp >= BATTLE_COST.read) action = "read";
+    else if (sim.stress >= 12 && sim.sp >= BATTLE_COST.read) action = "read";
     resolveTurn(sim, action);
   }
   return sim.over ?? "fail";

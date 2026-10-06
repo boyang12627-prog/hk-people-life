@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { actBattle, BATTLE_COST, createBattle } from "./battleSim.ts";
+import { actBattle, BATTLE_COST, createBattle, resolveTurn } from "./battleSim.ts";
 import { readFileSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
 import { KINDY_DOOR } from "./battleSpec.ts";
@@ -530,6 +530,48 @@ describe("logic audit v2.4", () => {
     assert.equal(report.ended, 1000, JSON.stringify(report.stuck));
     assert.ok(report.events.includes("EVT_1984_NEWS_01"));
     assert.ok(report.events.includes("EVT_1986_FAMILY_06"));
+  });
+
+  it("door pattern is loud four times, spirit waits for stress, and 88 is only the bell", () => {
+    const pattern = KINDY_DOOR.enemyPattern;
+    assert.equal(KINDY_DOOR.maxRounds, pattern.maxRounds);
+    assert.equal(KINDY_DOOR.startGoal, 12);
+    for (const round of [1, 3, 5, 8]) assert.equal(pattern.threatFor(round).heavy, false, String(round));
+    for (const round of [2, 4, 6, 7]) assert.equal(pattern.threatFor(round).heavy, true, String(round));
+    const ui = readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8");
+    assert.ok(ui.includes("下一聲"));
+    assert.ok(ui.includes("剛才"));
+
+    const calm = createBattle({ approach: "social", hp: 80, sp: 40, tidy: false, see: false, ask: false, practiced: false });
+    calm.stress = 10;
+    calm.threat = { stress: 9, hp: 5, heavy: false, hint: "輕" };
+    resolveTurn(calm, "walk");
+    assert.ok(calm.stress < 80);
+    assert.equal(calm.hp, 80);
+
+    const cracked = createBattle({ approach: "social", hp: 80, sp: 40, tidy: false, see: false, ask: false, practiced: false });
+    cracked.stress = 78;
+    cracked.threat = { stress: 9, hp: 5, heavy: false, hint: "輕" };
+    resolveTurn(cracked, "walk");
+    assert.ok(cracked.stress >= 80);
+    assert.ok(cracked.hp < 80);
+
+    const mid = createBattle({ approach: "social", hp: 40, sp: 40, tidy: false, see: false, ask: false, practiced: false });
+    mid.round = 4;
+    mid.goal = 95;
+    mid.stress = 50;
+    mid.threat = { stress: 0, hp: 0, heavy: false, hint: "無" };
+    resolveTurn(mid, null);
+    assert.equal(mid.over, null);
+    assert.equal(mid.goal, 95);
+
+    const bell = createBattle({ approach: "social", hp: 40, sp: 40, tidy: false, see: false, ask: false, practiced: false });
+    bell.round = bell.maxRounds;
+    bell.goal = 95;
+    bell.stress = 50;
+    bell.threat = { stress: 0, hp: 0, heavy: false, hint: "無" };
+    resolveTurn(bell, null);
+    assert.equal(bell.over, "win");
   });
 
   it("auto battle ends, and skip is a win rather than a perfect", () => {
