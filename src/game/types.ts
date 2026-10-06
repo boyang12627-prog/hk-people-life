@@ -1,6 +1,6 @@
 export type Gender = "boy" | "girl";
 
-export type SceneId = "home" | "kindy" | "corridor" | "market" | "estate";
+export type SceneId = "home" | "kindy" | "corridor" | "market" | "estate" | "study";
 
 export type Tendency = "dream" | "reality" | "balance" | "think";
 

@@ -26,7 +26,7 @@ function decide(sim: BattleSim, policy: Policy): BattleAction | null {
   }
   if (policy === "steady") {
     if (heavy && ready("guard")) return "guard";
-    if (sim.practiced && sim.stress >= 40 && ready("read")) return "read";
+    if (sim.prepared && sim.stress >= 40 && ready("read")) return "read";
     return "walk";
   }
   if (sim.see && heavy && ready("see")) return "see";
@@ -36,7 +36,7 @@ function decide(sim: BattleSim, policy: Policy): BattleAction | null {
   return "walk";
 }
 
-export type Kit = { practiced: boolean; tidy: boolean; see: boolean; ask: boolean };
+export type Kit = { prepared: boolean; stabilize: boolean; see: boolean; ask: boolean };
 
 export function simulateOnce(input: {
   seed: number;
@@ -109,12 +109,12 @@ function runCell(n: number, approach: Approach, policy: Policy, label: string, k
 export function runBalance(n = 1000, spec: BattleSpec = KINDY_DOOR): BalanceReport[] {
   const policies: Policy[] = ["walk", "read", "guard", "steady", "smart"];
   const kits: { label: string; kit: Kit }[] = [
-    { label: "none", kit: { practiced: false, tidy: false, see: false, ask: false } },
-    { label: "read", kit: { practiced: true, tidy: false, see: false, ask: false } },
-    { label: "tidy+read", kit: { practiced: true, tidy: true, see: false, ask: false } },
-    { label: "see+read", kit: { practiced: true, tidy: false, see: true, ask: false } },
-    { label: "ask+read", kit: { practiced: true, tidy: false, see: false, ask: true } },
-    { label: "all", kit: { practiced: true, tidy: true, see: true, ask: true } },
+    { label: "none", kit: { prepared: false, stabilize: false, see: false, ask: false } },
+    { label: "read", kit: { prepared: true, stabilize: false, see: false, ask: false } },
+    { label: "stabilize+read", kit: { prepared: true, stabilize: true, see: false, ask: false } },
+    { label: "see+read", kit: { prepared: true, stabilize: false, see: true, ask: false } },
+    { label: "ask+read", kit: { prepared: true, stabilize: false, see: false, ask: true } },
+    { label: "all", kit: { prepared: true, stabilize: true, see: true, ask: true } },
   ];
   const reports: BalanceReport[] = [];
   let seed = 1;
@@ -133,9 +133,9 @@ export function runBalance(n = 1000, spec: BattleSpec = KINDY_DOOR): BalanceRepo
 /** The cells the gate actually judges. Full 72-cell matrix stays on runBalance. */
 export function runGateSample(n = 200, spec: BattleSpec = KINDY_DOOR): BalanceReport[] {
   const kits: { label: string; kit: Kit }[] = [
-    { label: "none", kit: { practiced: false, tidy: false, see: false, ask: false } },
-    { label: "read", kit: { practiced: true, tidy: false, see: false, ask: false } },
-    { label: "tidy+read", kit: { practiced: true, tidy: true, see: false, ask: false } },
+    { label: "none", kit: { prepared: false, stabilize: false, see: false, ask: false } },
+    { label: "read", kit: { prepared: true, stabilize: false, see: false, ask: false } },
+    { label: "stabilize+read", kit: { prepared: true, stabilize: true, see: false, ask: false } },
   ];
   const reports: BalanceReport[] = [];
   let seed = 1;
@@ -166,9 +166,9 @@ export function judgeBalance(reports: BalanceReport[]) {
   const reviews: string[] = [];
   const byLabel = new Map(reports.map((report) => [report.label, report]));
   for (const approach of APPROACHES) {
-    const normal = byLabel.get(`${approach}/steady/tidy+read`);
+    const normal = byLabel.get(`${approach}/steady/stabilize+read`);
     if (!normal) {
-      fails.push(`missing ${approach}/steady/tidy+read`);
+      fails.push(`missing ${approach}/steady/stabilize+read`);
       continue;
     }
     if (normal.winRate < BALANCE_THRESHOLDS.APPROACH_WIN_MIN) {
@@ -200,10 +200,10 @@ export function provePerfect(spec: BattleSpec = KINDY_DOOR): BattleKind {
     approach: "safe",
     hp: spiritHp(primary, 5),
     sp: driveSp(primary, 80),
-    tidy: true,
+    stabilize: true,
     see: false,
     ask: false,
-    practiced: true,
+    prepared: true,
     spec,
   });
   for (let i = 0; i < sim.maxRounds && !sim.over; i += 1) {

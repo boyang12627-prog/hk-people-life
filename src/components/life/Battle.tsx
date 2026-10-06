@@ -14,11 +14,11 @@ type Props = {
 };
 
 export function Battle({ spec, approach, hp, sp, skills, onEnd }: Props) {
-  const tidy = skills.includes(spec.skills.tidy);
+  const stabilize = skills.includes(spec.skills.stabilize);
   const see = skills.includes(spec.skills.see);
   const ask = skills.includes(spec.skills.ask);
-  const practiced = skills.includes(spec.skills.practiced);
-  const startRef = useRef({ approach, hp, sp, tidy, see, ask, practiced, spec });
+  const prepared = skills.includes(spec.skills.prepared);
+  const startRef = useRef({ approach, hp, sp, stabilize, see, ask, prepared, spec });
   const simRef = useRef<BattleSim>(createBattle(startRef.current));
   const onEndRef = useRef(onEnd);
   const reportedRef = useRef(false);
@@ -68,7 +68,7 @@ export function Battle({ spec, approach, hp, sp, skills, onEnd }: Props) {
         <div className="grid gap-3 bg-paper px-4 py-3 text-ink">
           <div>
             <p className="text-xs text-ink/60">
-              第 {sim.round} / {sim.maxRounds} 步 · 門口的聲音
+              第 {sim.round} / {sim.maxRounds} 步 · {spec.label}
             </p>
             <div className="mt-2 flex gap-1" aria-hidden="true">
               {Array.from({ length: sim.maxRounds }, (_, index) => (
@@ -79,7 +79,7 @@ export function Battle({ spec, approach, hp, sp, skills, onEnd }: Props) {
           <Meter label="精神力" value={sim.hp} max={sim.maxHp} tone="bg-estate" />
           <Meter label="氣力" value={sim.sp} max={sim.maxSp} tone="bg-amber" />
           <Meter label="壓力" value={sim.stress} max={100} tone="bg-ink" />
-          <Meter label="入到課室" value={sim.goal} max={100} tone="bg-estate" />
+          <Meter label={spec.goalLabel} value={sim.goal} max={100} tone="bg-estate" />
           {sim.over ? null : (
             <div className="rounded-xl bg-bg px-3 py-2">
               <p className="text-xs text-amber">下一聲</p>
@@ -92,7 +92,7 @@ export function Battle({ spec, approach, hp, sp, skills, onEnd }: Props) {
               <p className="text-sm text-pretty text-ink/70">{sim.hint}</p>
               {sim.enemyHint ? (
                 <>
-                  <p className="mt-2 text-xs text-muted">門口</p>
+                  <p className="mt-2 text-xs text-muted">{spec.hitLabel}</p>
                   <p className="text-sm text-pretty text-ink/70">{sim.enemyHint}</p>
                 </>
               ) : null}
@@ -100,7 +100,7 @@ export function Battle({ spec, approach, hp, sp, skills, onEnd }: Props) {
           ) : (
             <p className="text-sm text-pretty text-ink/70">{sim.hint}</p>
           )}
-          {sim.over ? <p className="text-sm text-ink">{entered ? "你進去了。" : "你回到門口。"}</p> : null}
+          {sim.over ? <p className="text-sm text-ink">{entered ? spec.voice.entered : spec.voice.back}</p> : null}
         </div>
       </div>
       {sim.over ? (
@@ -110,47 +110,50 @@ export function Battle({ spec, approach, hp, sp, skills, onEnd }: Props) {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2">
-            <TurnButton label="向前行" detail="不耗氣力，走近一步" disabled={locked} onClick={() => choose("walk")} />
-            <TurnButton label="停下呼吸" detail={`氣力 ${BATTLE_COST.guard}，這一聲小一半`} disabled={locked || broke("guard")} onClick={() => choose("guard")} />
+            <TurnButton label={spec.voice.walk.label} detail={spec.voice.walk.detail} disabled={locked} onClick={() => choose("walk")} />
+            <TurnButton label={spec.voice.guard.label} detail={costDetail("guard", spec.voice.guard.detail)} disabled={locked || broke("guard")} onClick={() => choose("guard")} />
             <TurnButton
-              label="跟著讀"
-              detail={practiced ? `氣力 ${BATTLE_COST.read}，你跟得熟` : `氣力 ${BATTLE_COST.read}，還沒跟熟`}
+              label={spec.voice.read.label}
+              detail={costDetail("read", prepared ? spec.voice.read.detail : (spec.voice.read.weakDetail ?? spec.voice.read.detail))}
               disabled={locked || broke("read")}
               onClick={() => choose("read")}
             />
             {see ? (
-              <TurnButton label="看臉色" detail={`氣力 ${BATTLE_COST.see}，避開下一聲`} disabled={locked || broke("see")} onClick={() => choose("see")} />
+              <TurnButton label={spec.voice.see.label} detail={costDetail("see", spec.voice.see.detail)} disabled={locked || broke("see")} onClick={() => choose("see")} />
             ) : null}
             {ask ? (
-              <TurnButton label="問問題" detail={`氣力 ${BATTLE_COST.ask}，走近少少`} disabled={locked || broke("ask")} onClick={() => choose("ask")} />
+              <TurnButton label={spec.voice.ask.label} detail={costDetail("ask", spec.voice.ask.detail)} disabled={locked || broke("ask")} onClick={() => choose("ask")} />
             ) : null}
           </div>
           <p className="text-sm text-pretty text-paper/70">
-            {practiced ? "你懂得跟著讀。跟著讀，壓力會落得多一些。" : "你還沒跟熟。跟著讀也可以，但聲音很細。"}
-            先看這一聲大不大，再決定走還是停。今天進不去，可以再試，不會結束。
+            {prepared ? spec.voice.noteReady : spec.voice.noteWeak} {spec.voice.note}
           </p>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               disabled={locked}
               className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper disabled:opacity-40"
-              onClick={() => endAs(spec.skipKind, "你沒有打完。你還是進去了。")}
+              onClick={() => endAs(spec.skipKind, spec.voice.skip)}
             >
-              跳過，算進去了
+              {spec.voice.skipButton}
             </button>
             <button
               type="button"
               disabled={locked}
               className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper disabled:opacity-40"
-              onClick={() => endAs(resolveAuto(sim), "你跟著走完這段路。")}
+              onClick={() => endAs(resolveAuto(sim), spec.voice.auto)}
             >
-              自動走進去
+              {spec.voice.autoButton}
             </button>
           </div>
         </>
       )}
     </div>
   );
+}
+
+function costDetail(name: BattleAction, detail: string) {
+  return `氣力 ${BATTLE_COST[name]}，${detail}`;
 }
 
 function Meter({ label, value, max, tone }: { label: string; value: number; max: number; tone: string }) {

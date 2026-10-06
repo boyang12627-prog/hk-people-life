@@ -547,7 +547,7 @@ export function canRetry(state: State) {
 }
 
 const PHASES = new Set(["title", "gender", "year", "activities", "note", "event", "battle", "battle-result", "result", "repair", "explore-offer", "year-end", "fifteen", "ending"]);
-const SCENES = new Set(["home", "kindy", "corridor", "market", "estate"]);
+const SCENES = new Set(["home", "kindy", "corridor", "market", "estate", "study"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);

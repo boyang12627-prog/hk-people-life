@@ -25,7 +25,8 @@ export type BattleSim = {
   pattern: EnemyPattern;
   see: boolean;
   ask: boolean;
-  practiced: boolean;
+  prepared: boolean;
+  spec: BattleSpec;
 };
 
 /** Only cost table. The turn UI and the balance sim both read this. Walk is free: a child can always step. */
@@ -41,21 +42,15 @@ export function createBattle(input: {
   approach: Approach;
   hp: number;
   sp: number;
-  tidy: boolean;
+  stabilize: boolean;
   see: boolean;
   ask: boolean;
-  practiced: boolean;
+  prepared: boolean;
   spec?: BattleSpec;
 }): BattleSim {
   const spec = input.spec ?? KINDY_DOOR;
   let stress = input.approach === "safe" ? 16 : input.approach === "curious" ? 22 : 20;
-  if (input.tidy) stress = Math.max(0, stress - 8);
-  const hint =
-    input.approach === "safe"
-      ? "你仍然抓著媽媽。開頭沒有那麼害怕。"
-      : input.approach === "curious"
-        ? "你看著課室。裡面很吵，壓力大一些。"
-        : "媽媽鬆開手。你開過口，現在要自己走過去。";
+  if (input.stabilize) stress = Math.max(0, stress - 8);
   return {
     round: 1,
     maxRounds: spec.maxRounds,
@@ -68,14 +63,15 @@ export function createBattle(input: {
     brace: false,
     dodge: false,
     over: null,
-    hint,
+    hint: spec.voice.openings[input.approach],
     enemyHint: "",
     hasActed: false,
     threat: spec.enemyPattern.threatFor(1),
     pattern: spec.enemyPattern,
     see: input.see,
     ask: input.ask,
-    practiced: input.practiced,
+    prepared: input.prepared,
+    spec,
   };
 }
 
@@ -106,33 +102,34 @@ export function actBattle(sim: BattleSim, name: BattleAction, enabled: boolean) 
   const cost = BATTLE_COST[name];
   if (sim.sp < cost) {
     sim.hasActed = true;
-    sim.hint = "氣力不夠。可以向前走，或者先停下。";
+    sim.hint = sim.spec.voice.broke;
     return false;
   }
   sim.hasActed = true;
   sim.sp -= cost;
+  const voice = sim.spec.voice;
   if (name === "walk") {
     sim.goal = Math.min(100, sim.goal + 14);
     sim.stress = Math.min(100, sim.stress + 1);
-    sim.hint = "你向前走一步。";
+    sim.hint = voice.walk.hint;
   } else if (name === "guard") {
     sim.brace = true;
     sim.stress = Math.max(0, sim.stress - 6);
     sim.goal = Math.min(100, sim.goal + 5);
-    sim.hint = "你停下呼吸。";
+    sim.hint = voice.guard.hint;
   } else if (name === "read") {
-    const cut = sim.practiced ? 18 : 6;
-    const step = sim.practiced ? 18 : 4;
+    const cut = sim.prepared ? 18 : 6;
+    const step = sim.prepared ? 18 : 4;
     sim.stress = Math.max(0, sim.stress - cut);
     sim.goal = Math.min(100, sim.goal + step);
-    sim.hint = sim.practiced ? "你跟著老師教過的字。聲音細，但你有聲音。" : "你還沒跟熟。只出到半個字，聲音小了一點。";
+    sim.hint = sim.prepared ? voice.read.hint : (voice.read.weakHint ?? voice.read.hint);
   } else if (name === "see") {
     sim.dodge = true;
-    sim.hint = "你看一看。下一聲，你會避開。";
+    sim.hint = voice.see.hint;
   } else if (name === "ask") {
     sim.goal = Math.min(100, sim.goal + 16);
     sim.stress = Math.max(0, sim.stress - 4);
-    sim.hint = "你問了一句。課室近了。";
+    sim.hint = voice.ask.hint;
   }
   return true;
 }
@@ -143,7 +140,7 @@ function applyEnemy(sim: BattleSim) {
   let hp = threat.hp;
   if (sim.dodge) {
     sim.dodge = false;
-    sim.enemyHint = "你看得出哪一下會撞過來，避開了。";
+    sim.enemyHint = sim.spec.voice.dodged;
     stress = 0;
     hp = 0;
   } else if (sim.brace) {
@@ -151,9 +148,9 @@ function applyEnemy(sim: BattleSim) {
     stress = Math.ceil(stress / 2);
     hp = Math.ceil(hp / 2);
     sim.sp = Math.min(sim.maxSp, sim.sp + 3);
-    sim.enemyHint = "你擋住了。聲音小了一半。";
+    sim.enemyHint = sim.spec.voice.braced;
   } else {
-    sim.enemyHint = threat.heavy ? "那一聲很大。你退後半步。" : "有人拉住你的衣袖。";
+    sim.enemyHint = threat.landed;
   }
   sim.stress = Math.min(100, sim.stress + stress);
   // 精神力 is not a second stress bar. A voice raises stress first.
@@ -170,7 +167,7 @@ export function resolveTurn(sim: BattleSim, action: BattleAction | null) {
     if (!paid) return;
   } else {
     sim.hasActed = true;
-    sim.hint = "你站著。那一聲還是來了。";
+    sim.hint = sim.spec.voice.froze;
   }
   settle(sim);
   if (sim.over) return;

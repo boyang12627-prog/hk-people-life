@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { actBattle, BATTLE_COST, createBattle, resolveTurn } from "./battleSim.ts";
 import { readFileSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
-import { KINDY_DOOR } from "./battleSpec.ts";
+import { KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
 import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, ledgerSummary, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
 import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, knownEventIds, lifeVoice, sceneFor, variantOf, yearLean, YEARS } from "./content.ts";
 import { CHILDHOOD_EVENT_IDS, DAILY_STATIC_IDS, renderStatic, STATIC_EVENTS } from "./data/events.ts";
@@ -163,8 +163,8 @@ describe("logic audit v2.4", () => {
   });
 
   it("followed reading is stronger than an unpracticed attempt", () => {
-    const weak = createBattle({ approach: "curious", hp: 80, sp: 40, tidy: false, see: false, ask: false, practiced: false });
-    const strong = createBattle({ approach: "curious", hp: 80, sp: 40, tidy: false, see: false, ask: false, practiced: true });
+    const weak = createBattle({ approach: "curious", hp: 80, sp: 40, stabilize: false, see: false, ask: false, prepared: false });
+    const strong = createBattle({ approach: "curious", hp: 80, sp: 40, stabilize: false, see: false, ask: false, prepared: true });
     actBattle(weak, "read", true);
     actBattle(strong, "read", true);
     assert.ok(strong.stress < weak.stress);
@@ -544,18 +544,18 @@ describe("logic audit v2.4", () => {
     const ui = readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8");
     assert.ok(ui.includes("下一聲"));
     assert.ok(ui.includes("剛才"));
-    assert.ok(ui.includes("門口"));
-    assert.ok(ui.includes("你進去了"));
+    assert.ok(ui.includes("hitLabel"));
+    assert.ok(KINDY_DOOR.voice.entered.includes("你進去了"));
     assert.ok(ui.includes("hasActed"));
     assert.ok(ui.includes('enemyHint = ""'));
 
-    const fresh = createBattle({ approach: "social", hp: 80, sp: 40, tidy: false, see: false, ask: false, practiced: false });
+    const fresh = createBattle({ approach: "social", hp: 80, sp: 40, stabilize: false, see: false, ask: false, prepared: false });
     assert.equal(fresh.hasActed, false);
     assert.equal(fresh.maxRounds, KINDY_DOOR.maxRounds);
 
-    const calm = createBattle({ approach: "social", hp: 80, sp: 40, tidy: false, see: false, ask: false, practiced: false });
+    const calm = createBattle({ approach: "social", hp: 80, sp: 40, stabilize: false, see: false, ask: false, prepared: false });
     calm.stress = 10;
-    calm.threat = { stress: 9, hp: 5, heavy: false, hint: "輕" };
+    calm.threat = { stress: 9, hp: 5, heavy: false, hint: "輕", landed: "有人拉住你的衣袖。" };
     resolveTurn(calm, "walk");
     assert.equal(calm.hint, "你向前走一步。");
     assert.ok(calm.enemyHint.includes("衣袖"));
@@ -563,36 +563,56 @@ describe("logic audit v2.4", () => {
     assert.ok(calm.stress < 80);
     assert.equal(calm.hp, 80);
 
-    const cracked = createBattle({ approach: "social", hp: 80, sp: 40, tidy: false, see: false, ask: false, practiced: false });
+    const cracked = createBattle({ approach: "social", hp: 80, sp: 40, stabilize: false, see: false, ask: false, prepared: false });
     cracked.stress = 78;
-    cracked.threat = { stress: 9, hp: 5, heavy: false, hint: "輕" };
+    cracked.threat = { stress: 9, hp: 5, heavy: false, hint: "輕", landed: "撞過來。" };
     resolveTurn(cracked, "walk");
     assert.ok(cracked.stress >= 80);
     assert.ok(cracked.hp < 80);
 
-    const mid = createBattle({ approach: "social", hp: 40, sp: 40, tidy: false, see: false, ask: false, practiced: false });
+    const mid = createBattle({ approach: "social", hp: 40, sp: 40, stabilize: false, see: false, ask: false, prepared: false });
     mid.round = 4;
     mid.goal = 95;
     mid.stress = 50;
-    mid.threat = { stress: 0, hp: 0, heavy: false, hint: "無" };
+    mid.threat = { stress: 0, hp: 0, heavy: false, hint: "無", landed: "無" };
     resolveTurn(mid, null);
     assert.equal(mid.over, null);
     assert.equal(mid.goal, 95);
 
-    const bell = createBattle({ approach: "social", hp: 40, sp: 40, tidy: false, see: false, ask: false, practiced: false });
+    const bell = createBattle({ approach: "social", hp: 40, sp: 40, stabilize: false, see: false, ask: false, prepared: false });
     bell.round = bell.maxRounds;
     bell.goal = 95;
     bell.stress = 50;
-    bell.threat = { stress: 0, hp: 0, heavy: false, hint: "無" };
+    bell.threat = { stress: 0, hp: 0, heavy: false, hint: "無", landed: "無" };
     resolveTurn(bell, null);
     assert.equal(bell.over, "win");
   });
 
   it("auto battle ends, and skip is a win rather than a perfect", () => {
-    const sim = createBattle({ approach: "safe", hp: 80, sp: 40, tidy: true, see: false, ask: false, practiced: true });
+    const sim = createBattle({ approach: "safe", hp: 80, sp: 40, stabilize: true, see: false, ask: false, prepared: true });
     const kind = resolveAuto(sim);
     assert.ok(kind === "win" || kind === "perfect" || kind === "fail" || kind === "bad");
     assert.equal(KINDY_DOOR.skipKind, "win");
+    const exam = createBattle({
+      approach: "safe",
+      hp: 80,
+      sp: 40,
+      stabilize: false,
+      see: false,
+      ask: false,
+      prepared: true,
+      spec: PRIMARY_EXAM,
+    });
+    assert.equal(exam.hint.includes("媽媽"), false);
+    assert.equal(exam.maxRounds, 10);
+    assert.equal(PRIMARY_EXAM.scene, "study");
+    assert.equal(PRIMARY_EXAM.gated, false);
+    assert.equal(PRIMARY_EXAM.skills.prepared, "SKL_013");
+    assert.equal(PRIMARY_EXAM.skills.stabilize, "SKL_018");
+    assert.notEqual(PRIMARY_EXAM.voice.ask.label, KINDY_DOOR.voice.ask.label);
+    resolveTurn(exam, "read");
+    assert.equal(exam.hint.includes("默"), true);
+    assert.equal(YEARS.some((year) => year.events.includes("BTL_PRIMARY_EXAM")), false);
   });
 });
 

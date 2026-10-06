@@ -282,13 +282,13 @@ export function ledgerSummary() {
 }
 
 export const SKILL_LEDGER: { id: string; consumer: string; consumerKind: "BATTLE" | "EVENT" | "ENDING" }[] = [
-  { id: "SKL_01", consumer: "battle practiced read", consumerKind: "BATTLE" },
+  { id: "SKL_01", consumer: "battle prepared read", consumerKind: "BATTLE" },
   { id: "SKL_02", consumer: "battle see", consumerKind: "BATTLE" },
   { id: "SKL_03", consumer: "EVT_1986_MARKET_07", consumerKind: "EVENT" },
   { id: "SKL_04", consumer: "battle ask", consumerKind: "BATTLE" },
   { id: "SKL_05", consumer: "EVT_1986_SKILL_05 choice E", consumerKind: "EVENT" },
   { id: "SKL_06", consumer: "EVT_1986_ECHO_08 choice A", consumerKind: "EVENT" },
-  { id: "SKL_07", consumer: "battle tidy", consumerKind: "BATTLE" },
+  { id: "SKL_07", consumer: "battle stabilize", consumerKind: "BATTLE" },
   { id: "SKL_08", consumer: "EVT_1986_ECHO_08 choice C", consumerKind: "EVENT" },
   { id: "SKL_09", consumer: "1996 beat and repair", consumerKind: "ENDING" },
   { id: "SKL_10", consumer: "EVT_1986_MARKET_07", consumerKind: "EVENT" },

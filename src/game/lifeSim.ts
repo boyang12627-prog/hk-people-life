@@ -36,10 +36,10 @@ function stepLife(state: State, seed: number, step: number, policy: LifePolicy, 
       approach: state.approach,
       hp: spiritHp(state.primary, state.approach === "safe" ? 5 : 0),
       sp: driveSp(state.primary, state.derived.STATE_MOOD),
-      tidy: state.skills.includes(KINDY_DOOR.skills.tidy),
+      stabilize: state.skills.includes(KINDY_DOOR.skills.stabilize),
       see: state.skills.includes(KINDY_DOOR.skills.see),
       ask: state.skills.includes(KINDY_DOOR.skills.ask),
-      practiced: state.skills.includes(KINDY_DOOR.skills.practiced),
+      prepared: state.skills.includes(KINDY_DOOR.skills.prepared),
       spec: KINDY_DOOR,
     });
     const kind = resolveAuto(battle);

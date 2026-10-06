@@ -10,15 +10,17 @@ console.log(`events ${lives.events.join(" ")}`);
 for (const spec of BATTLE_SPECS) {
   const gateSample = runGateSample(200, spec);
   const gate = judgeBalance(gateSample);
-  console.log(`spec ${spec.id} rounds=${spec.maxRounds} perfect=${provePerfect(spec)}`);
+  const mark = spec.gated ? "gated" : "catalog";
+  console.log(`spec ${spec.id} ${mark} rounds=${spec.maxRounds} perfectScript=${provePerfect(spec)}`);
   console.log("approach/policy/kit | n | win% | perfect% | fail% | bad%");
   for (const report of gateSample) {
     const pct = (n: number) => (n * 100).toFixed(1).padStart(5);
     console.log(
-      `${report.label.padEnd(28)} | ${String(report.n).padStart(4)} | ${pct(report.winRate)} | ${pct(report.rate.perfect)} | ${pct(report.rate.fail)} | ${pct(report.rate.bad)}`,
+      `${report.label.padEnd(32)} | ${String(report.n).padStart(4)} | ${pct(report.winRate)} | ${pct(report.rate.perfect)} | ${pct(report.rate.fail)} | ${pct(report.rate.bad)}`,
     );
   }
-  console.log(`gate ${spec.id} ${gate.status} fails=${JSON.stringify(gate.fails)} reviews=${JSON.stringify(gate.reviews)}`);
+  if (spec.gated) console.log(`gate ${spec.id} ${gate.status} fails=${JSON.stringify(gate.fails)} reviews=${JSON.stringify(gate.reviews)}`);
+  else console.log(`spec ${spec.id} not gated. Shared numbers, own words. Do not read this table as the product gate.`);
 }
 
 const started = Date.now();

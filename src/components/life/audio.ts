@@ -1,3 +1,5 @@
+import type { SceneId } from "@/game/types";
+
 let ctx: AudioContext | null = null;
 
 export function unlockAudio() {
@@ -6,9 +8,9 @@ export function unlockAudio() {
   if (ctx.state === "suspended") void ctx.resume();
 }
 
-export function playRoom(scene: "home" | "kindy" | "corridor" | "market" | "estate") {
+export function playRoom(scene: SceneId) {
   if (!ctx) return;
-  const bed = { home: 90, kindy: 220, corridor: 140, market: 180, estate: 70 }[scene];
+  const bed = { home: 90, kindy: 220, corridor: 140, market: 180, estate: 70, study: 110 }[scene];
   const now = ctx.currentTime;
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();

@@ -384,6 +384,7 @@ const SENSE: Record<SceneId, string> = {
   corridor: "走廊晾滿衣服，燈有些黃。媽媽的袋子放在地上。",
   market: "街市。那天地面很濕，魚檔的水滲進鞋子。",
   estate: "大廈門口的鐵閘拉上了。遊樂場的鞦韆響著。",
+  study: "課室的風扇響著。卷子已經翻開，時鐘在黑板旁邊。",
 };
 
 function Paper({ scene, kicker, title, children }: { scene: SceneId; kicker: string; title: string; children: ReactNode }) {
