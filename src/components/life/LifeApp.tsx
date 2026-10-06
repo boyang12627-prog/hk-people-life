@@ -74,13 +74,11 @@ export function LifeApp() {
       {state.phase === "event" && state.eventId ? <EventCard state={state} onChoose={(choice) => { tap(); dispatch({ type: "choose", choice }); }} /> : null}
       {state.phase === "battle" && state.approach ? (
         <Battle
+          spec={KINDY_DOOR}
           approach={state.approach}
           hp={spiritHp(state.primary, state.approach === "safe" ? 5 : 0)}
           sp={driveSp(state.primary, state.derived.STATE_MOOD)}
-          tidy={state.skills.includes(KINDY_DOOR.skills.tidy)}
-          see={state.skills.includes(KINDY_DOOR.skills.see)}
-          ask={state.skills.includes(KINDY_DOOR.skills.ask)}
-          practiced={state.skills.includes(KINDY_DOOR.skills.practiced)}
+          skills={state.skills}
           onEnd={(outcome) => {
             playTone(outcome.kind === "fail" || outcome.kind === "bad" ? "hit" : "good");
             dispatch({ type: "battleEnd", outcome });

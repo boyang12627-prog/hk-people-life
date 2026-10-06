@@ -40,6 +40,7 @@ function stepLife(state: State, seed: number, step: number, policy: LifePolicy, 
       see: state.skills.includes(KINDY_DOOR.skills.see),
       ask: state.skills.includes(KINDY_DOOR.skills.ask),
       practiced: state.skills.includes(KINDY_DOOR.skills.practiced),
+      spec: KINDY_DOOR,
     });
     const kind = resolveAuto(battle);
     return reducer(state, { type: "battleEnd", outcome: { kind, stress: battle.stress, hp: battle.hp } });

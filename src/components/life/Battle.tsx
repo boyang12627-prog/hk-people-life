@@ -1,22 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { resolveAuto } from "@/game/battleBalance";
-import { KINDY_DOOR } from "@/game/battleSpec";
+import type { BattleSpec } from "@/game/battleSpec";
 import { BATTLE_COST, createBattle, resolveTurn, type BattleAction, type BattleSim } from "@/game/battleSim";
 import type { Approach, BattleKind, BattleOutcome } from "@/game/types";
 
 type Props = {
+  spec: BattleSpec;
   approach: Approach;
   hp: number;
   sp: number;
-  tidy: boolean;
-  see: boolean;
-  ask: boolean;
-  practiced: boolean;
+  skills: readonly string[];
   onEnd: (outcome: BattleOutcome) => void;
 };
 
-export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: Props) {
-  const startRef = useRef({ approach, hp, sp, tidy, see, ask, practiced });
+export function Battle({ spec, approach, hp, sp, skills, onEnd }: Props) {
+  const tidy = skills.includes(spec.skills.tidy);
+  const see = skills.includes(spec.skills.see);
+  const ask = skills.includes(spec.skills.ask);
+  const practiced = skills.includes(spec.skills.practiced);
+  const startRef = useRef({ approach, hp, sp, tidy, see, ask, practiced, spec });
   const simRef = useRef<BattleSim>(createBattle(startRef.current));
   const onEndRef = useRef(onEnd);
   const reportedRef = useRef(false);
@@ -44,6 +46,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
     if (!sim.over) sim.over = kind;
     sim.hasActed = true;
     sim.hint = hint;
+    sim.enemyHint = "";
     setTick((n) => n + 1);
   };
 
@@ -60,7 +63,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
     <div className="flex flex-col gap-3" data-round={tick}>
       <div className="overflow-hidden rounded-2xl border border-line/40">
         <div className="relative h-40 bg-bg sm:h-52">
-          <img src={`/scenes/${KINDY_DOOR.scene}.jpg`} alt="" className="h-full w-full object-cover" />
+          <img src={`/scenes/${spec.scene}.jpg`} alt="" className="h-full w-full object-cover" />
         </div>
         <div className="grid gap-3 bg-paper px-4 py-3 text-ink">
           <div>
@@ -131,7 +134,7 @@ export function Battle({ approach, hp, sp, tidy, see, ask, practiced, onEnd }: P
               type="button"
               disabled={locked}
               className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper disabled:opacity-40"
-              onClick={() => endAs(KINDY_DOOR.skipKind, "你沒有打完。你還是進去了。")}
+              onClick={() => endAs(spec.skipKind, "你沒有打完。你還是進去了。")}
             >
               跳過，算進去了
             </button>

@@ -106,7 +106,7 @@ function runCell(n: number, approach: Approach, policy: Policy, label: string, k
   return { report, seed };
 }
 
-export function runBalance(n = 1000): BalanceReport[] {
+export function runBalance(n = 1000, spec: BattleSpec = KINDY_DOOR): BalanceReport[] {
   const policies: Policy[] = ["walk", "read", "guard", "steady", "smart"];
   const kits: { label: string; kit: Kit }[] = [
     { label: "none", kit: { practiced: false, tidy: false, see: false, ask: false } },
@@ -121,7 +121,7 @@ export function runBalance(n = 1000): BalanceReport[] {
   for (const approach of APPROACHES) {
     for (const policy of policies) {
       for (const kit of kits) {
-        const cell = runCell(n, approach, policy, kit.label, kit.kit, seed, KINDY_DOOR);
+        const cell = runCell(n, approach, policy, kit.label, kit.kit, seed, spec);
         seed = cell.seed;
         reports.push(cell.report);
       }
@@ -131,7 +131,7 @@ export function runBalance(n = 1000): BalanceReport[] {
 }
 
 /** The cells the gate actually judges. Full 72-cell matrix stays on runBalance. */
-export function runGateSample(n = 200): BalanceReport[] {
+export function runGateSample(n = 200, spec: BattleSpec = KINDY_DOOR): BalanceReport[] {
   const kits: { label: string; kit: Kit }[] = [
     { label: "none", kit: { practiced: false, tidy: false, see: false, ask: false } },
     { label: "read", kit: { practiced: true, tidy: false, see: false, ask: false } },
@@ -141,7 +141,7 @@ export function runGateSample(n = 200): BalanceReport[] {
   let seed = 1;
   for (const approach of APPROACHES) {
     for (const kit of kits) {
-      const cell = runCell(n, approach, "steady", kit.label, kit.kit, seed, KINDY_DOOR);
+      const cell = runCell(n, approach, "steady", kit.label, kit.kit, seed, spec);
       seed = cell.seed;
       reports.push(cell.report);
     }
@@ -193,8 +193,8 @@ export function judgeBalance(reports: BalanceReport[]) {
   return { status, fails, reviews };
 }
 
-/** Deterministic turns. Safe, tidy, practiced reading. Guard the loud step, read when the stress is up, walk in before the last cry. */
-export function provePerfect(): BattleKind {
+/** Deterministic turns for the doorway. A later fight passes its own spec, and will need its own script. */
+export function provePerfect(spec: BattleSpec = KINDY_DOOR): BattleKind {
   const primary = { ...INITIAL_PRIMARY, STAT_GRIT: 8, STAT_VIT: 8 };
   const sim = createBattle({
     approach: "safe",
@@ -204,6 +204,7 @@ export function provePerfect(): BattleKind {
     see: false,
     ask: false,
     practiced: true,
+    spec,
   });
   for (let i = 0; i < sim.maxRounds && !sim.over; i += 1) {
     let action: BattleAction = "walk";

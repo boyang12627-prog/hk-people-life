@@ -423,7 +423,7 @@ describe("logic audit v2.4", () => {
     assert.equal(ui.includes("requestAnimationFrame"), false);
     assert.ok(ui.includes("resolveTurn"));
     assert.equal(ui.includes('"/scenes/kindy.jpg"'), false);
-    assert.ok(ui.includes("KINDY_DOOR.scene"));
+    assert.ok(ui.includes("spec.scene"));
     assert.equal(/useRef\(onEnd\);\s*onEndRef\.current = onEnd/.test(ui), false);
     const simSrc = readFileSync(new URL("./lifeSim.ts", import.meta.url), "utf8");
     assert.equal(simSrc.includes("hp: 80"), false);
@@ -534,8 +534,8 @@ describe("logic audit v2.4", () => {
 
   it("door pattern is loud four times, spirit waits for stress, and 88 is only the bell", () => {
     const pattern = KINDY_DOOR.enemyPattern;
-    assert.equal(pattern.maxRounds, 8);
-    assert.equal("maxRounds" in KINDY_DOOR, false);
+    assert.equal(KINDY_DOOR.maxRounds, 8);
+    assert.equal("maxRounds" in pattern, false);
     assert.equal(KINDY_DOOR.startGoal, 12);
     for (const round of [1, 3, 5]) assert.equal(pattern.threatFor(round).heavy, false, String(round));
     for (const round of [2, 4, 6, 7]) assert.equal(pattern.threatFor(round).heavy, true, String(round));
@@ -547,10 +547,11 @@ describe("logic audit v2.4", () => {
     assert.ok(ui.includes("門口"));
     assert.ok(ui.includes("你進去了"));
     assert.ok(ui.includes("hasActed"));
+    assert.ok(ui.includes('enemyHint = ""'));
 
     const fresh = createBattle({ approach: "social", hp: 80, sp: 40, tidy: false, see: false, ask: false, practiced: false });
     assert.equal(fresh.hasActed, false);
-    assert.equal(fresh.maxRounds, pattern.maxRounds);
+    assert.equal(fresh.maxRounds, KINDY_DOOR.maxRounds);
 
     const calm = createBattle({ approach: "social", hp: 80, sp: 40, tidy: false, see: false, ask: false, practiced: false });
     calm.stress = 10;

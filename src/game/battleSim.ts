@@ -58,7 +58,7 @@ export function createBattle(input: {
         : "媽媽鬆開手。你開過口，現在要自己走過去。";
   return {
     round: 1,
-    maxRounds: spec.enemyPattern.maxRounds,
+    maxRounds: spec.maxRounds,
     goal: spec.startGoal,
     hp: input.hp,
     maxHp: input.hp,
