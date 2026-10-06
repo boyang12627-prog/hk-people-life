@@ -165,8 +165,6 @@ describe("logic audit v2.4", () => {
   it("followed reading is stronger than an unpracticed attempt", () => {
     const weak = createBattle({ approach: "curious", hp: 80, sp: 40, tidy: false, see: false, ask: false, practiced: false });
     const strong = createBattle({ approach: "curious", hp: 80, sp: 40, tidy: false, see: false, ask: false, practiced: true });
-    weak.cd.read = 0;
-    strong.cd.read = 0;
     actBattle(weak, "read", true);
     actBattle(strong, "read", true);
     assert.ok(strong.stress < weak.stress);
@@ -419,13 +417,14 @@ describe("logic audit v2.4", () => {
 
   it("battle costs come from one table, and prepared approaches are not a dead road", () => {
     const ui = readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8");
-    assert.equal(BATTLE_COST.walk, 1);
+    assert.equal(BATTLE_COST.walk, 0);
+    assert.equal(BATTLE_COST.guard, 2);
     assert.ok(ui.includes("BATTLE_COST"));
-    assert.equal(ui.includes("walk: 2"), false);
+    assert.equal(ui.includes("requestAnimationFrame"), false);
+    assert.ok(ui.includes("resolveTurn"));
     assert.equal(ui.includes('"/scenes/kindy.jpg"'), false);
     assert.ok(ui.includes("KINDY_DOOR.scene"));
     assert.equal(/useRef\(onEnd\);\s*onEndRef\.current = onEnd/.test(ui), false);
-    assert.ok(ui.includes("COST_KEYS"));
     const simSrc = readFileSync(new URL("./lifeSim.ts", import.meta.url), "utf8");
     assert.equal(simSrc.includes("hp: 80"), false);
     assert.ok(simSrc.includes("spiritHp"));

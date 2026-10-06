@@ -1,5 +1,5 @@
 import { spiritHp, driveSp, INITIAL_PRIMARY, type Approach, type BattleKind, type Primary } from "./types";
-import { actBattle, createBattle, stepBattle, BATTLE_COST, type BattleAction, type BattleSim } from "./battleSim";
+import { BATTLE_COST, createBattle, resolveTurn, type BattleAction, type BattleSim } from "./battleSim";
 
 export type Policy = "walk" | "read" | "guard" | "steady" | "smart";
 
@@ -12,27 +12,27 @@ function rng(seed: number) {
 }
 
 function decide(sim: BattleSim, policy: Policy): BattleAction | null {
-  const ready = (name: BattleAction) => sim.cd[name] <= 0 && (name === "walk" || sim.sp >= BATTLE_COST[name]);
-  const close = sim.waves.some((wave) => wave.x > sim.x && wave.x - sim.x < 18);
-  if (policy === "walk") return ready("walk") ? "walk" : null;
+  const ready = (name: BattleAction) => name === "walk" || sim.sp >= BATTLE_COST[name];
+  const heavy = sim.threat.heavy;
+  if (policy === "walk") return "walk";
   if (policy === "read") {
-    if (sim.stress >= 28 && ready("read")) return "read";
-    return ready("walk") ? "walk" : null;
+    if (sim.stress >= 34 && ready("read")) return "read";
+    return "walk";
   }
   if (policy === "guard") {
-    if (close && ready("guard")) return "guard";
-    return ready("walk") ? "walk" : null;
+    if (heavy && ready("guard")) return "guard";
+    return "walk";
   }
   if (policy === "steady") {
-    if (close && ready("guard")) return "guard";
-    if (sim.stress >= 48 && ready("read")) return "read";
-    return ready("walk") ? "walk" : null;
+    if (heavy && ready("guard")) return "guard";
+    if (sim.practiced && sim.stress >= 40 && ready("read")) return "read";
+    return "walk";
   }
-  if (sim.see && close && ready("see")) return "see";
-  if (sim.stress >= 36 && ready("read")) return "read";
-  if (close && ready("guard")) return "guard";
-  if (sim.ask && sim.x < 60 && ready("ask")) return "ask";
-  return ready("walk") ? "walk" : null;
+  if (sim.see && heavy && ready("see")) return "see";
+  if (sim.stress >= 34 && ready("read")) return "read";
+  if (heavy && ready("guard")) return "guard";
+  if (sim.ask && sim.goal < 78 && ready("ask")) return "ask";
+  return "walk";
 }
 
 export type Kit = { practiced: boolean; tidy: boolean; see: boolean; ask: boolean };
@@ -44,18 +44,13 @@ export function simulateOnce(input: { seed: number; approach: Approach; policy: 
   const sim = createBattle({ approach: input.approach, hp, sp, ...input.kit });
   const rand = rng(input.seed);
   const used: Record<BattleAction, number> = { walk: 0, guard: 0, read: 0, see: 0, ask: 0 };
-  for (let i = 0; i < 700 && !sim.over; i += 1) {
-    if (rand() > 0.18) {
-      const action = decide(sim, input.policy);
-      if (action) {
-        const before = sim.t;
-        actBattle(sim, action, action === "see" ? sim.see : action === "ask" ? sim.ask : true);
-        if (sim.t === before && sim.cd[action] > 0) used[action] += 1;
-      }
-    }
-    stepBattle(sim, 0.12);
+  for (let i = 0; i < sim.maxRounds + 1 && !sim.over; i += 1) {
+    const hesitate = rand() < 0.12;
+    const action = hesitate ? null : decide(sim, input.policy);
+    if (action) used[action] += 1;
+    resolveTurn(sim, action);
   }
-  return { kind: (sim.over ?? "fail") as BattleKind, used, t: sim.t };
+  return { kind: (sim.over ?? "fail") as BattleKind, used, t: sim.round };
 }
 
 export type BalanceReport = {
@@ -187,7 +182,7 @@ export function judgeBalance(reports: BalanceReport[]) {
   return { status, fails, reviews };
 }
 
-/** Deterministic timing. No decision drop. Safe + tidy + practiced read, guard when a voice is close. */
+/** Deterministic turns. Safe, tidy, practiced reading. Guard the loud step, read when the stress is up, walk in before the last cry. */
 export function provePerfect(): BattleKind {
   const primary = { ...INITIAL_PRIMARY, STAT_GRIT: 8, STAT_VIT: 8 };
   const sim = createBattle({
@@ -199,15 +194,11 @@ export function provePerfect(): BattleKind {
     ask: false,
     practiced: true,
   });
-  for (let i = 0; i < 800 && !sim.over; i += 1) {
-    const close = sim.waves.some((wave) => wave.x > sim.x && wave.x - sim.x < 14);
-    const ready = (name: BattleAction) => sim.cd[name] <= 0 && (name === "walk" || sim.sp >= BATTLE_COST[name]);
-    let action: BattleAction | null = null;
-    if (close && ready("guard")) action = "guard";
-    else if (sim.stress >= 18 && ready("read")) action = "read";
-    else if (ready("walk")) action = "walk";
-    if (action) actBattle(sim, action, true);
-    stepBattle(sim, 0.1);
+  for (let i = 0; i < sim.maxRounds && !sim.over; i += 1) {
+    let action: BattleAction = "walk";
+    if (sim.threat.heavy && sim.sp >= BATTLE_COST.guard) action = "guard";
+    else if (sim.stress >= 28 && sim.sp >= BATTLE_COST.read) action = "read";
+    resolveTurn(sim, action);
   }
   return sim.over ?? "fail";
 }
@@ -221,13 +212,11 @@ export function balanceSummary(reports: BalanceReport[]) {
   }));
 }
 
-/** Playtest auto. Steady policy, no missed inputs. Stops as fail if the fight never ends. */
+/** Playtest auto. Steady policy. Stops as fail if the fight never ends. */
 export function resolveAuto(sim: BattleSim, policy: Policy = "steady") {
   let steps = 0;
-  while (!sim.over && steps < 800) {
-    const action = decide(sim, policy);
-    if (action) actBattle(sim, action, action === "see" ? sim.see : action === "ask" ? sim.ask : true);
-    stepBattle(sim, 0.12);
+  while (!sim.over && steps < sim.maxRounds + 1) {
+    resolveTurn(sim, decide(sim, policy));
     steps += 1;
   }
   if (!sim.over) sim.over = "fail";

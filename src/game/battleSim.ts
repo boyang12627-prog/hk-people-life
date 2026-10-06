@@ -2,39 +2,44 @@ import type { Approach, BattleKind } from "./types";
 
 export type BattleAction = "walk" | "guard" | "read" | "see" | "ask";
 
-type Wave = { x: number; speed: number; dmg: number };
+export type Threat = { stress: number; hp: number; heavy: boolean; hint: string };
 
 export type BattleSim = {
-  x: number;
+  round: number;
+  maxRounds: number;
+  goal: number;
   hp: number;
   maxHp: number;
   sp: number;
   maxSp: number;
   stress: number;
-  t: number;
-  spawn: number;
-  waves: Wave[];
-  cd: Record<BattleAction, number>;
-  guard: number;
+  brace: boolean;
   dodge: boolean;
   over: BattleKind | null;
-  shake: number;
   hint: string;
-  pressure: number;
+  threat: Threat;
   see: boolean;
   ask: boolean;
   practiced: boolean;
-  regen: number;
 };
 
-/** Only cost table. UI and the balance sim both read this. */
+/** Only cost table. The turn UI and the balance sim both read this. Walk is free: a child can always step. */
 export const BATTLE_COST: Record<BattleAction, number> = {
-  walk: 1,
-  guard: 3,
-  read: 6,
-  see: 8,
-  ask: 8,
+  walk: 0,
+  guard: 2,
+  read: 5,
+  see: 5,
+  ask: 6,
 };
+
+const MAX_ROUNDS = 8;
+
+function threatFor(round: number): Threat {
+  if (round % 3 === 0) {
+    return { stress: 24, hp: 10, heavy: true, hint: "下一聲會很大。有人快要哭出來。" };
+  }
+  return { stress: 9, hp: 5, heavy: false, hint: "有人拉你的衣袖。聲音不大，但在拉。" };
+}
 
 export function createBattle(input: {
   approach: Approach;
@@ -45,9 +50,8 @@ export function createBattle(input: {
   ask: boolean;
   practiced: boolean;
 }): BattleSim {
-  const startX = 18;
-  let stress = input.approach === "safe" ? 20 : input.approach === "curious" ? 24 : 22;
-  if (input.tidy) stress = Math.max(0, stress - 6);
+  let stress = input.approach === "safe" ? 16 : input.approach === "curious" ? 22 : 20;
+  if (input.tidy) stress = Math.max(0, stress - 8);
   const hint =
     input.approach === "safe"
       ? "你仍然抓著媽媽。開頭沒有那麼害怕。"
@@ -55,128 +59,111 @@ export function createBattle(input: {
         ? "你看著課室。裡面很吵，壓力大一些。"
         : "媽媽鬆開手。你開過口，現在要自己走過去。";
   return {
-    x: startX,
+    round: 1,
+    maxRounds: MAX_ROUNDS,
+    goal: 12,
     hp: input.hp,
     maxHp: input.hp,
     sp: input.sp,
     maxSp: input.sp,
     stress,
-    t: 0,
-    spawn: 1.5,
-    waves: [],
-    cd: { walk: 0, guard: 0, read: 0.4, see: 0, ask: 0 },
-    guard: 0,
+    brace: false,
     dodge: false,
     over: null,
-    shake: 0,
     hint,
-    pressure: 0,
+    threat: threatFor(1),
     see: input.see,
     ask: input.ask,
     practiced: input.practiced,
-    regen: 0,
   };
 }
 
-function finish(sim: BattleSim): BattleKind {
-  if (sim.stress < 36) return "perfect";
-  return "win";
-}
-
-export function stepBattle(sim: BattleSim, dt: number) {
-  if (sim.over) return;
-  sim.t += dt;
-  sim.guard = Math.max(0, sim.guard - dt);
-  sim.shake = Math.max(0, sim.shake - dt);
-  (Object.keys(sim.cd) as BattleAction[]).forEach((key) => {
-    sim.cd[key] = Math.max(0, sim.cd[key] - dt);
-  });
-  sim.regen += dt;
-  if (sim.regen >= 2) {
-    sim.regen = 0;
-    sim.sp = Math.min(sim.maxSp, sim.sp + 1);
-  }
-  sim.spawn -= dt;
-  if (sim.spawn <= 0) {
-    sim.waves.push({
-      x: 112,
-      speed: 26 + Math.min(8, sim.t * 0.15),
-      dmg: 10,
-    });
-    sim.spawn = sim.t < 18 ? 2.35 : 2.05;
-  }
-  const kept: Wave[] = [];
-  for (const wave of sim.waves) {
-    wave.x -= wave.speed * dt;
-    if (wave.x > sim.x + 6) {
-      kept.push(wave);
-      continue;
-    }
-    if (sim.dodge) {
-      sim.dodge = false;
-      sim.hint = "你看得出哪一下會撞過來，避開了。";
-    } else if (sim.guard > 0) {
-      const perfect = sim.guard > 0.48;
-      const taken = perfect ? wave.dmg * 0.1 : wave.dmg * 0.5;
-      sim.hp = Math.max(0, sim.hp - taken);
-      if (perfect) {
-        sim.sp = Math.min(sim.maxSp, sim.sp + 10);
-        sim.hint = "你剛剛停下。那個聲音擦過，氣力回來少許。";
-      } else {
-        sim.stress = Math.min(100, sim.stress + 8);
-        sim.hint = "你擋住了。聲音小了一半。";
-      }
-      sim.guard = 0;
-    } else {
-      sim.hp = Math.max(0, sim.hp - wave.dmg);
-      sim.stress = Math.min(100, sim.stress + 12);
-      sim.x = Math.max(4, sim.x - 2);
-      sim.shake = 0.18;
-      sim.hint = "陌生的聲音撞過來。你退後一步。";
-    }
-  }
-  sim.waves = kept;
+function settle(sim: BattleSim) {
   if (sim.hp <= 0) sim.over = sim.stress >= 80 ? "bad" : "fail";
   else if (sim.stress >= 100) sim.over = "bad";
-  else if (sim.x >= 88) sim.over = finish(sim);
-  else if (sim.t >= 46) sim.over = sim.x >= 72 ? "win" : sim.stress >= 80 ? "bad" : "fail";
+  else if (sim.goal >= 100) sim.over = sim.stress < 36 ? "perfect" : "win";
 }
 
+function timeUp(sim: BattleSim) {
+  if (sim.goal >= 88 && sim.stress < 96 && sim.hp > 0) sim.over = sim.stress < 36 ? "perfect" : "win";
+  else if (sim.stress >= 85 || sim.hp <= 0) sim.over = sim.stress >= 85 ? "bad" : "fail";
+  else sim.over = "fail";
+}
+
+/** Player half only. Returns false when the action could not be paid for. */
 export function actBattle(sim: BattleSim, name: BattleAction, enabled: boolean) {
-  if (sim.over || !enabled || sim.cd[name] > 0) return;
+  if (sim.over || !enabled) return false;
   const cost = BATTLE_COST[name];
-  if (name === "walk") {
-    const weak = sim.sp < cost;
-    if (!weak) sim.sp -= cost;
-    sim.x = Math.min(100, sim.x + (weak ? 2 : 3));
-    sim.stress = Math.min(100, sim.stress + 1);
-    sim.cd.walk = 1.1;
-    sim.hint = weak ? "氣力不夠。你仍然走，只是慢。" : "你向前走一步。";
-    return;
-  }
   if (sim.sp < cost) {
-    sim.hint = "氣力不夠。可以慢走，或者等一陣。";
-    return;
+    sim.hint = "氣力不夠。可以向前走，或者先停下。";
+    return false;
   }
   sim.sp -= cost;
-  if (name === "guard") {
-    sim.guard = 0.78;
-    sim.cd.guard = 0.95;
+  if (name === "walk") {
+    sim.goal = Math.min(100, sim.goal + 13);
+    sim.stress = Math.min(100, sim.stress + 1);
+    sim.hint = "你向前走一步。";
+  } else if (name === "guard") {
+    sim.brace = true;
+    sim.stress = Math.max(0, sim.stress - 6);
     sim.hint = "你停下呼吸。";
   } else if (name === "read") {
-    const practiced = sim.practiced;
-    sim.x = Math.min(100, sim.x + (practiced ? 2 : 1));
-    sim.stress = Math.max(0, sim.stress - (practiced ? 10 : 4));
-    sim.cd.read = practiced ? 2.1 : 2.6;
-    sim.hint = practiced ? "你跟著老師教過的字。聲音細，但你有聲音。" : "你還沒跟熟。只出到半個字，聲音小了一點。";
+    const cut = sim.practiced ? 18 : 6;
+    const step = sim.practiced ? 18 : 4;
+    sim.stress = Math.max(0, sim.stress - cut);
+    sim.goal = Math.min(100, sim.goal + step);
+    sim.hint = sim.practiced ? "你跟著老師教過的字。聲音細，但你有聲音。" : "你還沒跟熟。只出到半個字，聲音小了一點。";
   } else if (name === "see") {
     sim.dodge = true;
-    sim.cd.see = 3.6;
     sim.hint = "你看一看。下一聲，你會避開。";
   } else if (name === "ask") {
-    sim.x = Math.min(100, sim.x + 3);
+    sim.goal = Math.min(100, sim.goal + 16);
     sim.stress = Math.max(0, sim.stress - 4);
-    sim.cd.ask = 3.3;
     sim.hint = "你問了一句。課室近了。";
   }
+  return true;
+}
+
+function applyEnemy(sim: BattleSim) {
+  const threat = sim.threat;
+  let stress = threat.stress;
+  let hp = threat.hp;
+  if (sim.dodge) {
+    sim.dodge = false;
+    sim.hint = "你看得出哪一下會撞過來，避開了。";
+    stress = 0;
+    hp = 0;
+  } else if (sim.brace) {
+    sim.brace = false;
+    stress = Math.ceil(stress / 2);
+    hp = Math.ceil(hp / 2);
+    sim.sp = Math.min(sim.maxSp, sim.sp + 3);
+    sim.hint = "你擋住了。聲音小了一半。";
+  } else {
+    sim.hint = threat.heavy ? "那一聲很大。你退後半步。" : "陌生的聲音撞過來。你停了一下。";
+  }
+  sim.stress = Math.min(100, sim.stress + stress);
+  sim.hp = Math.max(0, sim.hp - hp);
+}
+
+/** One full exchange: your action, then the doorway, then the next threat. Null means you froze. */
+export function resolveTurn(sim: BattleSim, action: BattleAction | null) {
+  if (sim.over) return;
+  if (action) {
+    const paid = actBattle(sim, action, action === "see" ? sim.see : action === "ask" ? sim.ask : true);
+    if (!paid) return;
+  } else {
+    sim.hint = "你站著。那一聲還是來了。";
+  }
+  settle(sim);
+  if (sim.over) return;
+  applyEnemy(sim);
+  settle(sim);
+  if (sim.over) return;
+  if (sim.round >= sim.maxRounds) {
+    timeUp(sim);
+    return;
+  }
+  sim.round += 1;
+  sim.threat = threatFor(sim.round);
 }
