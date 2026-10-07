@@ -30,7 +30,7 @@ Automation: content audit is part of `npm run audit:content`. Balance audit is `
 - 卡片回聲用 `selectByPriority`：P0 一定出，P1 最多兩句，P2 填剩餘。沒有 P3。
 - `designTendency` 只供內容和測試記錄，不改數值。
 - 存檔會丟掉未知事件、未知技能、未知 flag、目錄以外的裝備和招式。
-- 幼稚園戰鬥 gate：三種 approach 在 steady + tidy + read 不能低過 20%。大考這份規格 `gated: false`，不拿幼稚園的數字當它的關卡。
+- 幼稚園戰鬥 gate：social、safe、curious 三種，各自的 `steady/stabilize+read` 勝率不能低過 20%。沒有叫 tidy 的格子。大考這份規格 `gated: false`，只印數字，不拿幼稚園的門檻當它的關卡。
 - 戰鬥決定：一份 engine，多份 spec。幼稚園是 `KINDY_DOOR`，結算是 `kindy`。1988 測驗是 `PRIMARY_EXAM`，結算是 `exam`。引擎按結算種類寫記憶，不再認戰鬥編號。目前只允許這兩種。第三場必須自備結算，不能掉進幼稚園的 `MEM_FIRST_SCHOOL`。審計會拒絕第三份規格。
 - 戰鬥編號寫錯時，玩家仍會進幼稚園門口，畫面不會當掉。`npm run audit:content` 會因為這個編號失敗。
 
