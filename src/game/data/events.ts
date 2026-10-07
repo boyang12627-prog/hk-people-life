@@ -7,6 +7,8 @@ export const CHILDHOOD_EVENT_IDS = [
   "MINI_84_TOY",
   "MINI_85_RAIN",
   "MINI_85_GRANDMA",
+  "MINI_85_DAD",
+  "MINI_85_TV",
   "MINI_86_ESTATE",
   "MINI_86_TV",
   "MINI_86_HELP",
@@ -86,6 +88,37 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
       choice("A", "聽她講", "reality", { npc: { NPC_GRAND_01: { trust: 3, relation: 2 } }, derived: { INDEPENDENT_THOUGHT: 1 } }, "你聽。你不知道全部，但你知道這棟樓以前更難走。"),
       choice("B", "走去玩", "dream", { derived: { STATE_MOOD: 2 }, npc: { NPC_GRAND_01: { relation: -1 } } }, "你留下碗湯，走到玩具那裡。嫲嫲沒有叫你回來。"),
       choice("C", "問為什麼要走樓梯", "think", { derived: { INDEPENDENT_THOUGHT: 2 }, npc: { NPC_GRAND_01: { trust: 2 } } }, "嫲嫲笑：「因為那時候沒有這些按鈕。」你記住「以前」兩個字。"),
+    ],
+  },
+  MINI_85_DAD: {
+    id: "MINI_85_DAD",
+    scene: "home",
+    kicker: "日常 · 1985",
+    title: "爸爸回來",
+    lines: ["兩個下午你都在家。門開了。", "爸爸把鞋子脫在門口。他還沒去沖涼。"],
+    choices: [
+      choice(
+        "A",
+        "走過去",
+        "reality",
+        { npc: { NPC_DAD_01: { trust: 2, relation: 1 } } },
+        "你走過去。他的手在你頭上停了一下。他說自己很累，但你在家。",
+        mem("MEM_DAD_HOME", "MINI_85_DAD", "A", "NPC_DAD_01", "home", "你在家的時候，爸爸回來過。", 2),
+      ),
+      choice("B", "繼續玩", "dream", { derived: { STATE_MOOD: 1 }, npc: { NPC_DAD_01: { relation: -1 } } }, "你沒有過去。他看見你在，就進了房。"),
+      choice("C", "問他今天去了哪裡", "think", { derived: { INDEPENDENT_THOUGHT: 1 }, npc: { NPC_DAD_01: { trust: 1 } } }, "他說上班。你不知道上班在哪裡。他還是摸了你一下。"),
+    ],
+  },
+  MINI_85_TV: {
+    id: "MINI_85_TV",
+    scene: "home",
+    kicker: "日常 · 1985",
+    title: "電視又開著",
+    lines: ["你留在家。電視開著，沒有人在看。", "畫面裡很遠的人。去年飯桌也是這樣。你還是不知道他們在做什麼。"],
+    choices: [
+      choice("A", "坐著看", "think", { derived: { INDEPENDENT_THOUGHT: 1 } }, "你看完他們消失。你沒有人可以問。"),
+      choice("B", "把聲音關小", "reality", { derived: { STATE_PEACE: 1, VALUE_REALITY: 1 } }, "你把聲音關小。畫面還在。屋裡靜了一點。"),
+      choice("C", "轉去玩", "dream", { derived: { STATE_MOOD: 1, VALUE_DREAM: 1 } }, "你沒有再看。電視自己開著。"),
     ],
   },
   MINI_86_ESTATE: {
@@ -175,7 +208,7 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
   },
 };
 
-export const DAILY_STATIC_IDS = ["MINI_84_TOY", "MINI_85_RAIN", "MINI_85_GRANDMA", "MINI_86_ESTATE", "MINI_86_TV", "MINI_86_HELP"] as const;
+export const DAILY_STATIC_IDS = ["MINI_84_TOY", "MINI_85_RAIN", "MINI_85_GRANDMA", "MINI_85_DAD", "MINI_85_TV", "MINI_86_ESTATE", "MINI_86_TV", "MINI_86_HELP"] as const;
 
 export function cardFor(id: string, state: State): Card {
   const staticEvt = STATIC_EVENTS[id];
@@ -279,6 +312,7 @@ export function cardFor(id: string, state: State): Card {
       const mom = picked(state, "MEM_MOM_TIRED");
       if (mom === "A") lines.push("你想起媽媽累的那天。今天是爸爸。");
       if (mom === "C") lines.push("你懂得坐過去。去年你也是這樣坐。");
+      if (picked(state, "MEM_DAD_HOME") === "A") lines.push("去年你在家的時候，他回來過。今天公園去不成。");
       if (state.flags.includes("FLAG_FAMILY_NEWS_SILENCE")) lines.push("新聞之後沒有人出聲，你認得。");
       if (state.counter.WORLD_DAD_WORK_OCCURRENCES >= 2) lines.unshift("這不是第一次。外套摺好又拆開，你見過。");
       else if (state.counter.NPC_MOM_STRESS >= 26) lines.push("媽媽沒有出聲幫你。她自己也還沒鬆下來。");

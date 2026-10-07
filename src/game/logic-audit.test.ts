@@ -4,7 +4,7 @@ import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBat
 import { readFileSync, existsSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
 import { slicePlate } from "./art.ts";
-import { produce1985, missedLine, chainEcho, CHAIN_85_STAGES, MISS_85_FRIEND, MISS_85_MOM, MISS_85_RAIN } from "./freedom.ts";
+import { produce1985, missedLine, chainEcho, CHAIN_85_STAGES, MISS_85_FRIEND, MISS_85_MOM, MISS_85_RAIN, NPC_SCHEDULE_1985, REPLAY_MATRIX } from "./freedom.ts";
 import { BATTLE_NARRATIVE, battleNarrative } from "./battleNarrative.ts";
 import { BATTLE_SPECS, KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
 import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
@@ -800,13 +800,28 @@ describe("logic audit v3.1", () => {
     assert.equal(slicePlate({ year: 1984, scene: "home", gender: "girl" }), null);
     assert.equal(slicePlate({ year: 1988, scene: "study", gender: "girl" }), null);
     const played = produce1985(["ACT_PLAY", "ACT_DRAW"]);
-    assert.deepEqual(played.queue, ["EVT_1985_SCHOOL_01", "EVT_1985_FRIEND_04"]);
+    assert.deepEqual(played.queue, ["EVT_1985_SCHOOL_01", "EVT_1985_FRIEND_04", "MINI_85_DAD", "MINI_85_TV"]);
     assert.ok(played.missed.includes(MISS_85_MOM));
+    assert.ok(played.missed.includes("MISS_85_AUNT"));
     const withMom = produce1985(["ACT_MARKET", "ACT_REST"]);
     assert.ok(withMom.queue.includes("EVT_1985_FAMILY_03"));
     assert.ok(withMom.queue.includes("MINI_85_GRANDMA"));
     assert.ok(withMom.queue.includes("MINI_85_RAIN"));
     assert.equal(withMom.queue.includes("EVT_1985_FRIEND_04"), false);
+    assert.equal(withMom.queue.includes("MINI_85_DAD"), false);
+    assert.equal(withMom.queue.includes("MINI_85_TV"), false);
+    assert.equal(NPC_SCHEDULE_1985.length, 6);
+    assert.equal(NPC_SCHEDULE_1985.find((row) => row.npcId === "NPC_TEACH_01")?.eventId, null);
+    assert.deepEqual(
+      REPLAY_MATRIX.filter((row) => row.playable).map((row) => row.year),
+      YEARS.map((year) => year.year),
+    );
+    for (const row of REPLAY_MATRIX) {
+      const year = YEARS.find((item) => item.year === row.year);
+      assert.equal(Boolean(year), row.playable, String(row.year));
+      if (year) assert.equal(year.calendar, row.calendar);
+    }
+    assert.ok(cardFor("EVT_1986_FAMILY_06", remember("MEM_DAD_HOME", "A")).lines.join("").includes("回來過"));
     assert.ok(missedLine(played.missed, "later").includes("去年"));
     assert.equal(CHAIN_85_STAGES.length, 5);
     let chain = reducer({ ...freshState(3), phase: "year", yearIndex: 1 }, { type: "toActivities" });
@@ -818,6 +833,10 @@ describe("logic audit v3.1", () => {
     chain = reducer(chain, { type: "ack" });
     chain = chooseId(chain, "B");
     chain = reducer(chain, { type: "ack" });
+    while (chain.phase === "event") {
+      chain = chooseId(chain, "A");
+      chain = reducer(chain, { type: "ack" });
+    }
     assert.equal(chain.phase, "year-end");
     assert.equal(chain.chain.stage, 4);
     assert.equal(chain.chain.status, "delayed");
