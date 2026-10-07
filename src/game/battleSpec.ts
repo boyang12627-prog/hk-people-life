@@ -78,6 +78,11 @@ export type BattleSpec = {
   axes: readonly BattleAxis[];
   /** Catalog fight. Numbers are shared with other specs. Do not gate on this. */
   gated: boolean;
+  /**
+   * Which memory this fight writes. Only kindergarten and the 1988 paper exist.
+   * A third fight must add its own settlement. Do not reuse these two.
+   */
+  settlement: "kindy" | "exam";
   enemyPattern: EnemyPattern;
   voice: {
     walk: ActionLine;
@@ -116,6 +121,7 @@ export const KINDY_DOOR: BattleSpec = {
   pressureSpeed: 5,
   axes: ["speed", "stressResist"],
   gated: true,
+  settlement: "kindy",
   enemyPattern: KINDY_SEPARATION,
   voice: {
     walk: { label: "向前行", detail: "不耗氣力，走近一步", hint: "你向前走一步。" },
@@ -171,6 +177,7 @@ export const PRIMARY_EXAM: BattleSpec = {
   pressureSpeed: 10,
   axes: ["speed", "attack", "technique"],
   gated: false,
+  settlement: "exam",
   enemyPattern: PRIMARY_EXAM_PRESSURE,
   voice: {
     walk: { label: "落筆", detail: "不耗氣力，做下一題", hint: "你做下一題。" },

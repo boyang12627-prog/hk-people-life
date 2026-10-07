@@ -313,7 +313,8 @@ function onBattleEnd(state: State, outcome: BattleOutcome): State {
 }
 
 function settleBattle(state: State): State {
-  if (battleSpecById(state.battleSpecId).id === "BTL_PRIMARY_EXAM") return settleExam(state);
+  const spec = battleSpecById(state.battleSpecId);
+  if (spec.settlement === "exam") return settleExam(state);
   const approach: Approach = state.approach ?? "safe";
   const kind = state.battle?.kind ?? "fail";
   const story = battleStory(kind, approach);

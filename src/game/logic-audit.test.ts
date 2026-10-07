@@ -784,6 +784,13 @@ describe("logic audit v3.1", () => {
     const specSrc = readFileSync(new URL("./battleSpec.ts", import.meta.url), "utf8");
     assert.equal(specSrc.includes("battleStory"), false);
     assert.equal(specSrc.includes("examStory"), false);
+    assert.deepEqual(
+      BATTLE_SPECS.map((spec) => `${spec.id}:${spec.settlement}`).sort(),
+      ["BTL_KINDY_DOOR:kindy", "BTL_PRIMARY_EXAM:exam"],
+    );
+    const engineSrc = readFileSync(new URL("./engine.ts", import.meta.url), "utf8");
+    assert.equal(engineSrc.includes('id === "BTL_PRIMARY_EXAM"'), false);
+    assert.match(engineSrc, /settlement === "exam"/);
   });
 });
 
