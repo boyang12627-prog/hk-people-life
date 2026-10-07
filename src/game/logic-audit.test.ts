@@ -4,6 +4,7 @@ import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBat
 import { readFileSync, existsSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
 import { slicePlate } from "./art.ts";
+import { produce1985, missedLine, MISS_85_FRIEND, MISS_85_MOM, MISS_85_RAIN } from "./freedom.ts";
 import { BATTLE_NARRATIVE, battleNarrative } from "./battleNarrative.ts";
 import { BATTLE_SPECS, KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
 import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
@@ -55,7 +56,7 @@ describe("logic audit v3.1", () => {
     state = reducer(state, { type: "ack" });
     assert.equal(state.phase, "year-end");
     state = reducer(state, { type: "nextYear" });
-    state = spend(state, ["ACT_REST", "ACT_PLAY"]);
+    state = spend(state, ["ACT_REST", "ACT_MARKET"]);
     assert.equal(state.eventId, "EVT_1985_SCHOOL_01");
     assert.ok(cardFor(state.eventId, state).lines.join("").includes("還有力氣"));
     state = chooseId(state, "B");
@@ -99,13 +100,12 @@ describe("logic audit v3.1", () => {
     assert.equal(state.npc.NPC_FRIEND_01.available, false);
     state = reducer(state, { type: "settleBattle" });
     state = reducer(state, { type: "ack" });
-    state = chooseId(state, "C");
-    state = reducer(state, { type: "ack" });
-    state = chooseId(state, "C");
-    state = reducer(state, { type: "ack" });
     assert.equal(state.eventId, "EVT_1985_FRIEND_04");
     assert.equal(variantOf(state.eventId, state), "stranger");
     assert.ok(cardFor(state.eventId, state).lines.join("").includes("還不正式認識"));
+    assert.ok(state.missed.includes(MISS_85_MOM));
+    assert.ok(state.missed.includes(MISS_85_RAIN));
+    assert.equal(state.missed.includes(MISS_85_FRIEND), false);
   });
 
   it("explore fallback cannot skip the gate, and declining is explicit", () => {
@@ -799,6 +799,15 @@ describe("logic audit v3.1", () => {
     assert.equal(slicePlate({ year: 1986, scene: "estate", gender: "boy" }), "/art/1985/later-boy.jpg");
     assert.equal(slicePlate({ year: 1984, scene: "home", gender: "girl" }), null);
     assert.equal(slicePlate({ year: 1988, scene: "study", gender: "girl" }), null);
+    const played = produce1985(["ACT_PLAY", "ACT_DRAW"]);
+    assert.deepEqual(played.queue, ["EVT_1985_SCHOOL_01", "EVT_1985_FRIEND_04"]);
+    assert.ok(played.missed.includes(MISS_85_MOM));
+    const withMom = produce1985(["ACT_MARKET", "ACT_REST"]);
+    assert.ok(withMom.queue.includes("EVT_1985_FAMILY_03"));
+    assert.ok(withMom.queue.includes("MINI_85_GRANDMA"));
+    assert.ok(withMom.queue.includes("MINI_85_RAIN"));
+    assert.equal(withMom.queue.includes("EVT_1985_FRIEND_04"), false);
+    assert.ok(missedLine(played.missed, "later").includes("去年"));
   });
 });
 

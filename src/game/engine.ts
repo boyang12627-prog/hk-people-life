@@ -1,4 +1,5 @@
 import { ACTIVITIES, battleStory, buildQueue, examStory, fifteenAct, knownEventIds, knownMemoryChoice, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
+import { MISSED_IDS, produce1985 } from "./freedom";
 import { BATTLE_SPECS, battleSpecById, battleSpecFor } from "./battleSpec";
 import {
   clamp,
@@ -113,6 +114,7 @@ export function freshState(seed = 198401): State {
     seed,
     apLeft: 2,
     spent: [],
+    missed: [],
     queue: [],
     eventId: null,
     note: null,
@@ -199,7 +201,7 @@ export function reducer(state: State, action: Action): State {
     case "ack":
       if (state.phase === "note") {
         if (state.apLeft > 0) return { ...state, phase: "activities", note: null };
-        return openNext({ ...state, note: null });
+        return openNext(produceIfNeeded({ ...state, note: null }));
       }
       if (state.phase === "result") return openNext({ ...state, result: null });
       if (state.phase === "fifteen") return commitFifteen(state);
@@ -238,7 +240,7 @@ function openYear(state: State): State {
     phase: "year",
     apLeft: 2,
     spent: [],
-    queue: buildQueue(state.yearIndex, state.seed),
+    queue: year?.year === 1985 ? [] : buildQueue(state.yearIndex, state.seed),
     eventId: null,
     note: null,
     noteScene: null,
@@ -451,6 +453,14 @@ function exploreOffer(state: State, go: boolean): State {
       skills: [],
     },
   };
+}
+
+function produceIfNeeded(state: State): State {
+  if (yearOf(state).year !== 1985 || state.queue.length > 0) return state;
+  const produced = produce1985(state.spent);
+  const missed = [...state.missed];
+  for (const id of produced.missed) if (!missed.includes(id)) missed.push(id);
+  return { ...state, queue: produced.queue, missed };
 }
 
 function openNext(state: State): State {
@@ -788,6 +798,7 @@ export function validateState(raw: Record<string, unknown>): State | null {
     seed: typeof raw.seed === "number" ? raw.seed : base.seed,
     apLeft: typeof raw.apLeft === "number" && Number.isFinite(raw.apLeft) ? clamp(Math.floor(raw.apLeft), 0, 2) : 2,
     spent: strings(raw.spent).filter((id) => id in ACTIVITIES),
+    missed: strings(raw.missed).filter((id) => (MISSED_IDS as readonly string[]).includes(id)),
     queue: strings(raw.queue),
     eventId: typeof raw.eventId === "string" ? raw.eventId : null,
     note: typeof raw.note === "string" ? raw.note : null,

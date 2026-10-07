@@ -156,6 +156,8 @@ export type State = {
   seed: number;
   apLeft: number;
   spent: string[];
+  /** 1985 meetings you did not have. Other years leave this alone. */
+  missed: string[];
   queue: string[];
   eventId: string | null;
   note: string | null;

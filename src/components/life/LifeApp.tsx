@@ -17,6 +17,7 @@ import {
   yearOf,
 } from "@/game/content";
 import { MEMORY_BALL, slicePlate } from "@/game/art";
+import { missedLine } from "@/game/freedom";
 import { battleNarrative } from "@/game/battleNarrative";
 import { battleSpecById } from "@/game/battleSpec";
 import { gearAttack, gearSpeed, gearStressResist } from "@/game/catalog";
@@ -223,7 +224,12 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
       <p className="text-pretty text-base leading-7">{year.era}</p>
       <p className="mt-3 text-pretty text-base leading-7">{year.open}</p>
       {state.name ? <p className="mt-3 text-pretty text-base leading-7">別人叫你{state.name}。</p> : null}
-      <p className="mt-3 text-sm text-pretty text-ink/70">今年有兩個下午。你可以陪人、自己玩，或者休息。之後的事會自己來，不必你預先留時間。</p>
+      <p className="mt-3 text-sm text-pretty text-ink/70">
+        {year.year === 1985
+          ? "今年有兩個下午。你跟誰過，今年就會見到誰。沒有去的，明年才會再提起。"
+          : "今年有兩個下午。你可以陪人、自己玩，或者休息。之後的事會自己來，不必你預先留時間。"}
+      </p>
+      {year.year === 1986 && missedLine(state.missed, "later") ? <p className="mt-3 text-pretty text-base leading-7">{missedLine(state.missed, "later")}</p> : null}
       <LifeNow state={state} />
       <Primary onClick={onNext}>用這兩個下午</Primary>
       <button type="button" onClick={onRestart} className="mt-2 min-h-11 w-full text-sm text-ink/70">
@@ -238,6 +244,18 @@ function Activities({ state, onPick }: { state: State; onPick: (id: string) => v
   return (
     <Paper scene={year.scene} kicker="今年" title="今天怎麼過">
       <p className="text-sm text-ink/70">兩個下午要不同。選完，其他事才來。</p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {[0, 1].map((slot) => {
+          const id = state.spent[slot];
+          const activity = id ? ACTIVITIES[id] : null;
+          return (
+            <p key={slot} className="rounded-xl bg-line/40 px-3 py-2 text-sm text-ink">
+              {activity ? activity.label : "還沒過"}
+            </p>
+          );
+        })}
+      </div>
+      {year.year === 1985 ? <p className="mt-3 text-sm text-pretty text-ink/70">陪媽媽會見到家裡的事。留在家會見到嫲嫲。出去才會淋到雨。自己玩，才會碰到紅球。</p> : null}
       <div className="mt-3 flex flex-col gap-2">
         {year.activities.map((id) => {
           const activity = ACTIVITIES[id];
@@ -320,6 +338,7 @@ function YearEnd({ state, onNext }: { state: State; onNext: () => void }) {
       {memories.length > 0 ? <p className="mt-3 text-sm text-pretty text-ink/70">這幾句會留下。明年可能會再出現。</p> : null}
       <p className="mt-3 text-pretty text-base leading-7">{yearLean(state.derived.VALUE_DREAM, state.derived.VALUE_REALITY)}</p>
       {state.personalityTags.includes("TAG_EMPATHY") ? <p className="mt-3 text-pretty text-base leading-7">這一年，你有時會坐過去，不必人叫。</p> : null}
+      {year.year === 1985 && missedLine(state.missed, "now") ? <p className="mt-3 text-pretty text-base leading-7">{missedLine(state.missed, "now")}</p> : null}
       {missedGate ? <p className="mt-3 text-sm text-pretty text-ink/70">你還沒走到走廊盡頭。沒有人逼你去。</p> : null}
       <Primary onClick={onNext}>{last ? "看看十年後" : "下一年"}</Primary>
     </Paper>

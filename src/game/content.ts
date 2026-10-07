@@ -564,6 +564,7 @@ function buildMemoryCatalog() {
     seed: 1,
     apLeft: 2,
     spent: [],
+    missed: [],
     queue: [],
     eventId: null,
     note: null,
