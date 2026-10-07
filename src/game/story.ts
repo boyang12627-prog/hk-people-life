@@ -4,19 +4,30 @@ import { lifeMissed } from "./world";
 
 export type BeatId = "open" | "sat-night" | "sun-night" | "monday" | "aftermath";
 
+export type Shot = { where: string; action: string; speaker: string; line: string };
+
 const BEATS = new Set<BeatId>(["open", "sat-night", "sun-night", "monday", "aftermath"]);
 
 export function isBeat(value: string | null): value is BeatId {
   return !!value && BEATS.has(value as BeatId);
 }
 
-function satNight(state: State) {
+function missedHeard(state: State) {
+  const mood = state.npcDays.NPC_FRIEND_01?.mood;
+  if (mood === "content") return "他一個人也玩得很起勁。";
+  if (mood === "left") return "他玩了一陣就走了。";
+  return "他玩到天黑，後來坐在石凳上。";
+}
+
+function satNight(state: State): { lines: string[]; shots: Shot[] } {
   const ball = state.memories.find((item) => item.id === "MEM_RED_BALL");
   const news = state.memories.find((item) => item.id === "MEM_SILENT_NEWS_01" && item.year === 1985);
   const lines: string[] = [];
+  const shots: Shot[] = [];
   if (ball?.emotion === "share") {
     lines.push("你的鞋底有泥。媽媽看了一眼。");
     lines.push("「今天去了平台？」你說跟一個孩子輪流玩球。她說不要出街口。");
+    shots.push({ where: "家裡 · 門口", action: "你的鞋底有泥。", speaker: "媽媽", line: "今天去了平台？" });
   } else if (ball?.emotion === "hold") {
     lines.push("你回來的時候還抓著那種不肯放的感覺。");
     lines.push("媽媽問你下樓做了什麼。你說球是你先拿到的。她沒有再問。");
@@ -39,10 +50,17 @@ function satNight(state: State) {
   } else {
     lines.push("你睡了很久。嫲嫲在家，沒有叫你。");
   }
-  if (!ball) lines.push(lifeMissed("NPC_FRIEND_01", "sat"));
-  else if (!news) lines.push(lifeMissed("NPC_MOM_01", "sat"));
+  if (!ball) {
+    const heard = missedHeard(state);
+    lines.push("媽媽把膠袋放下。「今天樓下那個孩子，好像自己玩了很久。」");
+    lines.push(`媽媽：「${heard}」`);
+    shots.push(
+      { where: "屋邨走廊 · 傍晚", action: "媽媽拎著膠袋走上來。", speaker: "媽媽", line: "今天樓下那個孩子，好像自己玩了很久。" },
+      { where: "家裡 · 門口", action: "她把鞋脫在門口。你沒有下過樓。", speaker: "媽媽", line: heard },
+    );
+  } else if (!news) lines.push(lifeMissed("NPC_MOM_01", "sat"));
   lines.push("袋子仍然在門口。明天還不是上學。");
-  return lines;
+  return { lines, shots };
 }
 
 function sunNight(state: State) {
@@ -54,6 +72,9 @@ function sunNight(state: State) {
     if (waited?.emotion === "meet") lines.push("你出去見了他。他說明天學校見。");
     else if (waited?.emotion === "later") lines.push("你說今天不行。他沒有再約。");
     else lines.push("他來過。你沒有出聲。他走了。");
+  } else if (kit?.nextPlan === "return") {
+    if (waited) lines.push("你下去的時候，他已經在玩。他說你昨天沒有下來。");
+    else lines.push("阿傑今天又去了平台。你不在。他沒有上來找你。");
   } else if (kit?.nextPlan === "avoid") {
     lines.push("阿傑今天沒有來。球留在他家。他沒有再約你。");
   } else if (kit?.nextPlan === "withdraw") {
@@ -67,30 +88,36 @@ function sunNight(state: State) {
 }
 
 /** 1985 only. The year moves even if the child has not chosen anything yet. */
-export function beat1985(id: BeatId, state: State): { scene: SceneId; kicker: string; title: string; lines: string[] } {
+export function beat1985(id: BeatId, state: State): { scene: SceneId; kicker: string; title: string; lines: string[]; shots: Shot[] } {
   if (id === "open") {
     return {
       scene: "home",
       kicker: "1985 · 早上",
       title: "袋子在門口",
       lines: ["媽媽把袋子放在門口。「明天開始上學。」", "爸爸在電視前面穿鞋。「我去上班。」", "媽媽說：「今晚早點睡。」", "你看著那個門口。星期六還沒有過。"],
+      shots: [
+        { where: "家裡 · 早上", action: "媽媽把袋子放在門口。", speaker: "媽媽", line: "明天開始上學。" },
+        { where: "電視前面", action: "爸爸在穿鞋。", speaker: "爸爸", line: "我去上班。" },
+      ],
     };
   }
   if (id === "sat-night") {
-    return { scene: "home", kicker: "1985 · 星期六晚上", title: "燈還開著", lines: satNight(state) };
+    const night = satNight(state);
+    return { scene: "home", kicker: "1985 · 星期六晚上", title: "燈還開著", lines: night.lines, shots: night.shots };
   }
   if (id === "sun-night") {
-    return { scene: "home", kicker: "1985 · 星期日晚上", title: "明天真的要去", lines: sunNight(state) };
+    return { scene: "home", kicker: "1985 · 星期日晚上", title: "明天真的要去", lines: sunNight(state), shots: [] };
   }
   if (id === "monday") {
     const ball = state.memories.find((item) => item.id === "MEM_RED_BALL");
     const plan = state.npcDays.NPC_FRIEND_01?.nextPlan;
     const lines = ["媽媽牽著你。袋子在你手上，有一點重。", "幼稚園的門開著。裡面有聲音。"];
     if (plan === "seek") lines.push("門裡有人在等。是昨天來找你的那個孩子。");
+    else if (plan === "return") lines.push("你昨天沒有下去。今天你先看平台那個方向。");
     else if (plan === "avoid") lines.push("你沒有找人。他昨天沒有再約你。");
     else if (ball?.emotion === "hold") lines.push("你沒有找人。你記得自己不肯放。");
     else lines.push("這一次不是你按下去才發生。明天已經到了。");
-    return { scene: "kindy", kicker: "1985 · 星期一早上", title: "門開著", lines };
+    return { scene: "kindy", kicker: "1985 · 星期一早上", title: "門開著", lines, shots: [] };
   }
   const school = picked(state, "MEM_FIRST_SCHOOL");
   const lines = ["晚上。回到家。"];
@@ -100,5 +127,5 @@ export function beat1985(id: BeatId, state: State): { scene: SceneId; kicker: st
   else lines.push("你進去了。媽媽問你今天怎樣。");
   if (state.flags.includes("FLAG_SHARED_BALL") || state.npc.NPC_FRIEND_01.relation >= 5) lines.push("你提到一個孩子。媽媽記住了那個名字。");
   else if (state.missed.includes("MISS_85_FRIEND")) lines.push("你沒有提到平台上的孩子。媽媽也沒有問。");
-  return { scene: "home", kicker: "1985 · 晚上", title: "媽媽問你", lines };
+  return { scene: "home", kicker: "1985 · 晚上", title: "媽媽問你", lines, shots: [] };
 }

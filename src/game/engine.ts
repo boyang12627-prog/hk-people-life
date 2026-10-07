@@ -1,7 +1,7 @@
 import { ACTIVITIES, battleStory, buildQueue, examStory, fifteenAct, knownEventIds, knownMemoryChoice, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
 import { MISSED_IDS, produce1985, produce1986, advanceChain, afternoonTags, freshChain } from "./freedom";
 import { beat1985, isBeat } from "./story";
-import { WORLD_1985, collide, tickKit } from "./world";
+import { WORLD_1985, collide, placeOf, tickKit } from "./world";
 import { BATTLE_SPECS, battleSpecById, battleSpecFor } from "./battleSpec";
 import {
   clamp,
@@ -503,6 +503,9 @@ function begin1985Day(state: State, day: "sat" | "sun"): State {
     if (state.npcDays.NPC_FRIEND_01?.nextPlan === "seek") {
       ids = ids.filter((id) => id !== "MINI_85_RAIN" && id !== "MINI_QUIET");
       ids.unshift("MINI_85_KIT_WAIT");
+    } else if (state.npcDays.NPC_FRIEND_01?.nextPlan === "return" && placeOf(activity) === "estate") {
+      ids = ids.filter((id) => id !== "MINI_85_RAIN" && id !== "MINI_QUIET");
+      ids.unshift("MINI_85_KIT_WAIT");
     }
   }
   let missed = state.missed;
@@ -566,7 +569,7 @@ function after1985(state: State): State {
   if (state.spent.length === 1) {
     const npcDays = state.npcDays.NPC_FRIEND_01
       ? state.npcDays
-      : { ...state.npcDays, NPC_FRIEND_01: tickKit(state.memories) };
+      : { ...state.npcDays, NPC_FRIEND_01: tickKit(state.memories, state.seed) };
     return { ...state, npcDays, phase: "story", note: "sat-night", queue: [], eventId: null, result: null };
   }
   if (state.spent.length === 2) return { ...state, phase: "story", note: "sun-night", queue: [], eventId: null, result: null };
@@ -921,15 +924,31 @@ function savedNpcDays(raw: unknown): State["npcDays"] {
   const item = raw.NPC_FRIEND_01;
   const next = item.nextPlan;
   const outcome = item.todayOutcome;
-  if (next !== "seek" && next !== "avoid" && next !== "withdraw") return {};
-  if (outcome !== "shared" && outcome !== "kept" && outcome !== "left" && outcome !== "watched" && outcome !== "alone") return {};
+  if (next !== "seek" && next !== "avoid" && next !== "withdraw" && next !== "return") return {};
+  if (
+    outcome !== "shared" &&
+    outcome !== "kept" &&
+    outcome !== "left" &&
+    outcome !== "watched" &&
+    outcome !== "alone" &&
+    outcome !== "disappointed" &&
+    outcome !== "content" &&
+    outcome !== "left-early"
+  ) {
+    return {};
+  }
+  const location = item.location === "estate" || item.location === "home" || item.location === "away" ? item.location : "away";
   return {
     NPC_FRIEND_01: {
+      location,
+      currentActivity: typeof item.currentActivity === "string" ? item.currentActivity : "",
+      mood: typeof item.mood === "string" ? item.mood : "",
       currentMood: typeof item.currentMood === "number" && Number.isFinite(item.currentMood) ? clamp(Math.round(item.currentMood), -2, 2) : 0,
       relationshipDeltaToday: typeof item.relationshipDeltaToday === "number" && Number.isFinite(item.relationshipDeltaToday) ? clamp(Math.round(item.relationshipDeltaToday), -5, 5) : 0,
       todayOutcome: outcome,
       nextPlan: next,
       seenPlayer: item.seenPlayer === true,
+      missedPlayer: typeof item.missedPlayer === "boolean" ? item.missedPlayer : item.seenPlayer !== true,
     },
   };
 }

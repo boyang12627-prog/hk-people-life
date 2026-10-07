@@ -86,7 +86,7 @@ export function friendFollow(state: Pick<State, "missed" | "flags" | "npc" | "de
   const plan = state.npcDays?.NPC_FRIEND_01?.nextPlan;
   if (plan === "avoid") return "wary";
   if (plan === "seek") return "invite";
-  if (plan === "withdraw") return "ask";
+  if (plan === "return" || plan === "withdraw") return "ask";
   if (state.missed.includes(MISS_85_FRIEND)) return "ask";
   if (state.flags.includes("FLAG_TOY_MONOPOLY")) return "wary";
   if (state.flags.includes("FLAG_SHARED_BALL") || state.npc.NPC_FRIEND_01.relation >= 5) return "invite";

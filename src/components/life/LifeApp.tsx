@@ -252,11 +252,22 @@ function StoryBeat({ state, beat, onNext }: { state: State; beat: Parameters<typ
   const page = beat1985(beat, state);
   return (
     <Paper scene={page.scene} kicker={page.kicker} title={page.title}>
-      {page.lines.map((line) => (
-        <p key={line} className="mt-3 text-pretty text-base leading-7 first:mt-0">
-          {line}
-        </p>
-      ))}
+      {page.shots.length
+        ? page.shots.map((shot) => (
+            <div key={shot.line} className="mt-4 first:mt-0">
+              <p className="text-xs text-ink/50">{shot.where}</p>
+              <p className="mt-1 text-sm text-ink/70">{shot.action}</p>
+              <p className="mt-1 text-pretty text-base leading-7">
+                {shot.speaker}：「{shot.line}」
+              </p>
+            </div>
+          ))
+        : page.lines.map((line) => (
+            <p key={line} className="mt-3 text-pretty text-base leading-7 first:mt-0">
+              {line}
+            </p>
+          ))}
+      {page.shots.length ? <p className="mt-4 text-sm text-ink/60">{page.lines[page.lines.length - 1]}</p> : null}
       <Primary onClick={onNext}>{beat === "aftermath" ? "這一年就這樣" : "繼續"}</Primary>
     </Paper>
   );

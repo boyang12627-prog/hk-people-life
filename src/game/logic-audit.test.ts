@@ -932,15 +932,22 @@ describe("logic audit v3.1", () => {
     assert.ok(shared.includes("鞋底有泥"));
     assert.ok(held.includes("不肯放"));
     assert.equal(held.includes("鞋底有泥"), false);
-    assert.ok(stayed.includes("你不在"));
+    assert.ok(stayed.includes("自己玩了很久"));
     assert.equal(stayed.includes("自己玩了一整天"), false);
-    const alone = tickKit([]);
+    assert.equal(beat1985("sat-night", { ...freshState(), spent: ["ACT_REST"] }).shots.length, 2);
+    const alone = tickKit([], 0);
     const sharedDay = tickKit([{ id: "MEM_RED_BALL", emotion: "share" }]);
     const kept = tickKit([{ id: "MEM_RED_BALL", emotion: "hold" }]);
+    const content = tickKit([], 1);
     assert.equal(alone.nextPlan, "withdraw");
+    assert.equal(alone.mood, "disappointed");
+    assert.equal(alone.missedPlayer, true);
+    assert.equal(alone.location, "away");
     assert.equal(alone.currentMood, -1);
     assert.equal(alone.relationshipDeltaToday, 0);
     assert.equal(alone.seenPlayer, false);
+    assert.equal(content.nextPlan, "return");
+    assert.equal(content.location, "estate");
     assert.equal(sharedDay.nextPlan, "seek");
     assert.equal(sharedDay.relationshipDeltaToday, 5);
     assert.equal(kept.nextPlan, "avoid");
@@ -972,6 +979,35 @@ describe("logic audit v3.1", () => {
     );
     assert.equal(skipped.eventId === "MINI_85_KIT_WAIT", false);
     assert.equal(skipped.npc.NPC_FRIEND_01.relation, 0);
+    const found = reducer(
+      {
+        ...freshState(),
+        phase: "note",
+        yearIndex: 1,
+        apLeft: 0,
+        spent: ["ACT_MARKET", "ACT_ESTATE"],
+        npcDays: { NPC_FRIEND_01: content },
+        result: { text: "過了。", deltas: [], skills: [] },
+      },
+      { type: "ack" },
+    );
+    assert.equal(found.eventId, "MINI_85_KIT_WAIT");
+    assert.ok(cardFor("MINI_85_KIT_WAIT", found).lines.join("").includes("昨天沒有下來"));
+    const sad = reducer(
+      {
+        ...freshState(),
+        phase: "note",
+        yearIndex: 1,
+        apLeft: 0,
+        spent: ["ACT_MARKET", "ACT_ESTATE"],
+        npcDays: { NPC_FRIEND_01: alone },
+        result: { text: "過了。", deltas: [], skills: [] },
+      },
+      { type: "ack" },
+    );
+    assert.equal(sad.eventId, "MINI_85_RAIN");
+    const later = cardFor("EVT_1986_FRIEND_09", { ...freshState(), yearIndex: 2, npcDays: { NPC_FRIEND_01: content }, missed: ["MISS_85_FRIEND"] }).lines.join("");
+    assert.ok(later.includes("去年你沒有下來"));
   });
 
   it("five scripted childhoods do not meet the same people", () => {

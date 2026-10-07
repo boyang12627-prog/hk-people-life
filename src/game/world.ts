@@ -73,21 +73,98 @@ export function lifeMissed(npcId: keyof typeof LIFE_1985, day: Day) {
   return LIFE_1985[npcId][day].missed;
 }
 
-export function tickKit(memories: readonly { id: string; emotion: string }[]): NpcDay {
+export function tickKit(memories: readonly { id: string; emotion: string }[], seed = 0): NpcDay {
   const ball = memories.find((item) => item.id === "MEM_RED_BALL");
   if (!ball) {
-    return { currentMood: -1, relationshipDeltaToday: 0, todayOutcome: "alone", nextPlan: "withdraw", seenPlayer: false };
+    const roll = Math.abs(seed) % 3;
+    if (roll === 1) {
+      return {
+        location: "estate",
+        currentActivity: "一個人把球踢來踢去",
+        mood: "content",
+        currentMood: 0,
+        relationshipDeltaToday: 0,
+        todayOutcome: "content",
+        seenPlayer: false,
+        missedPlayer: true,
+        nextPlan: "return",
+      };
+    }
+    if (roll === 2) {
+      return {
+        location: "away",
+        currentActivity: "玩了一陣就走了",
+        mood: "left",
+        currentMood: -1,
+        relationshipDeltaToday: 0,
+        todayOutcome: "left-early",
+        seenPlayer: false,
+        missedPlayer: true,
+        nextPlan: "withdraw",
+      };
+    }
+    return {
+      location: "away",
+      currentActivity: "一個人玩到天黑，坐在石凳上",
+      mood: "disappointed",
+      currentMood: -1,
+      relationshipDeltaToday: 0,
+      todayOutcome: "disappointed",
+      seenPlayer: false,
+      missedPlayer: true,
+      nextPlan: "withdraw",
+    };
   }
   if (ball.emotion === "share") {
-    return { currentMood: 1, relationshipDeltaToday: 5, todayOutcome: "shared", nextPlan: "seek", seenPlayer: true };
+    return {
+      location: "home",
+      currentActivity: "來找你",
+      mood: "glad",
+      currentMood: 1,
+      relationshipDeltaToday: 5,
+      todayOutcome: "shared",
+      seenPlayer: true,
+      missedPlayer: false,
+      nextPlan: "seek",
+    };
   }
   if (ball.emotion === "hold") {
-    return { currentMood: -2, relationshipDeltaToday: -3, todayOutcome: "kept", nextPlan: "avoid", seenPlayer: true };
+    return {
+      location: "away",
+      currentActivity: "把球留在家",
+      mood: "sore",
+      currentMood: -2,
+      relationshipDeltaToday: -3,
+      todayOutcome: "kept",
+      seenPlayer: true,
+      missedPlayer: false,
+      nextPlan: "avoid",
+    };
   }
   if (ball.emotion === "leave") {
-    return { currentMood: 0, relationshipDeltaToday: 0, todayOutcome: "left", nextPlan: "withdraw", seenPlayer: true };
+    return {
+      location: "away",
+      currentActivity: "沒有再等",
+      mood: "flat",
+      currentMood: 0,
+      relationshipDeltaToday: 0,
+      todayOutcome: "left",
+      seenPlayer: true,
+      missedPlayer: false,
+      nextPlan: "withdraw",
+    };
   }
-  return { currentMood: 0, relationshipDeltaToday: 0, todayOutcome: "watched", nextPlan: "withdraw", seenPlayer: true };
+  return {
+    location: "away",
+    currentActivity: "沒有再等",
+    mood: "flat",
+    currentMood: 0,
+    relationshipDeltaToday: 0,
+    todayOutcome: "watched",
+    seenPlayer: true,
+    missedPlayer: false,
+    nextPlan: "withdraw",
+  };
 }
 
 type World = { sat: readonly Spot[]; sun: readonly Spot[]; weather: { sat: string; sun: string } };

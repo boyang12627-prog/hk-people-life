@@ -239,6 +239,15 @@ export function cardFor(id: string, state: State): Card {
   const grown = grownWord(gender);
   switch (id) {
     case "MINI_85_KIT_WAIT": {
+      const back = state.npcDays.NPC_FRIEND_01?.nextPlan === "return";
+      if (back) {
+        return {
+          scene: "estate",
+          kicker: "1985 · 星期日",
+          title: "他已經在玩",
+          lines: ["你下了樓。雨還在下。阿傑已經在玩。", "不是你去找他。他今天自己又來了。", "阿傑：「你昨天沒有下來。」"],
+        };
+      }
       const home = state.spent[1] !== "ACT_ESTATE";
       return {
         scene: home ? "home" : "estate",
@@ -334,10 +343,13 @@ export function cardFor(id: string, state: State): Card {
       const follow = friendFollow(state);
       const onPodium = slotIs(state.spent, "sat", "ACT_ESTATE");
       const place = onPodium ? "平台上，阿傑抱著那個紅球。" : "走廊口，阿傑抱著那個紅球。";
+      const missed = state.npcDays.NPC_FRIEND_01;
       const lines =
-        follow === "ask"
-          ? [place, "他看你。「你有沒有見過這個？」", "去年你沒碰到它。"]
-          : follow === "wary"
+        follow === "ask" && missed?.missedPlayer
+          ? [place, "阿傑：「去年你沒有下來。」", missed.mood === "content" ? "他說自己也玩得很起勁。" : missed.mood === "left" ? "他說玩了一陣就走了。" : "他說後來坐在石凳上。"]
+          : follow === "ask"
+            ? [place, "他看你。「你有沒有見過這個？」", "去年你沒碰到它。"]
+            : follow === "wary"
             ? [place, "他把球抱緊。他記得你不肯放。"]
             : follow === "invite"
               ? [place, "他把球放在腳邊。「今次不是搶。你來不來？」"]
@@ -440,7 +452,15 @@ export function choicesFor(id: string, state: State): Choice[] {
   if (staticEvt) return renderStatic(staticEvt).choices;
   const heard = heardNews(state);
   switch (id) {
-    case "MINI_85_KIT_WAIT":
+    case "MINI_85_KIT_WAIT": {
+      const back = state.npcDays.NPC_FRIEND_01?.nextPlan === "return";
+      if (back) {
+        return [
+          choice("A", "過去一起玩", "balance", { npc: { NPC_FRIEND_01: { relation: 1, trust: 1 } } }, "你過去。他說昨天等過你。球仍然在轉。", mem("MEM_KIT_WAIT", "MINI_85_KIT_WAIT", "A", "NPC_FRIEND_01", "meet", "星期日他已經在平台。你昨天沒有下來。今天你過去了。")),
+          choice("B", "說昨天沒有下來", "reality", {}, "你說你昨天沒有下來。他點一下頭，沒有再問。", mem("MEM_KIT_WAIT", "MINI_85_KIT_WAIT", "B", "NPC_FRIEND_01", "later", "他說你昨天沒有下來。你承認了。")),
+          choice("C", "站遠一點", "dream", { npc: { NPC_FRIEND_01: { relation: -1 } } }, "你站遠。他看了你一眼，繼續玩。", mem("MEM_KIT_WAIT", "MINI_85_KIT_WAIT", "C", "NPC_FRIEND_01", "missed-him", "他說你昨天沒有下來。你站遠了。")),
+        ];
+      }
       return [
         choice(
           "A",
@@ -467,6 +487,7 @@ export function choicesFor(id: string, state: State): Choice[] {
           mem("MEM_KIT_WAIT", "MINI_85_KIT_WAIT", "C", "NPC_FRIEND_01", "missed-him", "星期日他來找你。你沒有出聲。"),
         ),
       ];
+    }
     case "EVT_1984_NEWS_01":
       return [
         choice(

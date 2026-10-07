@@ -61,11 +61,15 @@ export type Npc = { relation: number; trust: number; available: boolean };
 
 /** What one person did in a day, and what that changes for the next day. */
 export type NpcDay = {
+  location: "estate" | "home" | "away";
+  currentActivity: string;
+  mood: string;
   currentMood: number;
   relationshipDeltaToday: number;
-  todayOutcome: "shared" | "kept" | "left" | "watched" | "alone";
-  nextPlan: "seek" | "avoid" | "withdraw";
+  todayOutcome: "shared" | "kept" | "left" | "watched" | "alone" | "disappointed" | "content" | "left-early";
   seenPlayer: boolean;
+  missedPlayer: boolean;
+  nextPlan: "seek" | "avoid" | "withdraw" | "return";
 };
 
 export type Effect = {
