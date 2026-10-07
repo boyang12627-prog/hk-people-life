@@ -24,6 +24,7 @@ export const SKILL_NAME: Record<string, string> = {
   SKL_10: "看時間",
   SKL_11: "人情",
   SKL_12: "數數",
+  SKL_13: "拆開一題",
 };
 
 export const PRIMARY_LABEL = {
@@ -90,6 +91,16 @@ export const YEARS: YearDef[] = [
     dailies: ["MINI_86_ESTATE", "MINI_86_TV", "MINI_86_HELP"],
     activities: ["ACT_MARKET", "ACT_PLAY", "ACT_DRAW", "ACT_REST", "ACT_ESTATE"],
   },
+  {
+    year: 1988,
+    age: 7,
+    scene: "study",
+    era: "小學。測驗紙發下來的時候，課室很靜。",
+    open: "你七歲。老師說今天要寫一張卷。你還不知道自己寫不寫得完。",
+    events: ["EVT_1988_PEN_01", "EVT_1988_EXAM_01"],
+    dailies: [],
+    activities: ["ACT_MARKET", "ACT_DRAW", "ACT_REST"],
+  },
 ];
 
 export const ACTIVITIES: Record<string, { id: string; label: string; detail: string; blurb: string; scene: SceneId; effect: Effect }> = {
@@ -153,8 +164,9 @@ export function yearOf(state: Pick<State, "yearIndex">) {
 
 export function buildQueue(yearIndex: number, seed: number) {
   const year = YEARS[yearIndex];
-  const daily = year.dailies[Math.abs(seed + year.year) % year.dailies.length];
   const events = [...year.events];
+  if (year.dailies.length === 0) return events;
+  const daily = year.dailies[Math.abs(seed + year.year) % year.dailies.length];
   events.splice(1, 0, daily);
   return events;
 }
@@ -235,6 +247,43 @@ export function battleStory(kind: BattleKind, approach: Approach) {
   };
 }
 
+export function examStory(kind: BattleKind) {
+  if (kind === "perfect") {
+    return {
+      text: "你交卷的時候，課室還有人在寫。你沒有再翻回去看。",
+      echo: "十年後你記得那張卷。你寫完了，而且沒有拖到最後。",
+      emotion: "steady",
+      weight: 2,
+      effect: { derived: { STATE_PEACE: 2, STATE_MOOD: 1 } } as Effect,
+    };
+  }
+  if (kind === "win") {
+    return {
+      text: "你交了卷。有一兩題是猜的。老師收下，沒有當堂說對錯。",
+      echo: "十年後你記得那張卷。你寫完了，不過有題是猜的。",
+      emotion: "enter",
+      weight: 1,
+      effect: { derived: { STATE_STRESS: 1 } } as Effect,
+    };
+  }
+  if (kind === "bad") {
+    return {
+      text: "你看著紙，寫不下去。老師說可以停。你沒有做完。",
+      echo: "十年後你記得那張卷。你停過一次。",
+      emotion: "overwhelm",
+      weight: 2,
+      effect: { derived: { STATE_STRESS: 4, STATE_MOOD: -2 } } as Effect,
+    };
+  }
+  return {
+    text: "收卷了。你還有題空著。老師把紙抽走，沒有罵你。",
+    echo: "十年後你記得那張卷。你沒有寫完。",
+    emotion: "cry",
+    weight: 1,
+    effect: { derived: { STATE_STRESS: 3 } } as Effect,
+  };
+}
+
 export function yearLean(dream: number, reality: number) {
   const gap = dream - reality;
   if (gap >= 8) return "這一年，你似乎越來越想自己決定。";
@@ -256,6 +305,10 @@ export function fifteenLines(state: State) {
   const stillHeld = state.equipment.includes("EQP_PLASTIC_WATCH");
   if (keptWatch && stillHeld) lines.push("你手腕上那隻塑膠錶仍然不會走。士多沒有買那輛車。錶是阿姨放進你手裡的。");
   else if (keptWatch) lines.push("那隻不會走的塑膠錶不在手上了。士多沒有買那輛車。你記得阿姨把它放進你手裡。");
+  const keptPen = state.memories.some((item) => (item.memoryTypeId ?? item.id) === "MEM_BALLPOINT");
+  const penHeld = state.equipment.includes("EQP_BALLPOINT");
+  if (keptPen && penHeld) lines.push("你小學那張卷，用的是同學多出來的那支筆。筆還在。");
+  else if (keptPen) lines.push("那支原子筆不在了。你記得那張卷是用它寫的。");
   const response = state.counter.PLAYER_DAD_CHOICE_RESPONSE;
   if (response === 1) lines.push("你小時候把約定放下，自己去玩了。這天你沒有再等誰。");
   else if (response === 2) lines.push("你答應過他去上班。這天回家，你只應了一聲。");
@@ -522,6 +575,9 @@ function buildMemoryCatalog() {
 export function knownMemoryChoice(id: string, choiceId: string, eventId: string) {
   if (id === "MEM_FIRST_SCHOOL") {
     return eventId === "EVT_1985_SCHOOL_01" && /^(social|safe|curious)_(perfect|win|fail|bad)$/.test(choiceId);
+  }
+  if (id === "MEM_EXAM_PAPER") {
+    return eventId === "EVT_1988_EXAM_01" && /^(social|safe|curious)_(perfect|win|fail|bad)$/.test(choiceId);
   }
   if (id === "MEM_FIFTEEN") {
     return eventId === "EVT_1996" && /^(walk|bag|ask|wait|answer)$/.test(choiceId);

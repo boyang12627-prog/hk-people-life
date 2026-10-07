@@ -1,5 +1,5 @@
 import type { Approach, BattleKind, TurnOwner } from "./types";
-import { SPEED_RULE } from "./catalog";
+import { SPEED_RULE, techniqueById } from "./catalog";
 import { KINDY_DOOR, type BattleSpec, type EnemyPattern, type Threat } from "./battleSpec";
 
 export type BattleAction = "walk" | "guard" | "read" | "see" | "ask";
@@ -34,19 +34,20 @@ export type BattleSim = {
   /** Tie and a real lead both list the child first. Only a lead of firstGap sets stableFirst. */
   initiativeOrder: TurnOwner[];
   intent: string;
-  /** Recorded when you guard. The hit still checks `brace`. Nothing else reads this. */
+  /** ACTIVE. Written when you guard. Nothing reads it yet, so the hit still uses `brace`. */
   guardUntilRound: number;
-  /** Reserved. No buff is written. */
+  /** RESERVED. No buff is written. */
   temporaryBuffs: string[];
-  /** Reserved. A technique is not spent through this list yet. */
+  /** ACTIVE. `${techniqueId}:${round}` after a technique is paid for. Cooldown reads this. */
   usedTechniques: string[];
   stableFirst: boolean;
   pressureFirst: boolean;
   bonusQuick: boolean;
   awaitingBonus: boolean;
   stressResist: number;
-  /** Kept at 0 unless this fight's axes include attack. The doorway does not add it to the goal. */
+  /** ACTIVE when this fight's axes include attack. Added to a stroke of the goal, not to a person's hit points. */
   attack: number;
+  /** RESERVED. No fight reads this. */
   defense: number;
 };
 
@@ -76,13 +77,22 @@ export function initiativeFor(playerSpeed: number, enemySpeed: number) {
 }
 
 const BONUS_ACTION = new Set<BattleAction>(["walk", "guard"]);
-export const BATTLE_COST: Record<BattleAction, number> = {
+
+/** Shared actions that are not techniques. `see` is priced by the technique on the spec. */
+export const BATTLE_COST: Record<Exclude<BattleAction, "see">, number> = {
   walk: 0,
   guard: 2,
   read: 5,
-  see: 5,
   ask: 6,
 };
+
+/** One point of attack finishes this much more of a paper. It does not hurt anyone. */
+export const ATTACK_GOAL = 6;
+
+export function actionCost(name: BattleAction, techniqueId?: string) {
+  if (name === "see") return techniqueById(techniqueId ?? "")?.cost ?? 5;
+  return BATTLE_COST[name];
+}
 
 export function createBattle(input: {
   approach: Approach;
@@ -179,7 +189,9 @@ function timeUp(sim: BattleSim) {
 /** Player half only. Returns false when the action could not be paid for. */
 export function actBattle(sim: BattleSim, name: BattleAction, enabled: boolean) {
   if (sim.over || !enabled) return false;
-  const cost = BATTLE_COST[name];
+  const techniqueId = name === "see" ? sim.spec.techniques.see : undefined;
+  if (techniqueId && !techniqueReady(sim, techniqueId)) return false;
+  const cost = actionCost(name, techniqueId);
   if (sim.sp < cost) {
     sim.hasActed = true;
     sim.hint = sim.spec.voice.broke;
@@ -189,7 +201,8 @@ export function actBattle(sim: BattleSim, name: BattleAction, enabled: boolean) 
   sim.sp -= cost;
   const voice = sim.spec.voice;
   if (name === "walk") {
-    sim.goal = Math.min(100, sim.goal + 14);
+    const stroke = 14 + (sim.spec.axes.includes("attack") ? sim.attack * ATTACK_GOAL : 0);
+    sim.goal = Math.min(100, sim.goal + stroke);
     sim.stress = Math.min(100, sim.stress + 1);
     sim.hint = voice.walk.hint;
   } else if (name === "guard") {
@@ -205,14 +218,46 @@ export function actBattle(sim: BattleSim, name: BattleAction, enabled: boolean) 
     sim.goal = Math.min(100, sim.goal + step);
     sim.hint = sim.prepared ? voice.read.hint : (voice.read.weakHint ?? voice.read.hint);
   } else if (name === "see") {
-    sim.dodge = true;
-    sim.hint = voice.see.hint;
+    applyTechnique(sim, techniqueId ?? "");
   } else if (name === "ask") {
     sim.goal = Math.min(100, sim.goal + 16);
     sim.stress = Math.max(0, sim.stress - 4);
     sim.hint = voice.ask.hint;
   }
   return true;
+}
+
+function lastUsedRound(sim: BattleSim, id: string) {
+  let found: number | null = null;
+  for (const mark of sim.usedTechniques) {
+    const [used, round] = mark.split(":");
+    if (used === id) found = Number(round);
+  }
+  return found;
+}
+
+/** Reaction cannot stack. Active waits out its cooldown. Passive is never a button. */
+export function techniqueReady(sim: BattleSim, id: string) {
+  const tech = techniqueById(id);
+  if (!tech || tech.kind === "passive" || !tech.battle) return false;
+  if (tech.kind === "reaction" && tech.battle.dodge && sim.dodge) return false;
+  const used = lastUsedRound(sim, id);
+  if (tech.cooldownRounds && used !== null && sim.round < used + tech.cooldownRounds) return false;
+  return true;
+}
+
+function applyTechnique(sim: BattleSim, id: string) {
+  const tech = techniqueById(id);
+  const voice = sim.spec.voice;
+  if (!tech?.battle) return;
+  sim.usedTechniques.push(`${id}:${sim.round}`);
+  if (tech.battle.dodge) {
+    sim.dodge = true;
+    sim.hint = voice.see.hint;
+  }
+  if (tech.battle.stress) sim.stress = Math.max(0, Math.min(100, sim.stress + tech.battle.stress));
+  if (tech.battle.goal) sim.goal = Math.min(100, sim.goal + tech.battle.goal);
+  if (!tech.battle.dodge) sim.hint = voice.see.hint;
 }
 
 function applyEnemy(sim: BattleSim) {

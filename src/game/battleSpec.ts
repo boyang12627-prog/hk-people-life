@@ -63,6 +63,8 @@ export type BattleSpec = {
    * stabilize lowers the opening stress. prepared makes read stronger. see and ask only open those buttons.
    */
   skills: { stabilize: string; see: string; ask: string; prepared: string };
+  /** Which technique sits on the shared "see" button. The component does not name techniques itself. */
+  techniques: { see: string };
   /** Playtest skip settles as a normal entry, never a perfect. */
   skipKind: "win";
   maxRounds: number;
@@ -107,6 +109,7 @@ export const KINDY_DOOR: BattleSpec = {
   goalLabel: "入到課室",
   hitLabel: "門口",
   skills: { stabilize: "SKL_07", see: "SKL_02", ask: "SKL_04", prepared: "SKL_01" },
+  techniques: { see: "TECH_READ_FACE" },
   skipKind: "win",
   maxRounds: 8,
   startGoal: 12,
@@ -148,9 +151,11 @@ export const KINDY_DOOR: BattleSpec = {
 };
 
 /**
- * Primary-school exam. Not in 1984–1986.
- * Slots use the later skill list: 默書準備, 題目拆解, 時間分配, 停一停.
- * The five actions still share the doorway's numbers. Words are the exam's own.
+ * Primary-school test. One short year, 1988.
+ * Victory is still the paper, not a person.
+ * pressureSpeed 10: a mind of 5 is exactly five behind, so pressure moves first.
+ * One point of speed (the plastic watch) steps off that line. firstGap stays 5, so this is not "你先".
+ * Attack, if the pen is in the bag, only finishes more of the paper per stroke.
  */
 export const PRIMARY_EXAM: BattleSpec = {
   id: "BTL_PRIMARY_EXAM",
@@ -158,12 +163,13 @@ export const PRIMARY_EXAM: BattleSpec = {
   label: "書桌前的時間",
   goalLabel: "做完這張卷",
   hitLabel: "試卷",
-  skills: { stabilize: "SKL_018", see: "SKL_014", ask: "SKL_015", prepared: "SKL_013" },
+  skills: { stabilize: "SKL_07", see: "SKL_13", ask: "SKL_04", prepared: "SKL_01" },
+  techniques: { see: "TECH_SPLIT_QUESTION" },
   skipKind: "win",
   maxRounds: 10,
   startGoal: 8,
-  pressureSpeed: 5,
-  axes: ["technique"],
+  pressureSpeed: 10,
+  axes: ["speed", "attack", "technique"],
   gated: false,
   enemyPattern: PRIMARY_EXAM_PRESSURE,
   voice: {
@@ -200,3 +206,8 @@ export const PRIMARY_EXAM: BattleSpec = {
 };
 
 export const BATTLE_SPECS = [KINDY_DOOR, PRIMARY_EXAM];
+
+export function battleSpecFor(eventId: string | null) {
+  if (eventId === "EVT_1988_EXAM_01") return PRIMARY_EXAM;
+  return KINDY_DOOR;
+}

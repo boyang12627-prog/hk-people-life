@@ -294,4 +294,5 @@ export const SKILL_LEDGER: { id: string; consumer: string; consumerKind: "BATTLE
   { id: "SKL_10", consumer: "EVT_1986_MARKET_07", consumerKind: "EVENT" },
   { id: "SKL_11", consumer: "EVT_1986_ECHO_08 choice B", consumerKind: "EVENT" },
   { id: "SKL_12", consumer: "EVT_1986_MARKET_07", consumerKind: "EVENT" },
+  { id: "SKL_13", consumer: "TECH_SPLIT_QUESTION", consumerKind: "BATTLE" },
 ];

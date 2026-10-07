@@ -1,4 +1,5 @@
-import { ACTIVITIES, battleStory, buildQueue, fifteenAct, knownEventIds, knownMemoryChoice, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
+import { ACTIVITIES, battleStory, buildQueue, examStory, fifteenAct, knownEventIds, knownMemoryChoice, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
+import { battleSpecFor } from "./battleSpec";
 import {
   clamp,
   COUNTER_RANGE,
@@ -309,6 +310,7 @@ function onBattleEnd(state: State, outcome: BattleOutcome): State {
 }
 
 function settleBattle(state: State): State {
+  if (battleSpecFor(state.eventId).id === "BTL_PRIMARY_EXAM") return settleExam(state);
   const approach: Approach = state.approach ?? "safe";
   const kind = state.battle?.kind ?? "fail";
   const story = battleStory(kind, approach);
@@ -319,6 +321,40 @@ function settleBattle(state: State): State {
     memoryTypeId: "MEM_FIRST_SCHOOL",
     instanceId: `MEM_FIRST_SCHOOL_${year.year}`,
     eventId: "EVT_1985_SCHOOL_01",
+    choiceId: `${approach}_${kind}`,
+    variant: `${approach}_${kind}`,
+    year: year.year,
+    age: year.age,
+    npc: "NPC_TEACH_01",
+    emotion: story.emotion,
+    weight: story.weight,
+    echo: story.echo,
+    snapshot: snapshotOf(applied.state),
+  };
+  const withMemory: State = { ...applied.state, memories: upsertMemory(applied.state.memories, record) };
+  const prior = state.result;
+  return {
+    ...withMemory,
+    phase: "result",
+    result: {
+      text: story.text,
+      deltas: [...(prior?.deltas ?? []), ...applied.deltas],
+      skills: [...(prior?.skills ?? []), ...applied.skills],
+    },
+  };
+}
+
+function settleExam(state: State): State {
+  const kind = state.battle?.kind ?? "fail";
+  const story = examStory(kind);
+  const applied = applyEffect(state, story.effect);
+  const year = yearOf(state);
+  const approach: Approach = state.approach ?? "safe";
+  const record: MemoryRecord = {
+    id: "MEM_EXAM_PAPER",
+    memoryTypeId: "MEM_EXAM_PAPER",
+    instanceId: `MEM_EXAM_PAPER_${year.year}`,
+    eventId: "EVT_1988_EXAM_01",
     choiceId: `${approach}_${kind}`,
     variant: `${approach}_${kind}`,
     year: year.year,
@@ -727,7 +763,7 @@ export function validateState(raw: Record<string, unknown>): State | null {
     ...base,
     phase: raw.phase as State["phase"],
     gender: raw.gender === "boy" || raw.gender === "girl" ? raw.gender : null,
-    yearIndex: typeof raw.yearIndex === "number" ? clamp(Math.floor(raw.yearIndex), 0, 2) : 0,
+    yearIndex: typeof raw.yearIndex === "number" ? clamp(Math.floor(raw.yearIndex), 0, YEARS.length - 1) : 0,
     primary,
     derived,
     counter,

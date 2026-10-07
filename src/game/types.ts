@@ -101,12 +101,16 @@ export type Equipment = {
 };
 
 /** A listed way to use one skill. Most skills never get a row. */
+export type TechniqueEffect = { dodge?: boolean; stress?: number; goal?: number };
+
 export type Technique = {
   id: string;
   sourceSkill?: string;
   kind: "passive" | "active" | "reaction";
   cost?: number;
   cooldownRounds?: number;
+  /** Executed in battle. Passive rows omit this. */
+  battle?: TechniqueEffect;
   effect: string;
 };
 

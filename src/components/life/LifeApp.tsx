@@ -16,10 +16,17 @@ import {
   yearLean,
   yearOf,
 } from "@/game/content";
-import { KINDY_DOOR } from "@/game/battleSpec";
-import { gearSpeed, gearStressResist } from "@/game/catalog";
+import { battleSpecFor } from "@/game/battleSpec";
+import { gearAttack, gearSpeed, gearStressResist } from "@/game/catalog";
 import { canRetry, freshState, loadState, reducer, saveState } from "@/game/engine";
 import { driveSp, spiritHp, type Gender, type SceneId, type State } from "@/game/types";
+
+function heldLine(state: State) {
+  const lines = [];
+  if (state.equipped.includes("EQP_PLASTIC_WATCH")) lines.push("手上有一隻不會走的塑膠錶。");
+  if (state.equipped.includes("EQP_BALLPOINT")) lines.push("筆盒裡有一支同學多出來的原子筆。");
+  return lines.length ? lines.join("") : undefined;
+}
 
 export function LifeApp() {
   const [state, dispatch] = useReducer(reducer, undefined, freshState);
@@ -75,7 +82,7 @@ export function LifeApp() {
       {state.phase === "event" && state.eventId ? <EventCard state={state} onChoose={(choice) => { tap(); dispatch({ type: "choose", choice }); }} /> : null}
       {state.phase === "battle" && state.approach ? (
         <Battle
-          spec={KINDY_DOOR}
+          spec={battleSpecFor(state.eventId)}
           approach={state.approach}
           hp={spiritHp(state.primary, state.approach === "safe" ? 5 : 0)}
           sp={driveSp(state.primary, state.derived.STATE_MOOD)}
@@ -84,7 +91,8 @@ export function LifeApp() {
           mind={state.primary.STAT_MIND}
           gearSpeed={gearSpeed(state.equipped)}
           stressResist={gearStressResist(state.equipped)}
-          held={state.equipped.includes("EQP_PLASTIC_WATCH") ? "手上有一隻不會走的塑膠錶。" : undefined}
+          attack={gearAttack(state.equipped)}
+          held={heldLine(state)}
           onEnd={(outcome) => {
             playTone(outcome.kind === "fail" || outcome.kind === "bad" ? "hit" : "good");
             dispatch({ type: "battleEnd", outcome });

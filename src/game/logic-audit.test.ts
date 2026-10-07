@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { actBattle, BATTLE_COST, battleSpeed, createBattle, initiativeFor, resolveTurn } from "./battleSim.ts";
+import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBattle, initiativeFor, resolveTurn } from "./battleSim.ts";
 import { readFileSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
 import { KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
@@ -270,7 +270,7 @@ describe("logic audit v2.4", () => {
     assert.equal(clamped?.counter.COUNTER_EXPLORE, 0);
     assert.equal(clamped?.npc.NPC_DAD_01.relation, 100);
     assert.equal(clamped?.npc.NPC_DAD_01.trust, 0);
-    assert.equal(clamped?.yearIndex, 2);
+    assert.equal(clamped?.yearIndex, 3);
     assert.equal(clamped?.battleTries, 9);
     assert.equal(clamped?.battle?.stress, 100);
     assert.equal(clamped?.battle?.hp, 0);
@@ -332,7 +332,7 @@ describe("logic audit v2.4", () => {
     }
     for (const spec of SKILL_LEDGER) {
       const where = spec.consumerKind === "BATTLE" ? ui : game;
-      const battleWired = spec.consumerKind === "BATTLE" && specSrc.includes(`"${spec.id}"`) && ui.includes("KINDY_DOOR");
+      const battleWired = spec.consumerKind === "BATTLE" && specSrc.includes(`"${spec.id}"`) && (ui.includes("KINDY_DOOR") || ui.includes("battleSpecFor"));
       assert.equal(reads(where, spec.id) || battleWired || (spec.consumerKind === "ENDING" && (reads(game, spec.id) || reads(ui, spec.id))), true, spec.id);
     }
   });
@@ -388,8 +388,11 @@ describe("logic audit v2.4", () => {
     assert.equal(state.result?.text.includes("想做自己鍾意"), false);
     assert.equal(yearLean(70, 40).includes("自己決定"), true);
     const after = reducer({ ...freshState(), phase: "year-end", yearIndex: 2 }, { type: "nextYear" });
-    assert.equal(after.phase, "fifteen");
-    assert.equal(reducer(after, { type: "ack" }).phase, "ending");
+    assert.equal(after.phase, "year");
+    assert.equal(after.yearIndex, 3);
+    const fifteen = reducer({ ...freshState(), phase: "year-end", yearIndex: 3 }, { type: "nextYear" });
+    assert.equal(fifteen.phase, "fifteen");
+    assert.equal(reducer(fifteen, { type: "ack" }).phase, "ending");
     const old = freshState();
     const raw = JSON.stringify({ ...old, flags: ["TAG_EMPATHY", "FLAG_REPAIR_TALK"] });
     const migrated = parseSave(raw);
@@ -423,7 +426,9 @@ describe("logic audit v2.4", () => {
     const ui = readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8");
     assert.equal(BATTLE_COST.walk, 0);
     assert.equal(BATTLE_COST.guard, 2);
-    assert.ok(ui.includes("BATTLE_COST"));
+    assert.equal(actionCost("see", "TECH_READ_FACE"), 5);
+    assert.equal(actionCost("see", "TECH_SPLIT_QUESTION"), 5);
+    assert.ok(ui.includes("actionCost"));
     assert.equal(ui.includes("requestAnimationFrame"), false);
     assert.ok(ui.includes("resolveTurn"));
     assert.equal(ui.includes('"/scenes/kindy.jpg"'), false);
@@ -614,8 +619,10 @@ describe("logic audit v2.4", () => {
     const audit = readFileSync(new URL("../../scripts/audit-balance.ts", import.meta.url), "utf8");
     assert.match(audit, /if \(spec\.gated\)/);
     assert.match(audit, /not gated/);
-    assert.equal(PRIMARY_EXAM.skills.prepared, "SKL_013");
-    assert.equal(PRIMARY_EXAM.skills.stabilize, "SKL_018");
+    assert.equal(PRIMARY_EXAM.skills.prepared, "SKL_01");
+    assert.equal(PRIMARY_EXAM.skills.stabilize, "SKL_07");
+    assert.equal(PRIMARY_EXAM.techniques.see, "TECH_SPLIT_QUESTION");
+    assert.equal(PRIMARY_EXAM.pressureSpeed, 10);
     assert.notEqual(PRIMARY_EXAM.voice.ask.label, KINDY_DOOR.voice.ask.label);
     resolveTurn(exam, "read");
     assert.equal(exam.hint.includes("默"), true);
@@ -704,6 +711,27 @@ describe("logic audit v2.4", () => {
     resolveTurn(plain, "walk");
     resolveTurn(armed, "walk");
     assert.equal(plain.goal, armed.goal);
+    const behind = createBattle({ approach: "safe", hp: 80, sp: 40, stabilize: false, see: false, ask: false, prepared: false, spec: PRIMARY_EXAM, mind: 5, gearSpeed: 0 });
+    const edged = createBattle({ approach: "safe", hp: 80, sp: 40, stabilize: false, see: false, ask: false, prepared: false, spec: PRIMARY_EXAM, mind: 5, gearSpeed: 1 });
+    assert.equal(behind.pressureFirst, true);
+    assert.equal(edged.pressureFirst, false);
+    assert.equal(edged.stableFirst, false);
+    assert.equal(initiativeFor(5, 5).stableFirst, false);
+    assert.ok(behind.stress > edged.stress);
+    const barePaper = createBattle({ approach: "safe", hp: 80, sp: 40, stabilize: false, see: true, ask: false, prepared: false, spec: PRIMARY_EXAM, attack: 0 });
+    const withPen = createBattle({ approach: "safe", hp: 80, sp: 40, stabilize: false, see: true, ask: false, prepared: false, spec: PRIMARY_EXAM, attack: 1 });
+    resolveTurn(barePaper, "walk");
+    resolveTurn(withPen, "walk");
+    assert.equal(withPen.goal, barePaper.goal + ATTACK_GOAL);
+    const pen = choicesFor("EVT_1988_PEN_01", freshState()).find((item) => item.id === "A")!;
+    const got = applyEffect({ ...freshState(), yearIndex: 3 }, pen.effect);
+    assert.deepEqual(got.state.equipment, ["EQP_BALLPOINT"]);
+    assert.deepEqual(got.state.techniques, ["TECH_SPLIT_QUESTION"]);
+    assert.equal(questOf("QUEST_SPARE_PEN")?.kind, "side");
+    assert.ok(fifteenLines(got.state).join("").includes("筆還在"));
+    const split = createBattle({ approach: "safe", hp: 80, sp: 40, stabilize: false, see: true, ask: false, prepared: false, spec: PRIMARY_EXAM });
+    assert.equal(actBattle(split, "see", true), true);
+    assert.equal(actBattle(split, "see", true), false);
     const junk = { ...freshState(), equipment: ["EQP_DIGI_DEVICE_01"], equipped: ["EQP_DIGI_DEVICE_01"] };
     assert.deepEqual(parseSave(JSON.stringify(junk))?.equipment, []);
     const bare = createBattle({ approach: "social", hp: 80, sp: 40, stabilize: false, see: false, ask: false, prepared: false });

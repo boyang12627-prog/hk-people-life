@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { resolveAuto } from "@/game/battleBalance";
 import type { BattleSpec } from "@/game/battleSpec";
-import { BATTLE_COST, createBattle, resolveTurn, type BattleAction, type BattleSim } from "@/game/battleSim";
+import { actionCost, createBattle, resolveTurn, techniqueReady, type BattleAction, type BattleSim } from "@/game/battleSim";
 import type { Approach, BattleKind, BattleOutcome } from "@/game/types";
 
 type Props = {
@@ -14,16 +14,18 @@ type Props = {
   mind: number;
   gearSpeed: number;
   stressResist: number;
+  attack: number;
   held?: string;
   onEnd: (outcome: BattleOutcome) => void;
 };
 
-export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearSpeed, stressResist, held, onEnd }: Props) {
+export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearSpeed, stressResist, attack, held, onEnd }: Props) {
   const stabilize = skills.includes(spec.skills.stabilize);
-  const see = techniques.includes("TECH_READ_FACE");
+  const seeId = spec.techniques.see;
+  const see = techniques.includes(seeId);
   const ask = skills.includes(spec.skills.ask);
   const prepared = skills.includes(spec.skills.prepared);
-  const startRef = useRef({ approach, hp, sp, stabilize, see, ask, prepared, spec, mind, gearSpeed, stressResist });
+  const startRef = useRef({ approach, hp, sp, stabilize, see, ask, prepared, spec, mind, gearSpeed, stressResist, attack });
   const simRef = useRef<BattleSim>(createBattle(startRef.current));
   const onEndRef = useRef(onEnd);
   const reportedRef = useRef(false);
@@ -60,7 +62,8 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
     report(sim.over);
   };
 
-  const broke = (name: BattleAction) => name !== "walk" && sim.sp < BATTLE_COST[name];
+  const broke = (name: BattleAction) => name !== "walk" && sim.sp < actionCost(name, seeId);
+  const seeLocked = !techniqueReady(sim, seeId);
   const bonusOnly = sim.awaitingBonus;
   const bonusLocked = (name: BattleAction) => bonusOnly && name !== "walk" && name !== "guard";
   const locked = Boolean(sim.over) || reportedRef.current;
@@ -121,18 +124,18 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
         <>
           <div className="grid grid-cols-2 gap-2">
             <TurnButton label={spec.voice.walk.label} detail={spec.voice.walk.detail} disabled={locked || bonusLocked("walk")} onClick={() => choose("walk")} />
-            <TurnButton label={spec.voice.guard.label} detail={costDetail("guard", spec.voice.guard.detail)} disabled={locked || broke("guard") || bonusLocked("guard")} onClick={() => choose("guard")} />
+            <TurnButton label={spec.voice.guard.label} detail={costDetail(actionCost("guard"), spec.voice.guard.detail)} disabled={locked || broke("guard") || bonusLocked("guard")} onClick={() => choose("guard")} />
             <TurnButton
               label={spec.voice.read.label}
-              detail={costDetail("read", prepared ? spec.voice.read.detail : (spec.voice.read.weakDetail ?? spec.voice.read.detail))}
+              detail={costDetail(actionCost("read"), prepared ? spec.voice.read.detail : (spec.voice.read.weakDetail ?? spec.voice.read.detail))}
               disabled={locked || broke("read") || bonusLocked("read")}
               onClick={() => choose("read")}
             />
             {see ? (
-              <TurnButton label={spec.voice.see.label} detail={costDetail("see", spec.voice.see.detail)} disabled={locked || broke("see") || bonusLocked("see")} onClick={() => choose("see")} />
+              <TurnButton label={spec.voice.see.label} detail={costDetail(actionCost("see", seeId), spec.voice.see.detail)} disabled={locked || broke("see") || seeLocked || bonusLocked("see")} onClick={() => choose("see")} />
             ) : null}
             {ask ? (
-              <TurnButton label={spec.voice.ask.label} detail={costDetail("ask", spec.voice.ask.detail)} disabled={locked || broke("ask") || bonusLocked("ask")} onClick={() => choose("ask")} />
+              <TurnButton label={spec.voice.ask.label} detail={costDetail(actionCost("ask"), spec.voice.ask.detail)} disabled={locked || broke("ask") || bonusLocked("ask")} onClick={() => choose("ask")} />
             ) : null}
           </div>
           <p className="text-sm text-pretty text-paper/70">
@@ -163,8 +166,8 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
   );
 }
 
-function costDetail(name: BattleAction, detail: string) {
-  return `氣力 ${BATTLE_COST[name]}，${detail}`;
+function costDetail(cost: number, detail: string) {
+  return `氣力 ${cost}，${detail}`;
 }
 
 function Meter({ label, value, max, tone }: { label: string; value: number; max: number; tone: string }) {

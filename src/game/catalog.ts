@@ -41,6 +41,14 @@ export const QUEST_CATALOG: readonly QuestDef[] = [
     npc: "NPC_AUNT_01",
     echo: "你沒有買那輛車。手上多了一隻不會走的塑膠錶。",
   },
+  {
+    id: "QUEST_SPARE_PEN",
+    kind: "side",
+    eventId: "EVT_1988_PEN_01",
+    choiceId: "A",
+    npc: "NPC_FRIEND_01",
+    echo: "同學說這支是多出來的。你拿去寫了那張卷。",
+  },
 ];
 
 /** Owned objects. Save validation reads this list. An id that is not here is dropped. */
@@ -52,6 +60,14 @@ export const EQUIPMENT_CATALOG: readonly Equipment[] = [
     availableFromYear: 1984,
     battle: { speed: 1, stressResist: 1 },
     memoryHook: "MEM_TOY_WATCH",
+  },
+  {
+    id: "EQP_BALLPOINT",
+    slot: "bag",
+    sourceQuest: "QUEST_SPARE_PEN",
+    availableFromYear: 1988,
+    battle: { atk: 1 },
+    memoryHook: "MEM_BALLPOINT",
   },
 ];
 
@@ -65,7 +81,17 @@ export const TECHNIQUE_CATALOG: readonly Technique[] = [
     sourceSkill: "SKL_02",
     kind: "reaction",
     cost: 5,
+    battle: { dodge: true },
     effect: "dodge the next pressure hit",
+  },
+  {
+    id: "TECH_SPLIT_QUESTION",
+    sourceSkill: "SKL_13",
+    kind: "active",
+    cost: 5,
+    cooldownRounds: 2,
+    battle: { stress: -6, goal: 8 },
+    effect: "split one question and do the part you know",
   },
 ];
 
@@ -91,6 +117,15 @@ export function gearSpeed(equipped: readonly string[]) {
 export function gearStressResist(equipped: readonly string[]) {
   const sum = equipped.reduce((total, id) => total + (catalogGear(id)?.battle?.stressResist ?? 0), 0);
   return Math.min(SPEED_RULE.maxStressResist, Math.max(0, sum));
+}
+
+export function gearAttack(equipped: readonly string[]) {
+  const sum = equipped.reduce((total, id) => total + Math.max(0, catalogGear(id)?.battle?.atk ?? 0), 0);
+  return Math.min(3, sum);
+}
+
+export function techniqueById(id: string) {
+  return TECHNIQUE_CATALOG.find((item) => item.id === id);
 }
 
 export function grantsBattleButton(kind: Technique["kind"]) {

@@ -1,6 +1,6 @@
 import { spiritHp, driveSp, INITIAL_PRIMARY, type Approach, type BattleKind, type Primary } from "./types";
 import { KINDY_DOOR, type BattleSpec } from "./battleSpec";
-import { BATTLE_COST, createBattle, resolveTurn, type BattleAction, type BattleSim } from "./battleSim";
+import { actionCost, BATTLE_COST, createBattle, resolveTurn, type BattleAction, type BattleSim } from "./battleSim";
 
 export type Policy = "walk" | "read" | "guard" | "steady" | "smart";
 
@@ -13,7 +13,7 @@ function rng(seed: number) {
 }
 
 function decide(sim: BattleSim, policy: Policy): BattleAction | null {
-  const ready = (name: BattleAction) => name === "walk" || sim.sp >= BATTLE_COST[name];
+  const ready = (name: BattleAction) => name === "walk" || sim.sp >= actionCost(name, sim.spec.techniques.see);
   const heavy = sim.threat.heavy;
   if (policy === "walk") return "walk";
   if (policy === "read") {

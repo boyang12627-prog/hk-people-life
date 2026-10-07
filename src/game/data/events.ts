@@ -19,6 +19,8 @@ export const CHILDHOOD_EVENT_IDS = [
   "EVT_1986_FAMILY_06",
   "EVT_1986_MARKET_07",
   "EVT_1986_ECHO_08",
+  "EVT_1988_PEN_01",
+  "EVT_1988_EXAM_01",
 ] as const;
 
 export type StaticEvent = {
@@ -132,6 +134,43 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
       choice("A", "等她", "reality", { derived: { STATE_FAMILY_HARMONY: 1 } }, "你等。她叫了你，你才走。"),
       choice("B", "自己按燈", "dream", { derived: { STATE_MOOD: 1 } }, "你按了燈。走廊亮了一點。"),
       choice("C", "問為什麼還不走", "think", { derived: { INDEPENDENT_THOUGHT: 1 } }, "你問了。她說再等一會兒。"),
+    ],
+  },
+  EVT_1988_PEN_01: {
+    id: "EVT_1988_PEN_01",
+    scene: "study",
+    kicker: "1988 · 小息",
+    title: "樓梯上的筆",
+    lines: ["小息。樓梯轉角有一支原子筆。", "不是你的。上面沒有名字。"],
+    choices: [
+      choice(
+        "A",
+        "交給坐你旁邊的人",
+        "reality",
+        { npc: { NPC_FRIEND_01: { trust: 2, relation: 2 } }, skills: ["SKL_13"], equipment: ["EQP_BALLPOINT"] },
+        "你交還給他。他說這支是多出來的，你拿去用。筆芯有一點深。",
+        mem("MEM_BALLPOINT", "EVT_1988_PEN_01", "A", "NPC_FRIEND_01", "kept", "同學說這支是多出來的。你拿去寫了那張卷。"),
+      ),
+      choice("B", "放回地上", "balance", { derived: { STATE_PEACE: 1 } }, "你沒有撿。筆還在那裡。你上了樓。"),
+      choice(
+        "C",
+        "自己放進筆盒",
+        "dream",
+        { derived: { STATE_MOOD: 1 }, npc: { NPC_FRIEND_01: { trust: -2 } } },
+        "你收進筆盒。沒有人問。你寫字的時候，手心有一點熱。",
+      ),
+    ],
+  },
+  EVT_1988_EXAM_01: {
+    id: "EVT_1988_EXAM_01",
+    scene: "study",
+    kicker: "1988 · 測驗",
+    title: "紙反過來了",
+    lines: ["老師把紙反過來。", "你聽見筆尖。你還不知道自己寫不寫得完。"],
+    choices: [
+      choice("A", "由第一題開始寫", "reality", {}, "你由第一題寫。後面的題，你還沒看。", undefined, "safe"),
+      choice("B", "先看整張卷", "think", {}, "你先翻到最後一頁。題很多。", undefined, "curious"),
+      choice("C", "看看旁邊的人", "dream", {}, "旁邊有人已經在寫。你要自己落筆。", undefined, "social"),
     ],
   },
 };
