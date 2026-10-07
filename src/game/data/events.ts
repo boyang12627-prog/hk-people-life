@@ -10,6 +10,7 @@ export const CHILDHOOD_EVENT_IDS = [
   "MINI_85_GRANDMA",
   "MINI_85_DAD",
   "MINI_85_TV",
+  "MINI_QUIET",
   "MINI_86_ESTATE",
   "MINI_86_TV",
   "MINI_86_HELP",
@@ -123,6 +124,18 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
       choice("C", "轉去玩", "dream", { derived: { STATE_MOOD: 1, VALUE_DREAM: 1 } }, "你沒有再看。電視自己開著。"),
     ],
   },
+  MINI_QUIET: {
+    id: "MINI_QUIET",
+    scene: "home",
+    kicker: "日常",
+    title: "沒有人在",
+    lines: ["這個下午，你去了的地方沒有人。", "你坐了一陣。一隻雀飛過。然後你回家。"],
+    choices: [
+      choice("A", "再坐一陣", "think", { derived: { STATE_PEACE: 1 } }, "你又坐了一陣。仍然沒有人。你回家。"),
+      choice("B", "看那隻雀", "dream", { derived: { STATE_MOOD: 1 } }, "雀飛走了。你沒有事做，可是你看完了。"),
+      choice("C", "回家", "reality", { derived: { STATE_FAMILY_HARMONY: 1 } }, "你回家。這個下午就這樣過了。"),
+    ],
+  },
   MINI_86_ESTATE: {
     id: "MINI_86_ESTATE",
     scene: "estate",
@@ -210,7 +223,7 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
   },
 };
 
-export const DAILY_STATIC_IDS = ["MINI_84_TOY", "MINI_85_RAIN", "MINI_85_GRANDMA", "MINI_85_DAD", "MINI_85_TV", "MINI_86_ESTATE", "MINI_86_TV", "MINI_86_HELP"] as const;
+export const DAILY_STATIC_IDS = ["MINI_84_TOY", "MINI_85_RAIN", "MINI_85_GRANDMA", "MINI_85_DAD", "MINI_85_TV", "MINI_QUIET", "MINI_86_ESTATE", "MINI_86_TV", "MINI_86_HELP"] as const;
 
 export function cardFor(id: string, state: State): Card {
   const staticEvt = STATIC_EVENTS[id];

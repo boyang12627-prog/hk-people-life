@@ -8,6 +8,23 @@ import { freshState, reducer } from "./engine";
 import { driveSp, spiritHp, type State } from "./types";
 
 export type LifePolicy = "first" | "last" | "mix";
+export type ChildhoodStyle = "family" | "self" | "social" | "conflict" | "mixed";
+
+const PLAN: Record<ChildhoodStyle, Record<number, [string, string]>> = {
+  family: { 1984: ["ACT_MARKET", "ACT_REST"], 1985: ["ACT_MARKET", "ACT_REST"], 1986: ["ACT_MARKET", "ACT_REST"], 1988: ["ACT_MARKET", "ACT_REST"] },
+  self: { 1984: ["ACT_PLAY", "ACT_DRAW"], 1985: ["ACT_PLAY", "ACT_DRAW"], 1986: ["ACT_PLAY", "ACT_DRAW"], 1988: ["ACT_DRAW", "ACT_REST"] },
+  social: { 1984: ["ACT_MARKET", "ACT_PLAY"], 1985: ["ACT_ESTATE", "ACT_PLAY"], 1986: ["ACT_ESTATE", "ACT_PLAY"], 1988: ["ACT_DRAW", "ACT_REST"] },
+  conflict: { 1984: ["ACT_PLAY", "ACT_MARKET"], 1985: ["ACT_ESTATE", "ACT_DRAW"], 1986: ["ACT_ESTATE", "ACT_MARKET"], 1988: ["ACT_DRAW", "ACT_REST"] },
+  mixed: { 1984: ["ACT_REST", "ACT_DRAW"], 1985: ["ACT_MARKET", "ACT_ESTATE"], 1986: ["ACT_PLAY", "ACT_MARKET"], 1988: ["ACT_REST", "ACT_DRAW"] },
+};
+
+function pickStyled(choices: Choice[], eventId: string, style: ChildhoodStyle) {
+  if (style === "conflict" && eventId.includes("FRIEND")) return choices.find((item) => item.id === "A") ?? choices[0];
+  if (style === "social" && eventId.includes("FRIEND")) return choices.find((item) => item.id === "B") ?? choices[0];
+  if (style === "family") return choices.find((item) => item.designTendency === "reality") ?? choices[0];
+  if (style === "self") return choices.find((item) => item.designTendency === "dream") ?? choices[0];
+  return choices.find((item) => item.designTendency === "balance") ?? choices[0];
+}
 
 function pickChoice(choices: Choice[], seed: number, step: number, policy: LifePolicy) {
   if (policy === "first") return choices[0];
@@ -71,6 +88,41 @@ export function simulateLife(seed: number, policy: LifePolicy = "mix") {
     steps += 1;
   }
   return { phase: state.phase, steps, seen, ended: state.phase === "ending" };
+}
+
+/** Five scripted childhoods. This is not a human playtest. It only checks that the years diverge. */
+export function runChildhood(style: ChildhoodStyle) {
+  let state = reducer(freshState(1), { type: "gender", gender: "girl", name: "" });
+  const seen: string[] = [];
+  let steps = 0;
+  while (state.phase !== "ending" && steps < 220) {
+    const year = yearOf(state).year;
+    const plan = PLAN[style][year];
+    let next = state;
+    if (state.phase === "year") next = reducer(state, { type: "toActivities" });
+    else if (state.phase === "activities" && plan) {
+      const id = plan[state.spent.length];
+      next = id ? reducer(state, { type: "activity", id }) : state;
+    } else if (state.phase === "event" && state.eventId) {
+      const choice = pickStyled(choicesFor(state.eventId, state), state.eventId, style);
+      if (choice) {
+        seen.push(`${state.eventId}:${choice.id}`);
+        next = reducer(state, { type: "choose", choice });
+      }
+    } else if (state.phase === "explore-offer") next = reducer(state, { type: "explore", go: style !== "family" });
+    else if (state.phase === "repair") next = reducer(state, { type: "repair", talk: style === "family" });
+    else next = stepLife(state, 1, steps, "first", seen);
+    if (next === state) break;
+    state = next;
+    steps += 1;
+  }
+  return {
+    ended: state.phase === "ending",
+    phase: state.phase,
+    missed: [...state.missed],
+    flags: [...state.flags],
+    seen,
+  };
 }
 
 export function runLives(n = 1000) {

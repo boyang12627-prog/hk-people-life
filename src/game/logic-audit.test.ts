@@ -4,7 +4,9 @@ import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBat
 import { readFileSync, existsSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
 import { slicePlate } from "./art.ts";
-import { produce1985, produce1986, missed1986, missedLine, chainEcho, CHAIN_85_STAGES, friendFollow, MISS_85_FRIEND, MISS_85_MOM, MISS_85_RAIN, NPC_SCHEDULE_1985, REPLAY_MATRIX } from "./freedom.ts";
+import { produce1985, produce1986, missed1986, missedLine, chainEcho, CHAIN_85_STAGES, friendFollow, MISS_85_FRIEND, MISS_85_MOM, MISS_85_RAIN, REPLAY_MATRIX } from "./freedom.ts";
+import { runChildhood } from "./lifeSim.ts";
+import { WORLD_1985 } from "./world.ts";
 import { BATTLE_NARRATIVE, battleNarrative } from "./battleNarrative.ts";
 import { BATTLE_SPECS, KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
 import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
@@ -56,15 +58,13 @@ describe("logic audit v3.1", () => {
     state = reducer(state, { type: "ack" });
     assert.equal(state.phase, "year-end");
     state = reducer(state, { type: "nextYear" });
-    state = spend(state, ["ACT_REST", "ACT_MARKET"]);
+    state = spend(state, ["ACT_MARKET", "ACT_REST"]);
     assert.equal(state.eventId, "EVT_1985_SCHOOL_01");
     assert.ok(cardFor(state.eventId, state).lines.join("").includes("還有力氣"));
     state = chooseId(state, "B");
     assert.equal(state.skills.includes("SKL_01"), true);
     assert.equal(state.npc.NPC_FRIEND_01.available, false);
     state = reducer(state, { type: "settleBattle" });
-    state = reducer(state, { type: "ack" });
-    state = chooseId(state, "A");
     state = reducer(state, { type: "ack" });
     assert.equal(state.eventId, "EVT_1985_FAMILY_03");
     assert.equal(variantOf(state.eventId, state), "plain");
@@ -94,7 +94,7 @@ describe("logic audit v3.1", () => {
     state = chooseId(state, "A");
     state = reducer(state, { type: "ack" });
     state = reducer(state, { type: "nextYear" });
-    state = spend(state, ["ACT_PLAY", "ACT_DRAW"]);
+    state = spend(state, ["ACT_ESTATE", "ACT_DRAW"]);
     state = chooseId(state, "C");
     assert.equal(state.skills.includes("SKL_01"), false);
     assert.equal(state.npc.NPC_FRIEND_01.available, false);
@@ -801,18 +801,23 @@ describe("logic audit v3.1", () => {
     assert.equal(slicePlate({ year: 1984, scene: "home", gender: "girl" }), null);
     assert.equal(slicePlate({ year: 1988, scene: "study", gender: "girl" }), null);
     const played = produce1985(["ACT_PLAY", "ACT_DRAW"]);
-    assert.deepEqual(played.queue, ["EVT_1985_SCHOOL_01", "EVT_1985_FRIEND_04", "MINI_85_DAD", "MINI_85_TV"]);
+    assert.deepEqual(played.queue, ["EVT_1985_SCHOOL_01", "MINI_85_GRANDMA", "MINI_85_TV", "MINI_85_DAD"]);
     assert.ok(played.missed.includes(MISS_85_MOM));
+    assert.ok(played.missed.includes(MISS_85_FRIEND));
     assert.ok(played.missed.includes("MISS_85_AUNT"));
     const withMom = produce1985(["ACT_MARKET", "ACT_REST"]);
     assert.ok(withMom.queue.includes("EVT_1985_FAMILY_03"));
     assert.ok(withMom.queue.includes("MINI_85_GRANDMA"));
-    assert.ok(withMom.queue.includes("MINI_85_RAIN"));
+    assert.equal(withMom.queue.includes("MINI_85_RAIN"), false);
     assert.equal(withMom.queue.includes("EVT_1985_FRIEND_04"), false);
-    assert.equal(withMom.queue.includes("MINI_85_DAD"), false);
-    assert.equal(withMom.queue.includes("MINI_85_TV"), false);
-    assert.equal(NPC_SCHEDULE_1985.length, 6);
-    assert.equal(NPC_SCHEDULE_1985.find((row) => row.npcId === "NPC_TEACH_01")?.eventId, null);
+    assert.equal(withMom.queue.includes("MINI_85_DAD"), true);
+    const sundayMarket = produce1985(["ACT_REST", "ACT_MARKET"]);
+    assert.equal(sundayMarket.queue.includes("EVT_1985_FAMILY_03"), false);
+    assert.ok(sundayMarket.queue.includes("MINI_QUIET"));
+    const sundayEstate = produce1985(["ACT_DRAW", "ACT_ESTATE"]);
+    assert.ok(sundayEstate.queue.includes("MINI_85_RAIN"));
+    assert.equal(sundayEstate.queue.includes("EVT_1985_FRIEND_04"), false);
+    assert.equal(WORLD_1985.sat.find((spot) => spot.npcId === "NPC_TEACH_01")?.eventId, null);
     assert.deepEqual(
       REPLAY_MATRIX.filter((row) => row.playable).map((row) => row.year),
       YEARS.map((year) => year.year),
@@ -824,11 +829,12 @@ describe("logic audit v3.1", () => {
     }
     assert.ok(cardFor("EVT_1986_FAMILY_06", remember("MEM_DAD_HOME", "A")).lines.join("").includes("回來過"));
     const out = produce1986(["ACT_MARKET", "ACT_ESTATE"]);
-    assert.deepEqual(out.queue, ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_MARKET_07", "MINI_86_HELP", "EVT_1986_FRIEND_09", "EVT_1986_ECHO_08"]);
-    assert.equal(out.missed.includes("MISS_86_TV"), true);
+    assert.deepEqual(out.queue, ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_MARKET_07", "MINI_86_HELP", "MINI_QUIET", "EVT_1986_ECHO_08"]);
+    assert.equal(out.missed.includes("MISS_86_FRIEND"), true);
     const home = produce1986(["ACT_PLAY", "ACT_DRAW"]);
     assert.equal(home.queue.includes("MINI_86_TV"), true);
-    assert.equal(home.queue.includes("EVT_1986_FRIEND_09"), true);
+    assert.equal(home.queue.includes("EVT_1986_FRIEND_09"), false);
+    assert.equal(home.queue.includes("MINI_QUIET"), true);
     assert.equal(home.queue.includes("EVT_1986_MARKET_07"), false);
     assert.equal(home.queue[0], "EVT_1986_SKILL_05");
     assert.equal(home.queue.at(-1), "EVT_1986_ECHO_08");
@@ -847,7 +853,7 @@ describe("logic audit v3.1", () => {
     assert.ok(missedLine(played.missed, "later").includes("去年"));
     assert.equal(CHAIN_85_STAGES.length, 5);
     let chain = reducer({ ...freshState(3), phase: "year", yearIndex: 1 }, { type: "toActivities" });
-    chain = spend(chain, ["ACT_PLAY", "ACT_DRAW"]);
+    chain = spend(chain, ["ACT_ESTATE", "ACT_DRAW"]);
     assert.equal(chain.chain.stage, 1);
     assert.ok(chain.personalityTags.includes("TAG_ON_YOUR_OWN"));
     chain = chooseId(chain, "A");
@@ -869,6 +875,18 @@ describe("logic audit v3.1", () => {
     chain = reducer(chain, { type: "toActivities" });
     assert.equal(chain.chain.stage, 5);
     assert.equal(chain.chain.status, "completed");
+  });
+
+  it("five scripted childhoods do not meet the same people", () => {
+    const lives = (["family", "self", "social", "conflict", "mixed"] as const).map((style) => runChildhood(style));
+    assert.ok(lives.every((life) => life.ended), lives.map((life) => life.phase).join(","));
+    const traces = lives.map((life) => life.seen.join(" "));
+    assert.equal(new Set(traces).size, 5);
+    assert.equal(lives[0].seen.some((line) => line.startsWith("EVT_1985_FAMILY_03")), true);
+    assert.equal(lives[0].seen.some((line) => line.startsWith("EVT_1985_FRIEND_04")), false);
+    assert.equal(lives[1].missed.includes(MISS_85_FRIEND), true);
+    assert.equal(lives[2].seen.some((line) => line.startsWith("EVT_1985_FRIEND_04:B")), true);
+    assert.equal(lives[3].seen.some((line) => line.startsWith("EVT_1985_FRIEND_04:A")), true);
   });
 });
 

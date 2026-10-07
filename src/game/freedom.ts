@@ -1,4 +1,5 @@
 import type { ChainState, State } from "./types";
+import { WORLD_1985, WORLD_1986, collide, placeOf } from "./world";
 
 /** 1985 and 1986. Two afternoons decide which of the existing scenes you get. 1984 and 1988 stay on a fixed queue. */
 
@@ -30,53 +31,41 @@ export const MISSED_IDS = [
   MISS_86_FRIEND,
 ] as const;
 
-const HOME = ["ACT_PLAY", "ACT_DRAW", "ACT_REST"] as const;
+const TV_1985 = { npcId: "TV", place: "home" as const, eventId: "MINI_85_TV" };
 
-/** The people who can appear in 1985. A row with no event does not add a scene. */
-export const NPC_SCHEDULE_1985 = [
-  { npcId: "NPC_MOM_01", location: "market", preferred: ["ACT_MARKET"], eventId: "EVT_1985_FAMILY_03", missedId: MISS_85_MOM, prerequisite: "", fallback: "沒有陪她去街市" },
-  { npcId: "NPC_GRAND_01", location: "home", preferred: ["ACT_REST"], eventId: "MINI_85_GRANDMA", missedId: MISS_85_GRANDMA, prerequisite: "", fallback: "沒有在家陪她" },
-  { npcId: "NPC_FRIEND_01", location: "kindy", preferred: ["ACT_PLAY", "ACT_ESTATE"], eventId: "EVT_1985_FRIEND_04", missedId: MISS_85_FRIEND, prerequisite: "", fallback: "沒有碰到紅球" },
-  { npcId: "NPC_DAD_01", location: "home", preferred: [...HOME], eventId: "MINI_85_DAD", missedId: MISS_85_DAD, prerequisite: "兩個下午都在家", fallback: "你出門的時候他回來過" },
-  { npcId: "NPC_TEACH_01", location: "kindy", preferred: [] as string[], eventId: null, missedId: null, prerequisite: "幼稚園門口", fallback: "老師在門口那一件裡，不另開一場" },
-  { npcId: "NPC_AUNT_01", location: "market", preferred: ["ACT_MARKET"], eventId: null, missedId: MISS_85_AUNT, prerequisite: "", fallback: "街市那檔沒有叫到你" },
-] as const;
-
-/** Same television as 1984. Not a new historical chapter. */
-const HISTORY_1985 = { eventId: "MINI_85_TV", missedId: MISS_85_TV };
-
-const TIMED_1985 = { eventId: "MINI_85_RAIN", outside: ["ACT_MARKET", "ACT_ESTATE"], missedId: MISS_85_RAIN };
-
-function stayedHome(spent: readonly string[]) {
-  return spent.length > 0 && spent.every((id) => (HOME as readonly string[]).includes(id));
+function pushUnique(queue: string[], ids: readonly string[]) {
+  for (const id of ids) if (!queue.includes(id)) queue.push(id);
 }
 
 export function produce1985(spent: readonly string[]) {
+  const world = {
+    sat: [...WORLD_1985.sat, TV_1985],
+    sun: [...WORLD_1985.sun, TV_1985],
+    weather: WORLD_1985.weather,
+  };
   const queue = ["EVT_1985_SCHOOL_01"];
+  pushUnique(queue, collide("sat", spent[0] ?? "", world, "MINI_85_RAIN"));
+  pushUnique(queue, collide("sun", spent[1] ?? "", world, "MINI_85_RAIN"));
   const missed: string[] = [];
-  if (spent.some((id) => (TIMED_1985.outside as readonly string[]).includes(id))) queue.push(TIMED_1985.eventId);
-  else missed.push(TIMED_1985.missedId);
-  for (const row of NPC_SCHEDULE_1985) {
-    if (!row.eventId && !row.missedId) continue;
-    const hit = row.prerequisite === "兩個下午都在家" ? stayedHome(spent) : spent.some((id) => (row.preferred as readonly string[]).includes(id));
-    if (hit && row.eventId) queue.push(row.eventId);
-    else if (!hit && row.missedId) missed.push(row.missedId);
-  }
-  if (stayedHome(spent)) queue.push(HISTORY_1985.eventId);
-  else missed.push(HISTORY_1985.missedId);
+  if (!queue.includes("EVT_1985_FAMILY_03")) missed.push(MISS_85_MOM);
+  if (!queue.includes("MINI_85_GRANDMA")) missed.push(MISS_85_GRANDMA);
+  if (!queue.includes("EVT_1985_FRIEND_04")) missed.push(MISS_85_FRIEND);
+  if (!queue.includes("MINI_85_DAD")) missed.push(MISS_85_DAD);
+  if (!queue.includes("MINI_85_RAIN")) missed.push(MISS_85_RAIN);
+  if (!queue.includes("MINI_85_TV")) missed.push(MISS_85_TV);
+  if (placeOf(spent[0] ?? "") !== "market") missed.push(MISS_85_AUNT);
   return { queue, missed };
 }
 
 export function produce1986(spent: readonly string[]) {
   const queue = ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06"];
   const missed: string[] = [];
-  if (spent.includes("ACT_MARKET")) queue.push("EVT_1986_MARKET_07", "MINI_86_HELP");
-  else missed.push(MISS_86_MARKET);
-  if (spent.includes("ACT_PLAY") || spent.includes("ACT_ESTATE")) queue.push("EVT_1986_FRIEND_09");
-  else missed.push(MISS_86_FRIEND);
-  if (!spent.includes("ACT_ESTATE")) missed.push(MISS_86_ESTATE);
-  if (stayedHome(spent)) queue.push("MINI_86_TV");
-  else missed.push(MISS_86_TV);
+  pushUnique(queue, collide("sat", spent[0] ?? "", WORLD_1986, null));
+  pushUnique(queue, collide("sun", spent[1] ?? "", WORLD_1986, null));
+  if (!queue.includes("EVT_1986_MARKET_07")) missed.push(MISS_86_MARKET);
+  if (!queue.includes("EVT_1986_FRIEND_09")) missed.push(MISS_86_FRIEND);
+  if (placeOf(spent[0] ?? "") !== "estate") missed.push(MISS_86_ESTATE);
+  if (!queue.includes("MINI_86_TV")) missed.push(MISS_86_TV);
   queue.push("EVT_1986_ECHO_08");
   return { queue, missed };
 }
