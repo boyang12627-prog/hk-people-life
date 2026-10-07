@@ -1,5 +1,5 @@
 import { ACTIVITIES, battleStory, buildQueue, examStory, fifteenAct, knownEventIds, knownMemoryChoice, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
-import { MISSED_IDS, produce1985, advanceChain, afternoonTags, freshChain } from "./freedom";
+import { MISSED_IDS, produce1985, produce1986, advanceChain, afternoonTags, freshChain } from "./freedom";
 import { BATTLE_SPECS, battleSpecById, battleSpecFor } from "./battleSpec";
 import {
   clamp,
@@ -241,7 +241,7 @@ function openYear(state: State): State {
     phase: "year",
     apLeft: 2,
     spent: [],
-    queue: year?.year === 1985 ? [] : buildQueue(state.yearIndex, state.seed),
+    queue: year?.year === 1985 || year?.year === 1986 ? [] : buildQueue(state.yearIndex, state.seed),
     chain: openChain(state, year?.year ?? 0),
     eventId: null,
     note: null,
@@ -470,13 +470,14 @@ function finishEcho(state: State): State {
 }
 
 function produceIfNeeded(state: State): State {
-  if (yearOf(state).year !== 1985 || state.queue.length > 0) return state;
-  const produced = produce1985(state.spent);
+  const year = yearOf(state).year;
+  if ((year !== 1985 && year !== 1986) || state.queue.length > 0) return state;
+  const produced = year === 1985 ? produce1985(state.spent) : produce1986(state.spent);
   const missed = [...state.missed];
   for (const id of produced.missed) if (!missed.includes(id)) missed.push(id);
   const personalityTags = [...state.personalityTags];
   for (const tag of afternoonTags(state.spent)) if (!personalityTags.includes(tag)) personalityTags.push(tag);
-  const chain = state.chain.stage < 1 ? { ...state.chain, stage: 1, status: "active" as const } : state.chain;
+  const chain = year === 1985 && state.chain.stage < 1 ? { ...state.chain, stage: 1, status: "active" as const } : state.chain;
   return { ...state, queue: produced.queue, missed, personalityTags, chain };
 }
 

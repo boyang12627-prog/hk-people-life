@@ -1,6 +1,6 @@
 import type { ChainState } from "./types";
 
-/** 1985 only. Two afternoons decide who you meet. Other years stay on the fixed queue. */
+/** 1985 and 1986. Two afternoons decide which of the existing scenes you get. 1984 and 1988 stay on a fixed queue. */
 
 export const MISS_85_MOM = "MISS_85_MOM";
 export const MISS_85_GRANDMA = "MISS_85_GRANDMA";
@@ -11,7 +11,22 @@ export const MISS_85_DAD = "MISS_85_DAD";
 export const MISS_85_TV = "MISS_85_TV";
 export const MISS_85_AUNT = "MISS_85_AUNT";
 
-export const MISSED_IDS = [MISS_85_MOM, MISS_85_GRANDMA, MISS_85_RAIN, MISS_85_FRIEND, MISS_85_DAD, MISS_85_TV, MISS_85_AUNT] as const;
+export const MISS_86_MARKET = "MISS_86_MARKET";
+export const MISS_86_ESTATE = "MISS_86_ESTATE";
+export const MISS_86_TV = "MISS_86_TV";
+
+export const MISSED_IDS = [
+  MISS_85_MOM,
+  MISS_85_GRANDMA,
+  MISS_85_RAIN,
+  MISS_85_FRIEND,
+  MISS_85_DAD,
+  MISS_85_TV,
+  MISS_85_AUNT,
+  MISS_86_MARKET,
+  MISS_86_ESTATE,
+  MISS_86_TV,
+] as const;
 
 const HOME = ["ACT_PLAY", "ACT_DRAW", "ACT_REST"] as const;
 
@@ -48,6 +63,29 @@ export function produce1985(spent: readonly string[]) {
   if (stayedHome(spent)) queue.push(HISTORY_1985.eventId);
   else missed.push(HISTORY_1985.missedId);
   return { queue, missed };
+}
+
+export function produce1986(spent: readonly string[]) {
+  const queue = ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06"];
+  const missed: string[] = [];
+  if (spent.includes("ACT_MARKET")) queue.push("EVT_1986_MARKET_07", "MINI_86_HELP");
+  else missed.push(MISS_86_MARKET);
+  if (spent.includes("ACT_ESTATE")) queue.push("MINI_86_ESTATE");
+  else missed.push(MISS_86_ESTATE);
+  if (stayedHome(spent)) queue.push("MINI_86_TV");
+  else missed.push(MISS_86_TV);
+  queue.push("EVT_1986_ECHO_08");
+  return { queue, missed };
+}
+
+export function missed1986(missed: readonly string[], when: "now" | "later") {
+  const bits: string[] = [];
+  if (missed.includes(MISS_86_MARKET)) bits.push("沒有去街市");
+  if (missed.includes(MISS_86_ESTATE)) bits.push("沒有上平台");
+  if (missed.includes(MISS_86_TV)) bits.push("沒有留在家看那一次電視");
+  if (!bits.length) return "";
+  if (when === "now") return `今年你${bits.join("，")}。`;
+  return `一九八六年你${bits.join("，")}。中間隔了一年，那些事沒有補回來。`;
 }
 
 export function missedLine(missed: readonly string[], when: "now" | "later") {

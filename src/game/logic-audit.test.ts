@@ -4,7 +4,7 @@ import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBat
 import { readFileSync, existsSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
 import { slicePlate } from "./art.ts";
-import { produce1985, missedLine, chainEcho, CHAIN_85_STAGES, MISS_85_FRIEND, MISS_85_MOM, MISS_85_RAIN, NPC_SCHEDULE_1985, REPLAY_MATRIX } from "./freedom.ts";
+import { produce1985, produce1986, missed1986, missedLine, chainEcho, CHAIN_85_STAGES, MISS_85_FRIEND, MISS_85_MOM, MISS_85_RAIN, NPC_SCHEDULE_1985, REPLAY_MATRIX } from "./freedom.ts";
 import { BATTLE_NARRATIVE, battleNarrative } from "./battleNarrative.ts";
 import { BATTLE_SPECS, KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
 import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
@@ -822,6 +822,15 @@ describe("logic audit v3.1", () => {
       if (year) assert.equal(year.calendar, row.calendar);
     }
     assert.ok(cardFor("EVT_1986_FAMILY_06", remember("MEM_DAD_HOME", "A")).lines.join("").includes("回來過"));
+    const out = produce1986(["ACT_MARKET", "ACT_ESTATE"]);
+    assert.deepEqual(out.queue, ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_MARKET_07", "MINI_86_HELP", "MINI_86_ESTATE", "EVT_1986_ECHO_08"]);
+    assert.equal(out.missed.includes("MISS_86_TV"), true);
+    const home = produce1986(["ACT_PLAY", "ACT_DRAW"]);
+    assert.equal(home.queue.includes("MINI_86_TV"), true);
+    assert.equal(home.queue.includes("EVT_1986_MARKET_07"), false);
+    assert.equal(home.queue[0], "EVT_1986_SKILL_05");
+    assert.equal(home.queue.at(-1), "EVT_1986_ECHO_08");
+    assert.ok(missed1986(home.missed, "later").includes("一九八六年"));
     assert.ok(missedLine(played.missed, "later").includes("去年"));
     assert.equal(CHAIN_85_STAGES.length, 5);
     let chain = reducer({ ...freshState(3), phase: "year", yearIndex: 1 }, { type: "toActivities" });

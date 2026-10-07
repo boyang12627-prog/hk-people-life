@@ -17,7 +17,7 @@ import {
   yearOf,
 } from "@/game/content";
 import { MEMORY_BALL, slicePlate } from "@/game/art";
-import { chainEcho, missedLine } from "@/game/freedom";
+import { chainEcho, missed1986, missedLine } from "@/game/freedom";
 import { battleNarrative } from "@/game/battleNarrative";
 import { battleSpecById } from "@/game/battleSpec";
 import { gearAttack, gearSpeed, gearStressResist } from "@/game/catalog";
@@ -227,12 +227,15 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
       <p className="mt-3 text-sm text-pretty text-ink/70">
         {year.year === 1985
           ? "今年有兩個下午。你跟誰過，今年就會見到誰。沒有去的，明年才會再提起。"
-          : "今年有兩個下午。你可以陪人、自己玩，或者休息。之後的事會自己來，不必你預先留時間。"}
+          : year.year === 1986
+            ? "今年有兩個下午。去街市、上平台，或留在家，見到的事不一樣。"
+            : "今年有兩個下午。你可以陪人、自己玩，或者休息。之後的事會自己來，不必你預先留時間。"}
       </p>
       {year.year === 1986 && state.chain.stage >= 4 ? <p className="mt-3 text-pretty text-base leading-7">{chainEcho(state.chain.choiceId)}</p> : null}
       {year.year === 1986 && state.personalityTags.includes("TAG_ON_YOUR_OWN") ? <p className="mt-3 text-pretty text-base leading-7">去年那兩個下午，你都是自己過的。</p> : null}
       {year.year === 1986 && state.personalityTags.includes("TAG_WITH_FAMILY") ? <p className="mt-3 text-pretty text-base leading-7">去年那兩個下午，你都在家裡人旁邊。</p> : null}
       {year.year === 1986 && missedLine(state.missed, "later") ? <p className="mt-3 text-pretty text-base leading-7">{missedLine(state.missed, "later")}</p> : null}
+      {year.year === 1988 && missed1986(state.missed, "later") ? <p className="mt-3 text-pretty text-base leading-7">{missed1986(state.missed, "later")}</p> : null}
       <LifeNow state={state} />
       <Primary onClick={onNext}>用這兩個下午</Primary>
       <button type="button" onClick={onRestart} className="mt-2 min-h-11 w-full text-sm text-ink/70">
@@ -342,6 +345,7 @@ function YearEnd({ state, onNext }: { state: State; onNext: () => void }) {
       <p className="mt-3 text-pretty text-base leading-7">{yearLean(state.derived.VALUE_DREAM, state.derived.VALUE_REALITY)}</p>
       {state.personalityTags.includes("TAG_EMPATHY") ? <p className="mt-3 text-pretty text-base leading-7">這一年，你有時會坐過去，不必人叫。</p> : null}
       {year.year === 1985 && missedLine(state.missed, "now") ? <p className="mt-3 text-pretty text-base leading-7">{missedLine(state.missed, "now")}</p> : null}
+      {year.year === 1986 && missed1986(state.missed, "now") ? <p className="mt-3 text-pretty text-base leading-7">{missed1986(state.missed, "now")}</p> : null}
       {missedGate ? <p className="mt-3 text-sm text-pretty text-ink/70">你還沒走到走廊盡頭。沒有人逼你去。</p> : null}
       <Primary onClick={onNext}>{last ? "看看十年後" : "下一年"}</Primary>
     </Paper>
