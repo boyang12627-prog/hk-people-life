@@ -44,6 +44,10 @@ Automation: content audit is part of `npm run audit:content`. Balance audit is `
 
 Gate 1 要求量度「寫一個事件要幾耐」。人類坐下來寫對白的分鐘數還沒有量。
 
+## 美術
+
+方向在 [docs/ART_BIBLE.md](docs/ART_BIBLE.md)。程式引用 `/scenes/{scene}.jpg`，倉庫裡還沒有這些圖。1985 的視覺直切未做。
+
 ## 檢查
 
 倉庫根目錄的 `package.json` 只登記下面兩條。遊戲邏輯審計只用 Node 內建模組，不必先安裝其他套件。
