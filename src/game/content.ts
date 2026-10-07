@@ -1,5 +1,5 @@
 import { INITIAL_COUNTERS, INITIAL_DERIVED, INITIAL_PRIMARY, type Approach, type BattleKind, type Effect, type SceneId, type State, type Tendency } from "./types";
-import { freshChain } from "./freedom";
+import { freshChain, friendFollow } from "./freedom";
 import { cardFor, choicesFor, STATIC_EVENTS, type Card, type Choice } from "./data/events";
 import { heardNews, newsCold, picked, selectByPriority, type Spoken } from "./speak";
 
@@ -100,7 +100,7 @@ export const YEARS: YearDef[] = [
     calendar: "childhood-afternoon",
     era: "屋邨還是那樣。十月，電視裡有個戴帽子的女人下船。",
     open: "你五歲。爸爸說：「女皇來了。」你不知道女皇是誰。你也開始明白，大人不是不想陪你，是他們也有必須做的事。",
-    events: ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_MARKET_07", "EVT_1986_ECHO_08"],
+    events: ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_MARKET_07", "EVT_1986_ECHO_08", "EVT_1986_FRIEND_09"],
     dailies: ["MINI_86_ESTATE", "MINI_86_TV", "MINI_86_HELP"],
     activities: ["ACT_MARKET", "ACT_PLAY", "ACT_DRAW", "ACT_REST", "ACT_ESTATE"],
   },
@@ -171,6 +171,7 @@ const EVENT_SCENE: Record<string, SceneId> = {
   EVT_1986_FAMILY_06: "home",
   EVT_1986_MARKET_07: "market",
   EVT_1986_ECHO_08: "estate",
+  EVT_1986_FRIEND_09: "corridor",
 };
 
 export function isLastYear(yearIndex: number) {
@@ -200,7 +201,12 @@ export function variantOf(id: string, state: State) {
   if (id === "EVT_1984_NEWS_01") return newsCold(state) ? "cold" : "harmony";
   if (id === "EVT_1984_FAMILY_02") return state.counter.NPC_MOM_STRESS < 20 ? "low_pressure" : "tired";
   if (id === "EVT_1985_FAMILY_03") return heardNews(state) ? "heard" : "plain";
-  if (id === "EVT_1985_FRIEND_04") return state.npc.NPC_FRIEND_01.available ? "known" : "stranger";
+  if (id === "EVT_1985_FRIEND_04") {
+    if (state.flags.includes("FLAG_CURIOUS_SCHOOL") && !state.npc.NPC_FRIEND_01.available) return "observe";
+    if (state.spent.includes("ACT_ESTATE") && !state.spent.includes("ACT_PLAY")) return "podium";
+    return state.npc.NPC_FRIEND_01.available ? "known" : "stranger";
+  }
+  if (id === "EVT_1986_FRIEND_09") return friendFollow(state);
   if (id === "EVT_1986_SKILL_05") return state.derived.INDEPENDENT_THOUGHT >= 50 ? "reflective" : "plain";
   if (id === "EVT_1986_MARKET_07") return state.counter.REL_LOCAL_MARKET < 20 ? "first_meet" : "familiar";
   return "base";
@@ -332,6 +338,10 @@ export function fifteenLines(state: State) {
   if (response === 1) lines.push("你小時候把約定放下，自己去玩了。這天你沒有再等誰。");
   else if (response === 2) lines.push("你答應過他去上班。這天回家，你只應了一聲。");
   else if (response === 3) lines.push("你留下來陪過。這天你也先坐下，再答。");
+  const again = picked(state, "MEM_FRIEND_AGAIN");
+  if (again === "A") lines.push("五歲那年，你還是走向阿傑。");
+  else if (again === "B") lines.push("五歲那年，你看著，沒有馬上加入。");
+  else if (again === "C") lines.push("五歲那年，你又走開了一次。");
   lines.push(...thirdHop(state));
   lines.push("原來你小時候那些選擇，沒有消失。");
   return lines;

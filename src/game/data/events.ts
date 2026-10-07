@@ -1,5 +1,6 @@
 import { grownWord, type SceneId, type State } from "../types";
 import { choice, mem, type Card, type Choice } from "../choice";
+import { friendFollow } from "../freedom";
 import { gapLine, heardNews, newsCold, picked, selectByPriority, type Spoken } from "../speak";
 
 /** One file owns childhood prose. Add an event here; do not add a switch in the reducer. */
@@ -21,6 +22,7 @@ export const CHILDHOOD_EVENT_IDS = [
   "EVT_1986_FAMILY_06",
   "EVT_1986_MARKET_07",
   "EVT_1986_ECHO_08",
+  "EVT_1986_FRIEND_09",
   "EVT_1988_PEN_01",
   "EVT_1988_EXAM_01",
 ] as const;
@@ -269,6 +271,25 @@ export function cardFor(id: string, state: State): Card {
       return { scene: "home", kicker: "1985 · 新聞之後", title: "家裡很靜", lines };
     }
     case "EVT_1985_FRIEND_04": {
+      const podium = state.spent.includes("ACT_ESTATE") && !state.spent.includes("ACT_PLAY");
+      const watching = state.flags.includes("FLAG_CURIOUS_SCHOOL") && !state.npc.NPC_FRIEND_01.available;
+      if (watching) {
+        const where = podium ? "平台" : "課室";
+        return {
+          scene: podium ? "estate" : "kindy",
+          kicker: "1985 · 課室",
+          title: "你站著看",
+          lines: ["你剛才自己走近那個球。這次你沒有再伸手。", `阿傑抱著紅球。你還不正式認識他。你站在${where}看。`],
+        };
+      }
+      if (podium) {
+        return {
+          scene: "estate",
+          kicker: "1985 · 平台",
+          title: "平台上的紅波",
+          lines: ["你下了樓。平台上那個孩子抱著紅球。", "他叫阿傑。", "阿傑：「這個球是我先拿到的！」"],
+        };
+      }
       const school = picked(state, "MEM_FIRST_SCHOOL");
       const lines = state.npc.NPC_FRIEND_01.available
         ? ["課室有個紅球。阿傑抱住不放。", "阿傑：「這個球是我先拿到的！」", "你也想碰。老師走開了。"]
@@ -277,6 +298,22 @@ export function cardFor(id: string, state: State): Card {
       else if (school.startsWith("safe")) lines.unshift("你上次拉著媽媽。今天球在你前面。");
       else if (!state.flags.includes("FLAG_FIRST_SCHOOL")) lines.unshift("你還沒正式進過課室。這個球你沒玩過。");
       return { scene: "kindy", kicker: "1985 · 課室", title: "紅波", lines };
+    }
+    case "EVT_1986_FRIEND_09": {
+      const follow = friendFollow(state);
+      const onPodium = state.spent.includes("ACT_ESTATE");
+      const place = onPodium ? "平台上，阿傑抱著那個紅球。" : "走廊口，阿傑抱著那個紅球。";
+      const lines =
+        follow === "ask"
+          ? [place, "他看你。「你有沒有見過這個？」", "去年你沒碰到它。"]
+          : follow === "wary"
+            ? [place, "他把球抱緊。他記得你不肯放。"]
+            : follow === "invite"
+              ? [place, "他把球放在腳邊。「今次不是搶。你來不來？」"]
+              : follow === "watch"
+                ? [place, "你沒有走過去。你看他們怎麼輪。"]
+                : [place, "去年你站著看過。這次他沒有把球抱那麼緊。"];
+      return { scene: onPodium ? "estate" : "corridor", kicker: "1986 · 阿傑", title: follow === "invite" ? "今次不是搶" : "紅波還在", lines };
     }
     case "EVT_1986_SKILL_05": {
       const lines = [
@@ -524,7 +561,42 @@ export function choicesFor(id: string, state: State): Choice[] {
           mem("MEM_SILENT_NEWS_01", "EVT_1985_FAMILY_03", "C", "NPC_DAD_01", "watch", "你會想多知道一句。多知道一句，有時會累。"),
         ),
       ];
-    case "EVT_1985_FRIEND_04":
+    case "EVT_1985_FRIEND_04": {
+      const watching = state.flags.includes("FLAG_CURIOUS_SCHOOL") && !state.npc.NPC_FRIEND_01.available;
+      const podium = state.spent.includes("ACT_ESTATE") && !state.spent.includes("ACT_PLAY");
+      if (watching) {
+        return [
+          choice(
+            "A",
+            "站著看",
+            "think",
+            { derived: { INDEPENDENT_THOUGHT: 1, STATE_PEACE: 1 } },
+            podium ? "你在平台站著看。球在他手上。你沒有再伸手。" : "你站著看。球在他手上。你沒有再伸手。",
+            mem("MEM_RED_BALL", "EVT_1985_FRIEND_04", "A", "NPC_FRIEND_01", "watch", "你看過那個紅球。你沒有伸手。", 2),
+          ),
+          choice(
+            "B",
+            "問他輪不輪到你",
+            "balance",
+            {
+              npc: { NPC_FRIEND_01: { relation: 4, trust: 3, available: true } },
+              flags: ["FLAG_SHARED_BALL"],
+              skills: ["SKL_05"],
+            },
+            "你問了一句。他想了一下，把球推過來，再要回去。你開始認得他。",
+            mem("MEM_RED_BALL", "EVT_1985_FRIEND_04", "B", "NPC_FRIEND_01", "share", "你後來會說「輪流」。有時你會捨不得，但你會說。", 2),
+          ),
+          choice(
+            "C",
+            "看完就走",
+            "reality",
+            { derived: { STATE_PEACE: 1 }, flags: ["FLAG_AVOID_CONFLICT"] },
+            "你看完就走。他沒有叫你。你和他都還不熟。",
+            mem("MEM_RED_BALL", "EVT_1985_FRIEND_04", "C", "NPC_FRIEND_01", "leave", "你避開爭執。避開之後，有時位子已經有人站了。"),
+          ),
+        ];
+      }
+      const where = podium ? "平台上" : "課室裡";
       return [
         choice(
           "A",
@@ -535,7 +607,7 @@ export function choicesFor(id: string, state: State): Choice[] {
             npc: { NPC_FRIEND_01: { relation: -3, trust: -5 } },
             flags: ["FLAG_TOY_MONOPOLY"],
           },
-          "你搶到球。阿傑站到一邊。你玩得盡興，但他好一陣都沒再叫你。",
+          `你在${where}搶到球。阿傑站到一邊。你玩得盡興，但他好一陣都沒再叫你。`,
           mem("MEM_RED_BALL", "EVT_1985_FRIEND_04", "A", "NPC_FRIEND_01", "hold", "你記得那個紅球。你記得自己曾經不肯放。", 2),
         ),
         choice(
@@ -549,7 +621,7 @@ export function choicesFor(id: string, state: State): Choice[] {
             flags: ["FLAG_SHARED_BALL"],
             skills: ["SKL_05"],
           },
-          "你把球推回給他，再等自己那一輪。你不再一個人霸住球。阿傑開始叫你的名字。",
+          `你在${where}把球推回給他，再等自己那一輪。阿傑開始叫你的名字。`,
           mem("MEM_RED_BALL", "EVT_1985_FRIEND_04", "B", "NPC_FRIEND_01", "share", "你後來會說「輪流」。有時你會捨不得，但你會說。", 2),
         ),
         choice(
@@ -557,10 +629,47 @@ export function choicesFor(id: string, state: State): Choice[] {
           "走開，不要吵",
           "reality",
           { derived: { STATE_PEACE: 1 }, flags: ["FLAG_AVOID_CONFLICT"] },
-          "你走開。球留在他那裡。課室靜了一點，你和他都還不熟。",
+          `你離開${where.slice(0, 2)}。球留在他那裡。你和他都還不熟。`,
           mem("MEM_RED_BALL", "EVT_1985_FRIEND_04", "C", "NPC_FRIEND_01", "leave", "你避開爭執。避開之後，有時位子已經有人站了。"),
         ),
       ];
+    }
+    case "EVT_1986_FRIEND_09": {
+      const follow = friendFollow(state);
+      if (follow === "ask") {
+        return [
+          choice("A", "說沒有見過", "reality", { npc: { NPC_FRIEND_01: { relation: 1, trust: 1 } } }, "你說沒有。他點一下頭，沒有再問。球仍然在他手上。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "A", "NPC_FRIEND_01", "ask", "他問過你有沒有見過那個球。你說沒有。", 2)),
+          choice("B", "問能不能一起玩", "balance", { npc: { NPC_FRIEND_01: { relation: 4, trust: 3, available: true } }, flags: ["FLAG_SHARED_BALL"], skills: ["SKL_05"] }, "你問了一句。他這次沒有把球抱那麼緊。你們輪了一輪。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "B", "NPC_FRIEND_01", "share", "去年沒碰到的球，今年你問過能不能一起玩。", 2)),
+          choice("C", "當沒聽見", "dream", { flags: ["FLAG_AVOID_CONFLICT"], derived: { STATE_PEACE: 1 } }, "你沒有答。他抱著球走了。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "C", "NPC_FRIEND_01", "leave", "他問過你。你沒有答。", 2)),
+        ];
+      }
+      if (follow === "wary") {
+        return [
+          choice("A", "這次讓給他", "reality", { npc: { NPC_FRIEND_01: { relation: 2, trust: 2 } } }, "你沒有伸手。他看了你一陣，球仍然留在他那裡。他沒有走遠。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "A", "NPC_FRIEND_01", "return", "你曾經不肯放的球，這次你沒有再搶。", 2)),
+          choice("B", "再問一次能不能玩", "think", { npc: { NPC_FRIEND_01: { relation: -1 } }, derived: { STATE_STRESS: 1 } }, "你再問。他把球抱得更緊。這一次沒有輪到你。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "B", "NPC_FRIEND_01", "hold", "你又問了一次。他記得你不肯放。", 2)),
+          choice("C", "走開", "dream", { flags: ["FLAG_AVOID_CONFLICT"], derived: { STATE_PEACE: 1 } }, "你走開。他沒有叫你。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "C", "NPC_FRIEND_01", "leave", "他抱緊那個球。你又走開了。", 2)),
+        ];
+      }
+      if (follow === "invite") {
+        return [
+          choice("A", "來", "balance", { npc: { NPC_FRIEND_01: { relation: 3, trust: 2 } }, derived: { STATE_MOOD: 2 } }, "你過去。這一次沒有人搶。球放在腳邊，你們玩的是別的。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "A", "NPC_FRIEND_01", "play", "他問你來不來。你去了。那一次不是搶球。", 2)),
+          choice("B", "只是看", "think", { derived: { INDEPENDENT_THOUGHT: 1, STATE_PEACE: 1 } }, "你看。他玩了一陣，沒有催你。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "B", "NPC_FRIEND_01", "watch", "他問你來不來。你看著，沒有馬上加入。", 2)),
+          choice("C", "今天不想玩", "reality", { derived: { STATE_PEACE: 1 }, npc: { NPC_FRIEND_01: { relation: -1 } } }, "你說今天不玩。他應了一聲，沒有生氣。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "C", "NPC_FRIEND_01", "leave", "他問你來不來。你說今天不玩。", 2)),
+        ];
+      }
+      if (follow === "watch") {
+        return [
+          choice("A", "看完再走", "think", { derived: { INDEPENDENT_THOUGHT: 1, STATE_PEACE: 1 } }, "你看完他們怎麼輪，然後走。沒有人拉你。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "A", "NPC_FRIEND_01", "watch", "你看過別人怎麼輪。你沒有每次都加入。", 2)),
+          choice("B", "問能不能加入", "balance", { npc: { NPC_FRIEND_01: { relation: 3, trust: 2, available: true } }, skills: ["SKL_05"] }, "你問了一句。他們讓出一個位子。你這次加入了。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "B", "NPC_FRIEND_01", "join", "你看了一陣，然後問過能不能加入。", 2)),
+          choice("C", "當作沒看見", "dream", { flags: ["FLAG_AVOID_CONFLICT"], derived: { STATE_MOOD: 1 } }, "你從旁邊走過。球還在轉。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "C", "NPC_FRIEND_01", "leave", "你又從旁邊走過一次。", 2)),
+        ];
+      }
+      return [
+        choice("A", "走過去", "balance", { npc: { NPC_FRIEND_01: { relation: 2, trust: 1, available: true } }, derived: { STATE_MOOD: 1 } }, "你走過去。他沒有把球藏起來。你們沒有搶。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "A", "NPC_FRIEND_01", "meet", "去年你站著看。今年你走過去了。", 2)),
+        choice("B", "還是看著", "think", { derived: { STATE_PEACE: 1, INDEPENDENT_THOUGHT: 1 } }, "你還是看。他看了你一眼，沒有催。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "B", "NPC_FRIEND_01", "watch", "你又看了一年。你沒有馬上加入。", 2)),
+        choice("C", "走開", "reality", { derived: { STATE_PEACE: 1 } }, "你走開。他沒有跟過來。", mem("MEM_FRIEND_AGAIN", "EVT_1986_FRIEND_09", "C", "NPC_FRIEND_01", "leave", "你又走開了一次。", 2)),
+      ];
+    }
     case "EVT_1986_SKILL_05": {
       const list: Choice[] = [
         choice(

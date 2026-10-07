@@ -4,7 +4,7 @@ import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBat
 import { readFileSync, existsSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
 import { slicePlate } from "./art.ts";
-import { produce1985, produce1986, missed1986, missedLine, chainEcho, CHAIN_85_STAGES, MISS_85_FRIEND, MISS_85_MOM, MISS_85_RAIN, NPC_SCHEDULE_1985, REPLAY_MATRIX } from "./freedom.ts";
+import { produce1985, produce1986, missed1986, missedLine, chainEcho, CHAIN_85_STAGES, friendFollow, MISS_85_FRIEND, MISS_85_MOM, MISS_85_RAIN, NPC_SCHEDULE_1985, REPLAY_MATRIX } from "./freedom.ts";
 import { BATTLE_NARRATIVE, battleNarrative } from "./battleNarrative.ts";
 import { BATTLE_SPECS, KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
 import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
@@ -101,8 +101,9 @@ describe("logic audit v3.1", () => {
     state = reducer(state, { type: "settleBattle" });
     state = reducer(state, { type: "ack" });
     assert.equal(state.eventId, "EVT_1985_FRIEND_04");
-    assert.equal(variantOf(state.eventId, state), "stranger");
+    assert.equal(variantOf(state.eventId, state), "observe");
     assert.ok(cardFor(state.eventId, state).lines.join("").includes("還不正式認識"));
+    assert.ok(cardFor(state.eventId, state).lines.join("").includes("沒有再伸手"));
     assert.ok(state.missed.includes(MISS_85_MOM));
     assert.ok(state.missed.includes(MISS_85_RAIN));
     assert.equal(state.missed.includes(MISS_85_FRIEND), false);
@@ -823,13 +824,25 @@ describe("logic audit v3.1", () => {
     }
     assert.ok(cardFor("EVT_1986_FAMILY_06", remember("MEM_DAD_HOME", "A")).lines.join("").includes("回來過"));
     const out = produce1986(["ACT_MARKET", "ACT_ESTATE"]);
-    assert.deepEqual(out.queue, ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_MARKET_07", "MINI_86_HELP", "MINI_86_ESTATE", "EVT_1986_ECHO_08"]);
+    assert.deepEqual(out.queue, ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_MARKET_07", "MINI_86_HELP", "EVT_1986_FRIEND_09", "EVT_1986_ECHO_08"]);
     assert.equal(out.missed.includes("MISS_86_TV"), true);
     const home = produce1986(["ACT_PLAY", "ACT_DRAW"]);
     assert.equal(home.queue.includes("MINI_86_TV"), true);
+    assert.equal(home.queue.includes("EVT_1986_FRIEND_09"), true);
     assert.equal(home.queue.includes("EVT_1986_MARKET_07"), false);
     assert.equal(home.queue[0], "EVT_1986_SKILL_05");
     assert.equal(home.queue.at(-1), "EVT_1986_ECHO_08");
+    const missedHim = { ...freshState(), missed: ["MISS_85_FRIEND"], spent: ["ACT_ESTATE"] };
+    assert.equal(friendFollow(missedHim), "ask");
+    assert.ok(cardFor("EVT_1986_FRIEND_09", missedHim).lines.join("").includes("見過"));
+    const shared = { ...freshState(), flags: ["FLAG_SHARED_BALL"], spent: ["ACT_PLAY"], npc: { ...freshState().npc, NPC_FRIEND_01: { relation: 5, trust: 5, available: true } } };
+    assert.equal(friendFollow(shared), "invite");
+    assert.ok(cardFor("EVT_1986_FRIEND_09", shared).lines.join("").includes("不是搶"));
+    const grabbed = { ...freshState(), flags: ["FLAG_TOY_MONOPOLY"], spent: ["ACT_ESTATE"] };
+    assert.equal(friendFollow(grabbed), "wary");
+    assert.ok(cardFor("EVT_1986_FRIEND_09", grabbed).lines.join("").includes("抱緊"));
+    const podium = cardFor("EVT_1985_FRIEND_04", { ...freshState(), spent: ["ACT_ESTATE", "ACT_REST"] });
+    assert.equal(podium.title, "平台上的紅波");
     assert.ok(missed1986(home.missed, "later").includes("一九八六年"));
     assert.ok(missedLine(played.missed, "later").includes("去年"));
     assert.equal(CHAIN_85_STAGES.length, 5);

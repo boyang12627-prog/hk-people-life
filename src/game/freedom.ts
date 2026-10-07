@@ -1,4 +1,4 @@
-import type { ChainState } from "./types";
+import type { ChainState, State } from "./types";
 
 /** 1985 and 1986. Two afternoons decide which of the existing scenes you get. 1984 and 1988 stay on a fixed queue. */
 
@@ -14,6 +14,7 @@ export const MISS_85_AUNT = "MISS_85_AUNT";
 export const MISS_86_MARKET = "MISS_86_MARKET";
 export const MISS_86_ESTATE = "MISS_86_ESTATE";
 export const MISS_86_TV = "MISS_86_TV";
+export const MISS_86_FRIEND = "MISS_86_FRIEND";
 
 export const MISSED_IDS = [
   MISS_85_MOM,
@@ -26,6 +27,7 @@ export const MISSED_IDS = [
   MISS_86_MARKET,
   MISS_86_ESTATE,
   MISS_86_TV,
+  MISS_86_FRIEND,
 ] as const;
 
 const HOME = ["ACT_PLAY", "ACT_DRAW", "ACT_REST"] as const;
@@ -70,8 +72,9 @@ export function produce1986(spent: readonly string[]) {
   const missed: string[] = [];
   if (spent.includes("ACT_MARKET")) queue.push("EVT_1986_MARKET_07", "MINI_86_HELP");
   else missed.push(MISS_86_MARKET);
-  if (spent.includes("ACT_ESTATE")) queue.push("MINI_86_ESTATE");
-  else missed.push(MISS_86_ESTATE);
+  if (spent.includes("ACT_PLAY") || spent.includes("ACT_ESTATE")) queue.push("EVT_1986_FRIEND_09");
+  else missed.push(MISS_86_FRIEND);
+  if (!spent.includes("ACT_ESTATE")) missed.push(MISS_86_ESTATE);
   if (stayedHome(spent)) queue.push("MINI_86_TV");
   else missed.push(MISS_86_TV);
   queue.push("EVT_1986_ECHO_08");
@@ -83,9 +86,19 @@ export function missed1986(missed: readonly string[], when: "now" | "later") {
   if (missed.includes(MISS_86_MARKET)) bits.push("沒有去街市");
   if (missed.includes(MISS_86_ESTATE)) bits.push("沒有上平台");
   if (missed.includes(MISS_86_TV)) bits.push("沒有留在家看那一次電視");
+  if (missed.includes(MISS_86_FRIEND)) bits.push("沒有再碰到阿傑");
   if (!bits.length) return "";
   if (when === "now") return `今年你${bits.join("，")}。`;
   return `一九八六年你${bits.join("，")}。中間隔了一年，那些事沒有補回來。`;
+}
+
+/** Same person, different life. The afternoon only decides whether you can meet him. */
+export function friendFollow(state: Pick<State, "missed" | "flags" | "npc" | "derived">) {
+  if (state.missed.includes(MISS_85_FRIEND)) return "ask";
+  if (state.flags.includes("FLAG_TOY_MONOPOLY")) return "wary";
+  if (state.flags.includes("FLAG_SHARED_BALL") || state.npc.NPC_FRIEND_01.relation >= 5) return "invite";
+  if (state.flags.includes("FLAG_AVOID_CONFLICT") || state.derived.INDEPENDENT_THOUGHT >= 50) return "watch";
+  return "again";
 }
 
 export function missedLine(missed: readonly string[], when: "now" | "later") {
