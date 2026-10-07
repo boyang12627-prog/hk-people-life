@@ -46,6 +46,8 @@ Gate 1 要求量度「寫一個事件要幾耐」。人類坐下來寫對白的�
 
 ## 檢查
 
+倉庫根目錄的 `package.json` 只登記下面兩條。遊戲邏輯審計只用 Node 內建模組，不必先安裝其他套件。
+
 ```bash
 npm run audit:content
 npm run audit:balance

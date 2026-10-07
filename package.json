@@ -1,0 +1,9 @@
+{
+  "name": "hk-people-life",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "audit:content": "node --import ./scripts/register-ts-ext.mjs --experimental-strip-types --test src/game/logic-audit.test.ts",
+    "audit:balance": "node --import ./scripts/register-ts-ext.mjs --experimental-strip-types scripts/audit-balance.ts"
+  }
+}
