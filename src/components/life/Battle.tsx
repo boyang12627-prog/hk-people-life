@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { resolveAuto } from "@/game/battleBalance";
 import type { BattleSpec } from "@/game/battleSpec";
 import { actionCost, createBattle, resolveTurn, techniqueReady, type BattleAction, type BattleSim } from "@/game/battleSim";
-import type { Approach, BattleKind, BattleOutcome } from "@/game/types";
+import type { Approach, BattleKind, BattleOutcome, Gender } from "@/game/types";
 
 type Props = {
   spec: BattleSpec;
@@ -16,10 +16,11 @@ type Props = {
   stressResist: number;
   attack: number;
   held?: string;
+  gender: Gender | null;
   onEnd: (outcome: BattleOutcome) => void;
 };
 
-export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearSpeed, stressResist, attack, held, onEnd }: Props) {
+export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearSpeed, stressResist, attack, held, gender, onEnd }: Props) {
   const stabilize = skills.includes(spec.skills.stabilize);
   const seeId = spec.techniques.see;
   const see = techniques.includes(seeId);
@@ -69,11 +70,21 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
   const locked = Boolean(sim.over) || reportedRef.current;
   const entered = sim.over === "win" || sim.over === "perfect";
 
+  const who = gender === "boy" ? "boy" : "girl";
+  const kindy = spec.scene === "kindy";
+  const src = kindy
+    ? entered
+      ? `/art/1985/inside-${who}.jpg`
+      : sim.round >= 4 || sim.threat.heavy
+        ? `/art/1985/pressure-${who}.jpg`
+        : `/art/1985/door-${who}.jpg`
+    : `/scenes/${spec.scene}.jpg`;
+
   return (
     <div className="flex flex-col gap-3" data-round={tick}>
       <div className="overflow-hidden rounded-2xl border border-line/40">
-        <div className="relative h-40 bg-bg sm:h-52">
-          <img src={`/scenes/${spec.scene}.jpg`} alt="" className="h-full w-full object-cover" />
+        <div className={`relative bg-bg ${kindy ? "h-56 sm:h-72" : "h-40 sm:h-52"}`}>
+          <img src={src} alt="" className="h-full w-full object-cover" />
         </div>
         <div className="grid gap-3 bg-paper px-4 py-3 text-ink">
           <div>

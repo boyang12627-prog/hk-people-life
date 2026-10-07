@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBattle, initiativeFor, resolveTurn } from "./battleSim.ts";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
+import { slicePlate } from "./art.ts";
 import { BATTLE_NARRATIVE, battleNarrative } from "./battleNarrative.ts";
 import { BATTLE_SPECS, KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
 import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
@@ -791,6 +792,13 @@ describe("logic audit v3.1", () => {
     const engineSrc = readFileSync(new URL("./engine.ts", import.meta.url), "utf8");
     assert.equal(engineSrc.includes('id === "BTL_PRIMARY_EXAM"'), false);
     assert.match(engineSrc, /settlement === "exam"/);
+    for (const name of ["cast.jpg", "door-girl.jpg", "door-boy.jpg", "pressure-girl.jpg", "pressure-boy.jpg", "inside-girl.jpg", "inside-boy.jpg", "later-girl.jpg", "later-boy.jpg", "memory.jpg"]) {
+      assert.equal(existsSync(new URL(`../../public/art/1985/${name}`, import.meta.url)), true, name);
+    }
+    assert.equal(slicePlate({ year: 1985, scene: "kindy", gender: "girl" }), "/art/1985/door-girl.jpg");
+    assert.equal(slicePlate({ year: 1986, scene: "estate", gender: "boy" }), "/art/1985/later-boy.jpg");
+    assert.equal(slicePlate({ year: 1984, scene: "home", gender: "girl" }), null);
+    assert.equal(slicePlate({ year: 1988, scene: "study", gender: "girl" }), null);
   });
 });
 

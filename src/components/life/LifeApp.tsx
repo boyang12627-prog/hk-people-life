@@ -16,6 +16,7 @@ import {
   yearLean,
   yearOf,
 } from "@/game/content";
+import { MEMORY_BALL, slicePlate } from "@/game/art";
 import { battleNarrative } from "@/game/battleNarrative";
 import { battleSpecById } from "@/game/battleSpec";
 import { gearAttack, gearSpeed, gearStressResist } from "@/game/catalog";
@@ -94,6 +95,7 @@ export function LifeApp() {
           stressResist={gearStressResist(state.equipped)}
           attack={gearAttack(state.equipped)}
           held={heldLine(state)}
+          gender={state.gender}
           onEnd={(outcome) => {
             playTone(outcome.kind === "fail" || outcome.kind === "bad" ? "hit" : "good");
             dispatch({ type: "battleEnd", outcome });
@@ -215,8 +217,9 @@ function GenderPick({ onPick }: { onPick: (gender: Gender, name: string) => void
 
 function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => void; onRestart: () => void }) {
   const year = yearOf(state);
+  const plate = slicePlate({ year: year.year, scene: year.scene, gender: state.gender });
   return (
-    <Paper scene={year.scene} kicker={String(year.year)} title={year.title}>
+    <Paper scene={year.scene} plate={plate} kicker={String(year.year)} title={year.title}>
       <p className="text-pretty text-base leading-7">{year.era}</p>
       <p className="mt-3 text-pretty text-base leading-7">{year.open}</p>
       {state.name ? <p className="mt-3 text-pretty text-base leading-7">別人叫你{state.name}。</p> : null}
@@ -260,8 +263,10 @@ function Activities({ state, onPick }: { state: State; onPick: (id: string) => v
 function EventCard({ state, onChoose }: { state: State; onChoose: (choice: ReturnType<typeof choicesFor>[number]) => void }) {
   const card = cardFor(state.eventId ?? "", state);
   const choices = choicesFor(state.eventId ?? "", state);
+  const year = yearOf(state);
+  const plate = slicePlate({ year: year.year, scene: card.scene, gender: state.gender });
   return (
-    <Paper scene={card.scene} kicker={card.kicker} title={card.title}>
+    <Paper scene={card.scene} plate={plate} kicker={card.kicker} title={card.title}>
       {card.lines.map((line) => (
         <p key={line} className="mt-2 text-pretty text-base leading-7 first:mt-0">
           {line}
@@ -283,8 +288,9 @@ function EventCard({ state, onChoose }: { state: State; onChoose: (choice: Retur
 function BattleResult({ state, onRetry, onSettle }: { state: State; onRetry: () => void; onSettle: () => void }) {
   const copy = battleNarrative(state.battleSpecId);
   const retry = canRetry(state);
+  const plate = copy.scene === "kindy" ? slicePlate({ year: 1985, scene: "kindy", gender: state.gender, battle: retry ? "door" : "inside" }) : null;
   return (
-    <Paper scene={copy.scene} kicker={copy.kicker} title={retry ? copy.retryTitle : copy.title}>
+    <Paper scene={copy.scene} plate={plate} kicker={copy.kicker} title={retry ? copy.retryTitle : copy.title}>
       <p className="text-pretty text-base leading-7">{copy.text(state.battle?.kind ?? "fail", state.approach ?? "safe")}</p>
       {retry ? <p className="mt-3 text-sm text-pretty text-ink/70">{copy.retryNote}</p> : null}
       {retry ? <Primary onClick={onRetry}>再試一次</Primary> : null}
@@ -322,13 +328,17 @@ function YearEnd({ state, onNext }: { state: State; onNext: () => void }) {
 
 function Fifteen({ state, onAct }: { state: State; onAct: () => void }) {
   const act = fifteenAct(state);
+  const echo = state.memories.some((item) => item.id === "MEM_FIRST_SCHOOL");
   return (
     <Paper scene="home" kicker="1996 · 十五歲" title="自己回家">
-      {fifteenLines(state).map((line) => (
-        <p key={line} className="mt-2 text-pretty text-base leading-7 first:mt-0">
-          {line}
-        </p>
-      ))}
+      <div className="relative">
+        {echo ? <img src={MEMORY_BALL} alt="" className="pointer-events-none float-right mb-2 ml-3 h-24 w-24 rounded-lg object-cover opacity-50" /> : null}
+        {fifteenLines(state).map((line) => (
+          <p key={line} className="mt-2 text-pretty text-base leading-7 first:mt-0">
+            {line}
+          </p>
+        ))}
+      </div>
       <Primary onClick={onAct}>{act.label}</Primary>
     </Paper>
   );
@@ -401,10 +411,10 @@ const SENSE: Record<SceneId, string> = {
   study: "課室的風扇響著。卷子已經翻開，時鐘在黑板旁邊。",
 };
 
-function Paper({ scene, kicker, title, children }: { scene: SceneId; kicker: string; title: string; children: ReactNode }) {
+function Paper({ scene, plate, kicker, title, children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; children: ReactNode }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-line/40">
-      <img src={`/scenes/${scene}.jpg`} alt="" className="h-16 w-full object-cover" />
+      <img src={plate ?? `/scenes/${scene}.jpg`} alt="" className={plate ? "h-52 w-full object-cover sm:h-64" : "h-16 w-full object-cover"} />
       <div className="bg-paper px-4 py-3 text-ink">
         <p className="text-xs text-ink/60">{SENSE[scene]}</p>
         <p className="mt-2 text-xs tracking-wide text-ink/60">{kicker}</p>
