@@ -257,15 +257,27 @@ function openYear(state: State): State {
 function pickActivity(state: State, id: string): State {
   const activity = ACTIVITIES[id];
   if (!activity || state.apLeft <= 0 || state.spent.includes(id)) return state;
-  const applied = applyEffect(state, activity.effect);
+  const year = yearOf(state).year;
+  const saturday = state.spent.length === 0;
+  const momThere = id === "ACT_MARKET" && ((year !== 1985 && year !== 1986) || saturday);
+  const base = applyEffect(state, activity.effect);
+  const applied = momThere
+    ? applyEffect(base.state, { counter: { REL_LOCAL_MARKET: 5, NPC_MOM_STRESS: -3 }, npc: { NPC_MOM_01: { trust: 1 } } })
+    : base;
+  const blurb =
+    id === "ACT_MARKET" && momThere
+      ? "你拉著媽媽。那天地面很濕，魚檔的水滲進鞋子。"
+      : id === "ACT_MARKET"
+        ? "你去了街市。地面很濕，魚檔的水滲進鞋子。媽媽不在。"
+        : activity.blurb;
   return {
     ...applied.state,
     phase: "note",
     apLeft: state.apLeft - 1,
     spent: [...state.spent, id],
-    note: activity.blurb,
+    note: blurb,
     noteScene: activity.scene,
-    result: { text: activity.blurb, deltas: applied.deltas, skills: applied.skills },
+    result: { text: blurb, deltas: applied.deltas, skills: applied.skills },
   };
 }
 

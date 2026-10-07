@@ -15,6 +15,10 @@ export function placeOf(activity: string): Place {
   return "home";
 }
 
+export function slotIs(spent: readonly string[], day: Day, activity: string) {
+  return spent[day === "sat" ? 0 : 1] === activity;
+}
+
 export const WORLD_1985 = {
   sat: [
     { npcId: "NPC_MOM_01", place: "market", eventId: "EVT_1985_FAMILY_03" },
@@ -52,4 +56,22 @@ export function collide(day: Day, activity: string, world: World, rainEvent: str
   if (found.length) return found;
   if (rainEvent && world.weather[day] === "rain" && place === "estate") return [rainEvent];
   return ["MINI_QUIET"];
+}
+
+/** Empty afternoons only. One card must not pretend the other afternoon was empty too. */
+export function quietCopy(spent: readonly string[], year: number): { scene: Place; lines: string[] } | null {
+  const world = year === 1986 ? WORLD_1986 : WORLD_1985;
+  const rain = year === 1985 ? "MINI_85_RAIN" : null;
+  const places: Place[] = [];
+  (["sat", "sun"] as const).forEach((day) => {
+    const activity = spent[day === "sat" ? 0 : 1] ?? "";
+    const found = collide(day, activity, world, rain);
+    if (found.length === 1 && found[0] === "MINI_QUIET") places.push(placeOf(activity));
+  });
+  if (!places.length) return null;
+  const lines =
+    places.length >= 2
+      ? ["這兩個下午，你去了的地方都沒有人。", "你坐了一陣。一隻雀飛過。然後你回家。"]
+      : ["這個下午，你去了的地方沒有人。", "你坐了一陣。一隻雀飛過。然後你回家。"];
+  return { scene: places[0], lines };
 }

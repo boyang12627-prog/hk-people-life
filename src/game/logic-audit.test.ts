@@ -847,8 +847,15 @@ describe("logic audit v3.1", () => {
     const grabbed = { ...freshState(), flags: ["FLAG_TOY_MONOPOLY"], spent: ["ACT_ESTATE"] };
     assert.equal(friendFollow(grabbed), "wary");
     assert.ok(cardFor("EVT_1986_FRIEND_09", grabbed).lines.join("").includes("抱緊"));
-    const podium = cardFor("EVT_1985_FRIEND_04", { ...freshState(), spent: ["ACT_ESTATE", "ACT_REST"] });
+    const podium = cardFor("EVT_1985_FRIEND_04", { ...freshState(), spent: ["ACT_ESTATE", "ACT_PLAY"] });
     assert.equal(podium.title, "平台上的紅波");
+    assert.equal(podium.scene, "estate");
+    const sundayPodium = produce1986(["ACT_PLAY", "ACT_ESTATE"]);
+    assert.equal(sundayPodium.missed.includes("MISS_86_ESTATE"), false);
+    assert.equal(sundayPodium.missed.includes("MISS_86_FRIEND"), true);
+    const bothEmpty = cardFor("MINI_QUIET", { ...freshState(), yearIndex: 2, spent: ["ACT_PLAY", "ACT_MARKET"] });
+    assert.ok(bothEmpty.lines.join("").includes("這兩個下午"));
+    assert.equal(cardFor("MINI_85_DAD", freshState()).lines.join("").includes("兩個下午你都在家"), false);
     assert.ok(missed1986(home.missed, "later").includes("一九八六年"));
     assert.ok(missedLine(played.missed, "later").includes("去年"));
     assert.equal(CHAIN_85_STAGES.length, 5);

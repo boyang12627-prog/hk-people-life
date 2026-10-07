@@ -1,6 +1,7 @@
 import { grownWord, type SceneId, type State } from "../types";
 import { choice, mem, type Card, type Choice } from "../choice";
 import { friendFollow } from "../freedom";
+import { quietCopy, slotIs } from "../world";
 import { gapLine, heardNews, newsCold, picked, selectByPriority, type Spoken } from "../speak";
 
 /** One file owns childhood prose. Add an event here; do not add a switch in the reducer. */
@@ -74,7 +75,7 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
     scene: "home",
     kicker: "日常 · 1985",
     title: "下大雨",
-    lines: ["下大雨，平台去不了。", "外面一片白，看不見對面。屋裡只有一部風扇和你。"],
+    lines: ["你下了樓。下大雨。", "平台沒有人。對面看不見。你站了一陣，然後回家。"],
     choices: [
       choice("A", "畫畫", "dream", { derived: { VALUE_DREAM: 2, STATE_MOOD: 1 }, counter: { ART_PROGRESS: 1 } }, "雨下得很大。你把紙塗到邊上都有顏色。"),
       choice("B", "聽收音機", "think", { derived: { VALUE_REALITY: 1, INDEPENDENT_THOUGHT: 1, STATE_PEACE: 1 }, counter: { MIND_PROGRESS: 1 } }, "收音機轉台，有人講，有人唱。你不明白，但你聽著。你記住那個節奏。"),
@@ -98,7 +99,7 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
     scene: "home",
     kicker: "日常 · 1985",
     title: "爸爸回來",
-    lines: ["兩個下午你都在家。門開了。", "爸爸把鞋子脫在門口。他還沒去沖涼。"],
+    lines: ["星期日你在家。門開了。", "爸爸把鞋子脫在門口。他還沒去沖涼。"],
     choices: [
       choice(
         "A",
@@ -226,6 +227,11 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
 export const DAILY_STATIC_IDS = ["MINI_84_TOY", "MINI_85_RAIN", "MINI_85_GRANDMA", "MINI_85_DAD", "MINI_85_TV", "MINI_QUIET", "MINI_86_ESTATE", "MINI_86_TV", "MINI_86_HELP"] as const;
 
 export function cardFor(id: string, state: State): Card {
+  if (id === "MINI_QUIET") {
+    const year = state.yearIndex === 2 ? 1986 : 1985;
+    const copy = quietCopy(state.spent, year);
+    if (copy) return { scene: copy.scene, kicker: "日常", title: "沒有人在", lines: copy.lines };
+  }
   const staticEvt = STATIC_EVENTS[id];
   if (staticEvt) return renderStatic(staticEvt).card;
   const gender = state.gender ?? "girl";
@@ -284,7 +290,7 @@ export function cardFor(id: string, state: State): Card {
       return { scene: "home", kicker: "1985 · 新聞之後", title: "家裡很靜", lines };
     }
     case "EVT_1985_FRIEND_04": {
-      const podium = state.spent.includes("ACT_ESTATE") && !state.spent.includes("ACT_PLAY");
+      const podium = slotIs(state.spent, "sat", "ACT_ESTATE");
       const watching = state.flags.includes("FLAG_CURIOUS_SCHOOL") && !state.npc.NPC_FRIEND_01.available;
       if (watching) {
         const where = podium ? "平台" : "課室";
@@ -314,7 +320,7 @@ export function cardFor(id: string, state: State): Card {
     }
     case "EVT_1986_FRIEND_09": {
       const follow = friendFollow(state);
-      const onPodium = state.spent.includes("ACT_ESTATE");
+      const onPodium = slotIs(state.spent, "sat", "ACT_ESTATE");
       const place = onPodium ? "平台上，阿傑抱著那個紅球。" : "走廊口，阿傑抱著那個紅球。";
       const lines =
         follow === "ask"
@@ -576,7 +582,7 @@ export function choicesFor(id: string, state: State): Choice[] {
       ];
     case "EVT_1985_FRIEND_04": {
       const watching = state.flags.includes("FLAG_CURIOUS_SCHOOL") && !state.npc.NPC_FRIEND_01.available;
-      const podium = state.spent.includes("ACT_ESTATE") && !state.spent.includes("ACT_PLAY");
+      const podium = slotIs(state.spent, "sat", "ACT_ESTATE");
       if (watching) {
         return [
           choice(

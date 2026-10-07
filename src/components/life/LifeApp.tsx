@@ -247,11 +247,12 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
 
 function Activities({ state, onPick }: { state: State; onPick: (id: string) => void }) {
   const year = yearOf(state);
+  const timed = year.year === 1985 || year.year === 1986;
   return (
-    <Paper scene={year.scene} kicker="今年" title="這兩個下午">
-      <p className="text-sm text-ink/70">先過星期六，再過星期日。兩天不要做同一件事。</p>
+    <Paper scene={year.scene} kicker="今年" title={timed ? "這兩個下午" : "今天怎麼過"}>
+      <p className="text-sm text-ink/70">{timed ? "先過星期六，再過星期日。兩天不要做同一件事。" : "兩個下午要不同。選完，其他事才來。"}</p>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        {["星期六下午", "星期日下午"].map((label, slot) => {
+        {(timed ? ["星期六下午", "星期日下午"] : ["第一個下午", "第二個下午"]).map((label, slot) => {
           const id = state.spent[slot];
           const activity = id ? ACTIVITIES[id] : null;
           return (
@@ -262,7 +263,7 @@ function Activities({ state, onPick }: { state: State; onPick: (id: string) => v
           );
         })}
       </div>
-      {year.year === 1985 || year.year === 1986 ? <p className="mt-3 text-sm text-pretty text-ink/70">人已經在某個地方。你去了，才碰得上。碰不上的那個下午，就什麼都沒有。</p> : null}
+      {timed ? <p className="mt-3 text-sm text-pretty text-ink/70">人已經在某個地方。你去了，才碰得上。自己玩、塗鴉、休息，都是留在家。</p> : null}
       <div className="mt-3 flex flex-col gap-2">
         {year.activities.map((id) => {
           const activity = ACTIVITIES[id];

@@ -64,7 +64,7 @@ export function produce1986(spent: readonly string[]) {
   pushUnique(queue, collide("sun", spent[1] ?? "", WORLD_1986, null));
   if (!queue.includes("EVT_1986_MARKET_07")) missed.push(MISS_86_MARKET);
   if (!queue.includes("EVT_1986_FRIEND_09")) missed.push(MISS_86_FRIEND);
-  if (placeOf(spent[0] ?? "") !== "estate") missed.push(MISS_86_ESTATE);
+  if (placeOf(spent[0] ?? "") !== "estate" && placeOf(spent[1] ?? "") !== "estate") missed.push(MISS_86_ESTATE);
   if (!queue.includes("MINI_86_TV")) missed.push(MISS_86_TV);
   queue.push("EVT_1986_ECHO_08");
   return { queue, missed };

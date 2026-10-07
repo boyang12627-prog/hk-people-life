@@ -1,5 +1,6 @@
 import { INITIAL_COUNTERS, INITIAL_DERIVED, INITIAL_PRIMARY, type Approach, type BattleKind, type Effect, type SceneId, type State, type Tendency } from "./types";
 import { freshChain, friendFollow } from "./freedom";
+import { slotIs } from "./world";
 import { cardFor, choicesFor, STATIC_EVENTS, type Card, type Choice } from "./data/events";
 import { heardNews, newsCold, picked, selectByPriority, type Spoken } from "./speak";
 
@@ -122,10 +123,10 @@ export const ACTIVITIES: Record<string, { id: string; label: string; detail: str
   ACT_MARKET: {
     id: "ACT_MARKET",
     label: "陪媽媽去街市",
-    detail: "跟著出門買菜。慢，但你會見到街坊。",
-    blurb: "你拉著媽媽。那天地面很濕，魚檔的水滲進鞋子。阿姨開始認得你。",
+    detail: "去街市。誰在，要到了才知道。",
+    blurb: "你去了街市。地面很濕，魚檔的水滲進鞋子。",
     scene: "market",
-    effect: { counter: { REL_LOCAL_MARKET: 5, NPC_MOM_STRESS: -3, MIND_PROGRESS: 1 }, derived: { STATE_MOOD: 2, VALUE_REALITY: 1 }, npc: { NPC_MOM_01: { trust: 1 } } },
+    effect: { derived: { STATE_MOOD: 2, VALUE_REALITY: 1 }, counter: { MIND_PROGRESS: 1 } },
   },
   ACT_PLAY: {
     id: "ACT_PLAY",
@@ -154,8 +155,8 @@ export const ACTIVITIES: Record<string, { id: string; label: string; detail: str
   ACT_ESTATE: {
     id: "ACT_ESTATE",
     label: "去平台",
-    detail: "下樓。可以去平台，不要出街口。",
-    blurb: "平台有其他孩子。你沒有出到街上，不過你離開了家門。",
+    detail: "下樓到平台。不要出街口。",
+    blurb: "你下了樓，到了平台。你沒有出到街上。",
     scene: "estate",
     effect: { counter: { COUNTER_EXPLORE: 1 }, derived: { STATE_MOOD: 2, STATE_STRESS: 1 }, primary: { STAT_VIT: 1 } },
   },
@@ -203,7 +204,7 @@ export function variantOf(id: string, state: State) {
   if (id === "EVT_1985_FAMILY_03") return heardNews(state) ? "heard" : "plain";
   if (id === "EVT_1985_FRIEND_04") {
     if (state.flags.includes("FLAG_CURIOUS_SCHOOL") && !state.npc.NPC_FRIEND_01.available) return "observe";
-    if (state.spent.includes("ACT_ESTATE") && !state.spent.includes("ACT_PLAY")) return "podium";
+    if (slotIs(state.spent, "sat", "ACT_ESTATE")) return "podium";
     return state.npc.NPC_FRIEND_01.available ? "known" : "stranger";
   }
   if (id === "EVT_1986_FRIEND_09") return friendFollow(state);
