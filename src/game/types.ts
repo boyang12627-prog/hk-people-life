@@ -139,6 +139,7 @@ export type Phase =
   | "repair"
   | "explore-offer"
   | "year-end"
+  | "story"
   | "fifteen"
   | "ending";
 

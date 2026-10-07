@@ -1,5 +1,7 @@
 import { ACTIVITIES, battleStory, buildQueue, examStory, fifteenAct, knownEventIds, knownMemoryChoice, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
 import { MISSED_IDS, produce1985, produce1986, advanceChain, afternoonTags, freshChain } from "./freedom";
+import { beat1985, isBeat } from "./story";
+import { WORLD_1985, collide } from "./world";
 import { BATTLE_SPECS, battleSpecById, battleSpecFor } from "./battleSpec";
 import {
   clamp,
@@ -196,11 +198,18 @@ export function reducer(state: State, action: Action): State {
     case "gender":
       return openYear({ ...state, gender: action.gender, name: action.name.trim().slice(0, 8), yearIndex: 0 });
     case "toActivities":
+      if (yearOf(state).year === 1985 && state.phase === "year" && state.spent.length === 0) {
+        return { ...state, phase: "story", note: "open", eventId: null, result: null };
+      }
       return finishEcho({ ...state, phase: "activities" });
     case "activity":
       return pickActivity(state, action.id);
     case "ack":
+      if (state.phase === "story") return advanceStory(state);
       if (state.phase === "note") {
+        if (yearOf(state).year === 1985 && (state.spent.length === 1 || state.spent.length === 2)) {
+          return begin1985Day(state, state.spent.length === 1 ? "sat" : "sun");
+        }
         if (state.apLeft > 0) return { ...state, phase: "activities", note: null };
         return openNext(produceIfNeeded({ ...state, note: null }));
       }
@@ -470,6 +479,40 @@ function exploreOffer(state: State, go: boolean): State {
   };
 }
 
+function advanceStory(state: State): State {
+  if (state.note === "open") return { ...state, phase: "activities", note: null };
+  if (state.note === "sat-night") return { ...state, phase: "activities", note: null, apLeft: 1 };
+  if (state.note === "sun-night") return { ...state, phase: "story", note: "monday", result: null };
+  if (state.note === "monday") return { ...state, phase: "event", eventId: "EVT_1985_SCHOOL_01", note: null, queue: [], result: null };
+  if (state.note === "aftermath") return yearEnd({ ...state, note: null });
+  return yearEnd(state);
+}
+
+function begin1985Day(state: State, day: "sat" | "sun"): State {
+  const world = {
+    sat: [...WORLD_1985.sat, { npcId: "TV", place: "home" as const, eventId: "MINI_85_TV" }],
+    sun: [...WORLD_1985.sun, { npcId: "TV", place: "home" as const, eventId: "MINI_85_TV" }],
+    weather: WORLD_1985.weather,
+  };
+  const activity = state.spent[day === "sat" ? 0 : 1] ?? "";
+  let ids = collide(day, activity, world, "MINI_85_RAIN");
+  if (day === "sun") {
+    const earlier = collide("sat", state.spent[0] ?? "", world, "MINI_85_RAIN");
+    ids = ids.filter((id) => id === "MINI_QUIET" || !earlier.includes(id));
+  }
+  let missed = state.missed;
+  let personalityTags = state.personalityTags;
+  let chain = state.chain;
+  if (day === "sat" && chain.stage < 1) chain = { ...chain, stage: 1, status: "active" };
+  if (day === "sun") {
+    const produced = produce1985(state.spent);
+    missed = [...missed];
+    for (const id of produced.missed) if (!missed.includes(id)) missed.push(id);
+    for (const tag of afternoonTags(state.spent)) if (!personalityTags.includes(tag)) personalityTags = [...personalityTags, tag];
+  }
+  return openNext({ ...state, queue: ids, missed, personalityTags, chain, note: null, result: null });
+}
+
 function openChain(state: State, year: number): State["chain"] {
   if (year === 1985 && state.chain.stage === 0) return { ...state.chain, status: "available" };
   if (year === 1986 && state.chain.stage === 4 && state.chain.status === "delayed") return { ...state.chain, status: "recovered" };
@@ -508,7 +551,16 @@ function openNext(state: State): State {
     queue.shift();
     return { ...state, phase: "event", queue, eventId: id, result: null, note: null, noteScene: null };
   }
-  return yearEnd({ ...state, queue });
+  return after1985(state);
+}
+
+function after1985(state: State): State {
+  if (yearOf(state).year !== 1985) return yearEnd({ ...state, queue: [] });
+  const school = state.memories.some((item) => item.eventId === "EVT_1985_SCHOOL_01");
+  if (school) return { ...state, phase: "story", note: "aftermath", queue: [], eventId: null, result: null };
+  if (state.spent.length === 1) return { ...state, phase: "story", note: "sat-night", queue: [], eventId: null, result: null };
+  if (state.spent.length === 2) return { ...state, phase: "story", note: "sun-night", queue: [], eventId: null, result: null };
+  return yearEnd({ ...state, queue: [] });
 }
 
 function yearEnd(state: State): State {
@@ -691,7 +743,7 @@ export function canRetry(state: State) {
   return state.battleTries < 1 && (kind === "fail" || kind === "bad");
 }
 
-const PHASES = new Set(["title", "gender", "year", "activities", "note", "event", "battle", "battle-result", "result", "repair", "explore-offer", "year-end", "fifteen", "ending"]);
+const PHASES = new Set(["title", "gender", "year", "activities", "note", "event", "battle", "battle-result", "result", "repair", "explore-offer", "year-end", "story", "fifteen", "ending"]);
 const SCENES = new Set(["home", "kindy", "corridor", "market", "estate", "study"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -889,6 +941,7 @@ function reconcile(state: State): State {
     next = { ...next, phase: next.eventId && yearIds.has(next.eventId) ? "event" : "year" };
   }
   if (next.phase === "explore-offer" && next.yearIndex !== 2) next = { ...next, phase: "year", eventId: null };
+  if (next.phase === "story" && !isBeat(next.note)) next = { ...next, phase: "year", note: null };
   if (next.phase === "year") next = { ...next, eventId: null, apLeft: 2 };
   if (next.phase === "activities") next = { ...next, apLeft: clamp(Math.min(next.apLeft, Math.max(0, 2 - next.spent.length)), 0, 2) };
   return next;

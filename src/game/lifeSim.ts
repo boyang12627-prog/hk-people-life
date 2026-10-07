@@ -36,6 +36,7 @@ function stepLife(state: State, seed: number, step: number, policy: LifePolicy, 
   if (state.phase === "title") return reducer(state, { type: "begin" });
   if (state.phase === "gender") return reducer(state, { type: "gender", gender: "girl", name: "" });
   if (state.phase === "year") return reducer(state, { type: "toActivities" });
+  if (state.phase === "story") return reducer(state, { type: "ack" });
   if (state.phase === "activities") {
     const id = yearOf(state).activities.find((item) => !state.spent.includes(item));
     if (!id) return state;
@@ -81,7 +82,7 @@ export function simulateLife(seed: number, policy: LifePolicy = "mix") {
   let state = reducer(freshState(seed), { type: "gender", gender: seed % 2 === 0 ? "girl" : "boy", name: "" });
   const seen: string[] = [];
   let steps = 0;
-  while (state.phase !== "ending" && steps < 160) {
+  while (state.phase !== "ending" && steps < 220) {
     const next = stepLife(state, seed, steps, policy, seen);
     if (next === state) break;
     state = next;
@@ -95,7 +96,7 @@ export function runChildhood(style: ChildhoodStyle) {
   let state = reducer(freshState(1), { type: "gender", gender: "girl", name: "" });
   const seen: string[] = [];
   let steps = 0;
-  while (state.phase !== "ending" && steps < 220) {
+  while (state.phase !== "ending" && steps < 260) {
     const year = yearOf(state).year;
     const plan = PLAN[style][year];
     let next = state;

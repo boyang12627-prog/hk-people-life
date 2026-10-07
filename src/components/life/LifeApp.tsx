@@ -18,6 +18,7 @@ import {
 } from "@/game/content";
 import { MEMORY_BALL, slicePlate } from "@/game/art";
 import { chainEcho, missed1986, missedLine } from "@/game/freedom";
+import { beat1985, isBeat } from "@/game/story";
 import { battleNarrative } from "@/game/battleNarrative";
 import { battleSpecById } from "@/game/battleSpec";
 import { gearAttack, gearSpeed, gearStressResist } from "@/game/catalog";
@@ -67,6 +68,7 @@ export function LifeApp() {
         />
       ) : null}
       {state.phase === "year" ? <YearOpen state={state} onNext={() => { tap(); dispatch({ type: "toActivities" }); }} onRestart={() => dispatch({ type: "restart" })} /> : null}
+      {state.phase === "story" && isBeat(state.note) ? <StoryBeat state={state} beat={state.note} onNext={() => { tap(); dispatch({ type: "ack" }); }} /> : null}
       {state.phase === "activities" ? (
         <Activities
           state={state}
@@ -156,6 +158,7 @@ export function LifeApp() {
 
 function hasBody(state: State) {
   if (state.phase === "title" || state.phase === "gender" || state.phase === "year" || state.phase === "activities") return true;
+  if (state.phase === "story") return isBeat(state.note);
   if (state.phase === "explore-offer" || state.phase === "year-end" || state.phase === "fifteen" || state.phase === "ending") return true;
   if (state.phase === "note" || state.phase === "result" || state.phase === "repair") return !!state.result;
   if (state.phase === "event") return !!state.eventId;
@@ -237,10 +240,24 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
       {year.year === 1986 && missedLine(state.missed, "later") ? <p className="mt-3 text-pretty text-base leading-7">{missedLine(state.missed, "later")}</p> : null}
       {year.year === 1988 && missed1986(state.missed, "later") ? <p className="mt-3 text-pretty text-base leading-7">{missed1986(state.missed, "later")}</p> : null}
       <LifeNow state={state} />
-      <Primary onClick={onNext}>用這兩個下午</Primary>
+      <Primary onClick={onNext}>{year.year === 1985 ? "星期六還沒到" : "用這兩個下午"}</Primary>
       <button type="button" onClick={onRestart} className="mt-2 min-h-11 w-full text-sm text-ink/70">
         從頭開始
       </button>
+    </Paper>
+  );
+}
+
+function StoryBeat({ state, beat, onNext }: { state: State; beat: Parameters<typeof beat1985>[0]; onNext: () => void }) {
+  const page = beat1985(beat, state);
+  return (
+    <Paper scene={page.scene} kicker={page.kicker} title={page.title}>
+      {page.lines.map((line) => (
+        <p key={line} className="mt-3 text-pretty text-base leading-7 first:mt-0">
+          {line}
+        </p>
+      ))}
+      <Primary onClick={onNext}>{beat === "aftermath" ? "這一年就這樣" : "繼續"}</Primary>
     </Paper>
   );
 }

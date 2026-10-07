@@ -23,8 +23,10 @@ function run(state: State, actions: Action[]) {
 }
 
 function spend(state: State, ids: string[]) {
-  let next = reducer(state, { type: "toActivities" });
+  let next = state.phase === "activities" || state.phase === "story" ? state : reducer(state, { type: "toActivities" });
+  if (next.phase === "story" && next.note === "open") next = reducer(next, { type: "ack" });
   for (const id of ids) {
+    if (next.phase !== "activities") break;
     next = reducer(next, { type: "activity", id });
     next = reducer(next, { type: "ack" });
   }
@@ -58,14 +60,7 @@ describe("logic audit v3.1", () => {
     state = reducer(state, { type: "ack" });
     assert.equal(state.phase, "year-end");
     state = reducer(state, { type: "nextYear" });
-    state = spend(state, ["ACT_MARKET", "ACT_REST"]);
-    assert.equal(state.eventId, "EVT_1985_SCHOOL_01");
-    assert.ok(cardFor(state.eventId, state).lines.join("").includes("還有力氣"));
-    state = chooseId(state, "B");
-    assert.equal(state.skills.includes("SKL_01"), true);
-    assert.equal(state.npc.NPC_FRIEND_01.available, false);
-    state = reducer(state, { type: "settleBattle" });
-    state = reducer(state, { type: "ack" });
+    state = spend(state, ["ACT_MARKET"]);
     assert.equal(state.eventId, "EVT_1985_FAMILY_03");
     assert.equal(variantOf(state.eventId, state), "plain");
     const card = cardFor(state.eventId, state).lines.join("");
@@ -74,6 +69,18 @@ describe("logic audit v3.1", () => {
     state = chooseId(state, "A");
     assert.equal(state.result?.text.includes("頭先講過將來"), false);
     assert.equal(state.memories.find((item) => item.id === "MEM_SILENT_NEWS_01")?.variant, "plain");
+    state = reducer(state, { type: "ack" });
+    while (state.phase === "story") state = reducer(state, { type: "ack" });
+    state = reducer(state, { type: "activity", id: "ACT_REST" });
+    state = reducer(state, { type: "ack" });
+    while (state.phase === "event") {
+      state = chooseId(state, "A");
+      state = reducer(state, { type: "ack" });
+    }
+    while (state.phase === "story" && state.note !== "monday") state = reducer(state, { type: "ack" });
+    if (state.note === "monday") state = reducer(state, { type: "ack" });
+    assert.equal(state.eventId, "EVT_1985_SCHOOL_01");
+    assert.ok(cardFor(state.eventId, state).lines.join("").includes("還有力氣"));
   });
 
   it("playing alone both afternoons makes the news cold", () => {
@@ -94,19 +101,27 @@ describe("logic audit v3.1", () => {
     state = chooseId(state, "A");
     state = reducer(state, { type: "ack" });
     state = reducer(state, { type: "nextYear" });
-    state = spend(state, ["ACT_ESTATE", "ACT_DRAW"]);
+    state = spend(state, ["ACT_DRAW"]);
+    while (state.phase === "event") {
+      state = chooseId(state, "A");
+      state = reducer(state, { type: "ack" });
+    }
+    while (state.phase === "story") state = reducer(state, { type: "ack" });
+    state = reducer(state, { type: "activity", id: "ACT_REST" });
+    state = reducer(state, { type: "ack" });
+    while (state.phase === "event") {
+      state = chooseId(state, "A");
+      state = reducer(state, { type: "ack" });
+    }
+    while (state.phase === "story" && state.note !== "monday") state = reducer(state, { type: "ack" });
+    if (state.phase === "story") state = reducer(state, { type: "ack" });
+    assert.equal(state.eventId, "EVT_1985_SCHOOL_01");
     state = chooseId(state, "C");
     assert.equal(state.skills.includes("SKL_01"), false);
     assert.equal(state.npc.NPC_FRIEND_01.available, false);
-    state = reducer(state, { type: "settleBattle" });
-    state = reducer(state, { type: "ack" });
-    assert.equal(state.eventId, "EVT_1985_FRIEND_04");
-    assert.equal(variantOf(state.eventId, state), "observe");
-    assert.ok(cardFor(state.eventId, state).lines.join("").includes("還不正式認識"));
-    assert.ok(cardFor(state.eventId, state).lines.join("").includes("沒有再伸手"));
     assert.ok(state.missed.includes(MISS_85_MOM));
+    assert.ok(state.missed.includes(MISS_85_FRIEND));
     assert.ok(state.missed.includes(MISS_85_RAIN));
-    assert.equal(state.missed.includes(MISS_85_FRIEND), false);
   });
 
   it("explore fallback cannot skip the gate, and declining is explicit", () => {
@@ -860,18 +875,30 @@ describe("logic audit v3.1", () => {
     assert.ok(missedLine(played.missed, "later").includes("去年"));
     assert.equal(CHAIN_85_STAGES.length, 5);
     let chain = reducer({ ...freshState(3), phase: "year", yearIndex: 1 }, { type: "toActivities" });
-    chain = spend(chain, ["ACT_ESTATE", "ACT_DRAW"]);
+    chain = spend(chain, ["ACT_ESTATE"]);
     assert.equal(chain.chain.stage, 1);
-    assert.ok(chain.personalityTags.includes("TAG_ON_YOUR_OWN"));
-    chain = chooseId(chain, "A");
-    chain = reducer(chain, { type: "settleBattle" });
-    chain = reducer(chain, { type: "ack" });
+    assert.equal(chain.eventId, "EVT_1985_FRIEND_04");
     chain = chooseId(chain, "B");
     chain = reducer(chain, { type: "ack" });
+    while (chain.phase === "story") chain = reducer(chain, { type: "ack" });
+    chain = reducer(chain, { type: "activity", id: "ACT_DRAW" });
+    chain = reducer(chain, { type: "ack" });
+    assert.ok(chain.personalityTags.includes("TAG_ON_YOUR_OWN"));
     while (chain.phase === "event") {
       chain = chooseId(chain, "A");
       chain = reducer(chain, { type: "ack" });
     }
+    while (chain.phase === "story" && chain.note !== "monday") chain = reducer(chain, { type: "ack" });
+    if (chain.phase === "story") chain = reducer(chain, { type: "ack" });
+    assert.equal(chain.eventId, "EVT_1985_SCHOOL_01");
+    chain = chooseId(chain, "A");
+    chain = reducer(chain, { type: "settleBattle" });
+    chain = reducer(chain, { type: "ack" });
+    while (chain.phase === "event" || chain.phase === "result") {
+      if (chain.phase === "event") chain = chooseId(chain, "A");
+      chain = reducer(chain, { type: "ack" });
+    }
+    if (chain.phase === "story") chain = reducer(chain, { type: "ack" });
     assert.equal(chain.phase, "year-end");
     assert.equal(chain.chain.stage, 4);
     assert.equal(chain.chain.status, "delayed");
