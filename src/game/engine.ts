@@ -287,6 +287,7 @@ function choose(state: State, choice: Choice): State {
     next = { ...next, counter: { ...next.counter, PLAYER_DAD_CHOICE_RESPONSE: response } };
   }
   if (choice.battle) {
+    if (!choice.specId) console.error(`[battle] ${state.eventId ?? "event"} choice ${choice.id} has no specId; using kindergarten door`);
     return {
       ...next,
       phase: "battle",

@@ -5,7 +5,7 @@ Status: Vertical Slice
 Human Playtest: NOT DONE
 Automation: content audit is part of `npm run audit:content`. Balance audit is `npm run audit:balance` and is not claimed here unless you just ran it.
 
-1984–1986 仍然是幼年主線。1988 只加一場測驗，用來證明裝備和招式會改戰鬥，不是新的長篇。
+1984–1986 仍然是幼年主線，一年兩個下午。1988 的日曆是 `prototype-slice`：它借用兩個下午，只為了跑通筆、招式和測驗。這不是小學正式時間。正式小學尚未做，到時是一學期、3 AP。不要把 1988 這年抄去 1989。
 
 ## 這一版真正接上的
 
@@ -31,7 +31,8 @@ Automation: content audit is part of `npm run audit:content`. Balance audit is `
 - `designTendency` 只供內容和測試記錄，不改數值。
 - 存檔會丟掉未知事件、未知技能、未知 flag、目錄以外的裝備和招式。
 - 幼稚園戰鬥 gate：三種 approach 在 steady + tidy + read 不能低過 20%。大考這份規格 `gated: false`，不拿幼稚園的數字當它的關卡。
-- 戰鬥決定：一份 engine，多份 spec。幼稚園是 `KINDY_DOOR`。1988 測驗是 `PRIMARY_EXAM`。
+- 戰鬥決定：一份 engine，多份 spec。幼稚園是 `KINDY_DOOR`。1988 測驗是 `PRIMARY_EXAM`。規格不讀結局句子。結局句子在 `battleNarrative.ts`。
+- 戰鬥編號寫錯時，玩家仍會進幼稚園門口，畫面不會當掉。`npm run audit:content` 會因為這個編號失敗。
 
 ## 未做
 

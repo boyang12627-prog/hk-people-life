@@ -49,12 +49,16 @@ export const DERIVED_LABEL = {
   INDEPENDENT_THOUGHT: "自己想",
 } as const;
 
+/** childhood-afternoon is the current childhood year: two afternoons. prototype-slice borrows that shape for 1988 only. It is not primary school. Official primary school, not built, is one semester and 3 AP. */
+export type YearCalendar = "childhood-afternoon" | "prototype-slice";
+
 type YearDef = {
   year: number;
   age: number;
   scene: SceneId;
   /** Year-open title. The screen does not guess this from the year number. */
   title: string;
+  calendar: YearCalendar;
   era: string;
   open: string;
   events: string[];
@@ -68,6 +72,7 @@ export const YEARS: YearDef[] = [
     age: 3,
     scene: "home",
     title: "飯桌",
+    calendar: "childhood-afternoon",
     era: "十二月。飯桌那部電視開著。畫面裡很遠的人在握手，大人沒有告訴你那是什麼。",
     open: "你三歲。碗裡有魚。大人低聲說話。",
     events: ["EVT_1984_NEWS_01", "EVT_1984_FAMILY_02"],
@@ -79,6 +84,7 @@ export const YEARS: YearDef[] = [
     age: 4,
     scene: "kindy",
     title: "門口",
+    calendar: "childhood-afternoon",
     era: "大人有時會安靜一下。你知道自己要去幼稚園。",
     open: "你四歲。媽媽說門口有其他小朋友。你還不知道自己進不進得去。",
     events: ["EVT_1985_SCHOOL_01", "EVT_1985_FAMILY_03", "EVT_1985_FRIEND_04"],
@@ -90,6 +96,7 @@ export const YEARS: YearDef[] = [
     age: 5,
     scene: "corridor",
     title: "走廊",
+    calendar: "childhood-afternoon",
     era: "屋邨還是那樣。十月，電視裡有個戴帽子的女人下船。",
     open: "你五歲。爸爸說：「女皇來了。」你不知道女皇是誰。你也開始明白，大人不是不想陪你，是他們也有必須做的事。",
     events: ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_MARKET_07", "EVT_1986_ECHO_08"],
@@ -101,6 +108,7 @@ export const YEARS: YearDef[] = [
     age: 7,
     scene: "study",
     title: "書桌",
+    calendar: "prototype-slice",
     era: "小學。測驗紙發下來的時候，課室很靜。",
     open: "你七歲。老師說今天要寫一張卷。你還不知道自己寫不寫得完。",
     events: ["EVT_1988_PEN_01", "EVT_1988_EXAM_01"],

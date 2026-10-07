@@ -3,7 +3,7 @@ import { BATTLE_SPECS } from "../src/game/battleSpec.ts";
 import { DAILY_STATIC_IDS, renderStatic, STATIC_EVENTS } from "../src/game/data/events.ts";
 import { runLives } from "../src/game/lifeSim.ts";
 
-const lives = runLives(1000);
+console.log("battle audit v3.1");
 console.log(`lives n=${lives.n} ended=${lives.ended} stuck=${JSON.stringify(lives.stuck)}`);
 console.log(`events ${lives.events.join(" ")}`);
 

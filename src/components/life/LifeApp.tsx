@@ -16,6 +16,7 @@ import {
   yearLean,
   yearOf,
 } from "@/game/content";
+import { battleNarrative } from "@/game/battleNarrative";
 import { battleSpecById } from "@/game/battleSpec";
 import { gearAttack, gearSpeed, gearStressResist } from "@/game/catalog";
 import { canRetry, freshState, loadState, reducer, saveState } from "@/game/engine";
@@ -280,7 +281,7 @@ function EventCard({ state, onChoose }: { state: State; onChoose: (choice: Retur
 }
 
 function BattleResult({ state, onRetry, onSettle }: { state: State; onRetry: () => void; onSettle: () => void }) {
-  const copy = battleSpecById(state.battleSpecId).result;
+  const copy = battleNarrative(state.battleSpecId);
   const retry = canRetry(state);
   return (
     <Paper scene={copy.scene} kicker={copy.kicker} title={retry ? copy.retryTitle : copy.title}>

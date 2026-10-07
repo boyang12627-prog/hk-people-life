@@ -3,7 +3,8 @@ import { describe, it } from "node:test";
 import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBattle, initiativeFor, resolveTurn } from "./battleSim.ts";
 import { readFileSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
-import { battleSpecById, KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
+import { BATTLE_NARRATIVE, battleNarrative } from "./battleNarrative.ts";
+import { BATTLE_SPECS, KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
 import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
 import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, ledgerSummary, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
 import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, isLastYear, knownEventIds, lifeVoice, sceneFor, variantOf, yearLean, yearOf, YEARS } from "./content.ts";
@@ -32,7 +33,7 @@ function chooseId(state: State, id: string) {
   return reducer(state, { type: "choose", choice });
 }
 
-describe("logic audit v2.4", () => {
+describe("logic audit v3.1", () => {
   it("news C is not remembered as heard", () => {
     let state = run(freshState(1), [{ type: "gender", gender: "girl", name: "阿澄" }]);
     state = spend(state, ["ACT_REST", "ACT_MARKET"]);
@@ -762,12 +763,27 @@ describe("logic audit v2.4", () => {
       { type: "settleBattle" },
     );
     assert.equal(failed.result?.text.includes("幼稚園"), false);
-    assert.equal(battleSpecById("BTL_PRIMARY_EXAM").result.retryNote.includes("幼稚園"), false);
-    assert.ok(battleSpecById("BTL_KINDY_DOOR").result.retryNote.includes("幼稚園明天仍然開"));
+    assert.equal(battleNarrative("BTL_PRIMARY_EXAM").retryNote.includes("幼稚園"), false);
+    assert.ok(battleNarrative("BTL_KINDY_DOOR").retryNote.includes("幼稚園明天仍然開"));
     assert.ok(choicesFor("EVT_1988_PEN_01", freshState()).find((item) => item.id === "A")?.result.includes("你問他是不是他的"));
     const ui = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
     assert.equal(ui.includes("小時候那三年"), false);
     assert.equal(ui.includes("yearIndex >= 2"), false);
+    const specIds = BATTLE_SPECS.map((spec) => spec.id).sort();
+    assert.deepEqual(Object.keys(BATTLE_NARRATIVE).sort(), specIds);
+    assert.equal(YEARS.filter((year) => year.calendar === "prototype-slice").map((year) => year.year).join(","), "1988");
+    for (const year of YEARS) {
+      if (year.year <= 1986) assert.equal(year.calendar, "childhood-afternoon");
+    }
+    for (const eventId of knownEventIds()) {
+      for (const choice of choicesFor(eventId, freshState())) {
+        if (!choice.battle) continue;
+        assert.ok(choice.specId && specIds.includes(choice.specId), `${eventId} ${choice.id} ${choice.specId ?? "missing"}`);
+      }
+    }
+    const specSrc = readFileSync(new URL("./battleSpec.ts", import.meta.url), "utf8");
+    assert.equal(specSrc.includes("battleStory"), false);
+    assert.equal(specSrc.includes("examStory"), false);
   });
 });
 

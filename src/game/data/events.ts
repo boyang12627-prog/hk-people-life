@@ -426,6 +426,8 @@ export function choicesFor(id: string, state: State): Choice[] {
           "你開了口。球還在別人手上，但有人看過你。",
           undefined,
           "social",
+          undefined,
+          "BTL_KINDY_DOOR",
         ),
         choice(
           "B",
@@ -440,6 +442,8 @@ export function choicesFor(id: string, state: State): Choice[] {
           "你還沒走。媽媽的手還在你這裡。老師記住你慢熱。你跟著老師讀了兩個字。",
           undefined,
           "safe",
+          undefined,
+          "BTL_KINDY_DOOR",
         ),
         choice(
           "C",
@@ -453,6 +457,8 @@ export function choicesFor(id: string, state: State): Choice[] {
           "你沒有打招呼，也還沒跟著老師讀。你走近那個球。課室吵了一點。",
           undefined,
           "curious",
+          undefined,
+          "BTL_KINDY_DOOR",
         ),
       ];
     case "EVT_1985_FAMILY_03":

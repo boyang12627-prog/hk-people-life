@@ -5,8 +5,7 @@
  * Costs stay in BATTLE_COST. Effects stay shared until a fight needs its own numbers.
  * This file does not copy the cost table.
  */
-import type { Approach, BattleKind, SceneId } from "./types";
-import { battleStory, examStory } from "./content";
+import type { Approach, SceneId } from "./types";
 
 export type BattleAxis = "attack" | "defense" | "speed" | "stressResist" | "technique";
 
@@ -16,17 +15,6 @@ export type Threat = { stress: number; hp: number; heavy: boolean; hint: string;
 export type EnemyPattern = {
   id: string;
   threatFor: (round: number) => Threat;
-};
-
-export type BattleResultCopy = {
-  scene: SceneId;
-  kicker: string;
-  title: string;
-  retryTitle: string;
-  retryNote: string;
-  continueLabel: string;
-  homeLabel: string;
-  text: (kind: BattleKind, approach: Approach) => string;
 };
 
 export type ActionLine = {
@@ -91,8 +79,6 @@ export type BattleSpec = {
   /** Catalog fight. Numbers are shared with other specs. Do not gate on this. */
   gated: boolean;
   enemyPattern: EnemyPattern;
-  /** What the player reads after the fight. The screen does not guess the year. */
-  result: BattleResultCopy;
   voice: {
     walk: ActionLine;
     guard: ActionLine;
@@ -131,16 +117,6 @@ export const KINDY_DOOR: BattleSpec = {
   axes: ["speed", "stressResist"],
   gated: true,
   enemyPattern: KINDY_SEPARATION,
-  result: {
-    scene: "kindy",
-    kicker: "1985 · 第一日",
-    title: "門口",
-    retryTitle: "今天沒進去",
-    retryNote: "可以再試一次。再進不去，就回家。幼稚園明天仍然開。",
-    continueLabel: "繼續",
-    homeLabel: "今天回家",
-    text: (kind, approach) => battleStory(kind, approach).text,
-  },
   voice: {
     walk: { label: "向前行", detail: "不耗氣力，走近一步", hint: "你向前走一步。" },
     guard: { label: "停下呼吸", detail: "這一聲小一半", hint: "你停下呼吸。" },
@@ -196,16 +172,6 @@ export const PRIMARY_EXAM: BattleSpec = {
   axes: ["speed", "attack", "technique"],
   gated: false,
   enemyPattern: PRIMARY_EXAM_PRESSURE,
-  result: {
-    scene: "study",
-    kicker: "1988 · 測驗",
-    title: "卷子",
-    retryTitle: "這張還沒完",
-    retryNote: "可以再寫一次。再寫不完，就交上去。明天還有課。",
-    continueLabel: "繼續",
-    homeLabel: "先交上去",
-    text: (kind) => examStory(kind).text,
-  },
   voice: {
     walk: { label: "落筆", detail: "不耗氣力，做下一題", hint: "你做下一題。" },
     guard: { label: "停一停", detail: "這一分鐘沒那麼趕", hint: "你停一停。" },
@@ -241,9 +207,15 @@ export const PRIMARY_EXAM: BattleSpec = {
 
 export const BATTLE_SPECS = [KINDY_DOOR, PRIMARY_EXAM];
 
-/** The choice names the fight. Event id is only a fallback for an old save that never stored one. */
+/** Player-safe. Null means no fight is stored. A typo still opens the kindergarten door, and logs. Audit rejects the typo. */
 export function battleSpecById(id: string | null | undefined) {
-  return BATTLE_SPECS.find((spec) => spec.id === id) ?? KINDY_DOOR;
+  if (!id) return KINDY_DOOR;
+  const found = BATTLE_SPECS.find((spec) => spec.id === id);
+  if (!found) {
+    console.error(`[battle] unknown spec ${id}; using kindergarten door`);
+    return KINDY_DOOR;
+  }
+  return found;
 }
 
 export function battleSpecFor(eventId: string | null) {
