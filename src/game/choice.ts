@@ -17,6 +17,8 @@ export type Choice = {
     echo: string;
   };
   battle?: Approach;
+  /** Which fight this choice starts. Absent means the kindergarten door. */
+  specId?: string;
   repair?: boolean;
 };
 
@@ -36,8 +38,9 @@ export function choice(
   memory?: Choice["memory"],
   battle?: Approach,
   repair?: boolean,
+  specId?: string,
 ): Choice {
-  return { id, label, designTendency: tendency, effect, result, memory, battle, repair };
+  return { id, label, designTendency: tendency, effect, result, memory, battle, repair, specId };
 }
 
 export function mem(

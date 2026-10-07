@@ -3,11 +3,11 @@ import { Battle } from "@/components/life/Battle";
 import { playRoom, playTone, unlockAudio } from "@/components/life/audio";
 import {
   ACTIVITIES,
-  battleStory,
   cardFor,
   choicesFor,
   fifteenLines,
   fifteenAct,
+  isLastYear,
   lifeVoice,
   orientationLine,
   PRIMARY_LABEL,
@@ -16,7 +16,7 @@ import {
   yearLean,
   yearOf,
 } from "@/game/content";
-import { battleSpecFor } from "@/game/battleSpec";
+import { battleSpecById } from "@/game/battleSpec";
 import { gearAttack, gearSpeed, gearStressResist } from "@/game/catalog";
 import { canRetry, freshState, loadState, reducer, saveState } from "@/game/engine";
 import { driveSp, spiritHp, type Gender, type SceneId, type State } from "@/game/types";
@@ -82,7 +82,7 @@ export function LifeApp() {
       {state.phase === "event" && state.eventId ? <EventCard state={state} onChoose={(choice) => { tap(); dispatch({ type: "choose", choice }); }} /> : null}
       {state.phase === "battle" && state.approach ? (
         <Battle
-          spec={battleSpecFor(state.eventId)}
+          spec={battleSpecById(state.battleSpecId)}
           approach={state.approach}
           hp={spiritHp(state.primary, state.approach === "safe" ? 5 : 0)}
           sp={driveSp(state.primary, state.derived.STATE_MOOD)}
@@ -163,7 +163,7 @@ function hasBody(state: State) {
 function Top({ state }: { state: State }) {
   const year = state.phase === "title" || state.phase === "gender" || state.phase === "ending" || state.phase === "fifteen" ? null : yearOf(state);
   const showAp = state.phase === "activities" || state.phase === "year";
-  const stamp = state.phase === "fifteen" ? "1996 · 15 歲" : year ? `${year.year} · ${year.age} 歲` : "1984–1986";
+  const stamp = state.phase === "fifteen" ? "1996 · 15 歲" : year ? `${year.year} · ${year.age} 歲` : "1984–1988";
   return (
     <header className="mb-3 flex items-end justify-between gap-3">
       <div>
@@ -177,8 +177,8 @@ function Top({ state }: { state: State }) {
 
 function Title({ onStart }: { onStart: () => void }) {
   return (
-    <Paper scene="estate" kicker="幼年" title="小時候那三年">
-      <p className="text-pretty text-base leading-7">一九八四到一九八六。你在屋邨長大。你一路在選，過了這三年，才看見自己變成誰。</p>
+    <Paper scene="estate" kicker="1984–1988" title="小時候那幾年">
+      <p className="text-pretty text-base leading-7">一九八四到一九八六，你在屋邨長大。一九八八，你坐到書桌前。那不是新的一整年，只是一張測驗紙。你一路在選，才看見自己變成誰。</p>
       <Primary onClick={onStart}>開始</Primary>
     </Paper>
   );
@@ -214,9 +214,8 @@ function GenderPick({ onPick }: { onPick: (gender: Gender, name: string) => void
 
 function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => void; onRestart: () => void }) {
   const year = yearOf(state);
-  const title = year.year === 1984 ? "飯桌" : year.year === 1985 ? "門口" : "走廊";
   return (
-    <Paper scene={year.scene} kicker={String(year.year)} title={title}>
+    <Paper scene={year.scene} kicker={String(year.year)} title={year.title}>
       <p className="text-pretty text-base leading-7">{year.era}</p>
       <p className="mt-3 text-pretty text-base leading-7">{year.open}</p>
       {state.name ? <p className="mt-3 text-pretty text-base leading-7">別人叫你{state.name}。</p> : null}
@@ -281,15 +280,15 @@ function EventCard({ state, onChoose }: { state: State; onChoose: (choice: Retur
 }
 
 function BattleResult({ state, onRetry, onSettle }: { state: State; onRetry: () => void; onSettle: () => void }) {
-  const story = battleStory(state.battle?.kind ?? "fail", state.approach ?? "safe");
+  const copy = battleSpecById(state.battleSpecId).result;
   const retry = canRetry(state);
   return (
-    <Paper scene="kindy" kicker="1985 · 第一日" title={retry ? "今天沒進去" : "門口"}>
-      <p className="text-pretty text-base leading-7">{story.text}</p>
-      {retry ? <p className="mt-3 text-sm text-pretty text-ink/70">可以再試一次。再進不去，就回家。幼稚園明天仍然開。</p> : null}
+    <Paper scene={copy.scene} kicker={copy.kicker} title={retry ? copy.retryTitle : copy.title}>
+      <p className="text-pretty text-base leading-7">{copy.text(state.battle?.kind ?? "fail", state.approach ?? "safe")}</p>
+      {retry ? <p className="mt-3 text-sm text-pretty text-ink/70">{copy.retryNote}</p> : null}
       {retry ? <Primary onClick={onRetry}>再試一次</Primary> : null}
       <button type="button" onClick={onSettle} className="mt-2 min-h-12 w-full rounded-xl border border-line text-base text-ink">
-        {retry ? "今天回家" : "繼續"}
+        {retry ? copy.homeLabel : copy.continueLabel}
       </button>
     </Paper>
   );
@@ -298,9 +297,9 @@ function BattleResult({ state, onRetry, onSettle }: { state: State; onRetry: () 
 function YearEnd({ state, onNext }: { state: State; onNext: () => void }) {
   const year = yearOf(state);
   const memories = state.memories.filter((item) => item.year === year.year);
-  const last = state.yearIndex >= 2;
+  const last = isLastYear(state.yearIndex);
   const hasGate = memories.some((item) => item.id === "MEM_FIRST_INDEPENDENCE");
-  const missedGate = last && !hasGate && state.counter.COUNTER_EXPLORE < 2;
+  const missedGate = year.year === 1986 && !hasGate && state.counter.COUNTER_EXPLORE < 2;
   return (
     <Paper scene="home" kicker={`${year.year} 完`} title="你記住了">
       {memories.length === 0 ? <p className="text-base leading-7">這一年沒有什麼特別的事。</p> : null}

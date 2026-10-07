@@ -145,11 +145,11 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
     choices: [
       choice(
         "A",
-        "交給坐你旁邊的人",
+        "拿去問坐你旁邊的人",
         "reality",
         { npc: { NPC_FRIEND_01: { trust: 2, relation: 2 } }, skills: ["SKL_13"], equipment: ["EQP_BALLPOINT"] },
-        "你交還給他。他說這支是多出來的，你拿去用。筆芯有一點深。",
-        mem("MEM_BALLPOINT", "EVT_1988_PEN_01", "A", "NPC_FRIEND_01", "kept", "同學說這支是多出來的。你拿去寫了那張卷。"),
+        "你問他是不是他的。他搖頭，說這支是多出來的。「你拿去用啦。」筆芯有一點深。",
+        mem("MEM_BALLPOINT", "EVT_1988_PEN_01", "A", "NPC_FRIEND_01", "kept", "你問過他是不是他的。他說這支是多出來的，你拿去用。"),
       ),
       choice("B", "放回地上", "balance", { derived: { STATE_PEACE: 1 } }, "你沒有撿。筆還在那裡。你上了樓。"),
       choice(
@@ -168,9 +168,9 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
     title: "紙反過來了",
     lines: ["老師把紙反過來。", "你聽見筆尖。你還不知道自己寫不寫得完。"],
     choices: [
-      choice("A", "由第一題開始寫", "reality", {}, "你由第一題寫。後面的題，你還沒看。", undefined, "safe"),
-      choice("B", "先看整張卷", "think", {}, "你先翻到最後一頁。題很多。", undefined, "curious"),
-      choice("C", "看看旁邊的人", "dream", {}, "旁邊有人已經在寫。你要自己落筆。", undefined, "social"),
+      choice("A", "由第一題開始寫", "reality", {}, "你由第一題寫。後面的題，你還沒看。", undefined, "safe", undefined, "BTL_PRIMARY_EXAM"),
+      choice("B", "先看整張卷", "think", {}, "你先翻到最後一頁。題很多。", undefined, "curious", undefined, "BTL_PRIMARY_EXAM"),
+      choice("C", "看看旁邊的人", "dream", {}, "旁邊有人已經在寫。你要自己落筆。", undefined, "social", undefined, "BTL_PRIMARY_EXAM"),
     ],
   },
 };

@@ -162,6 +162,8 @@ export type State = {
   noteScene: SceneId | null;
   result: ResultView | null;
   approach: Approach | null;
+  /** Which BattleSpec is in progress. The result screen reads this, not a hardcoded year. */
+  battleSpecId: string | null;
   battleTries: number;
   battle: BattleOutcome | null;
   offeredExplore: boolean;

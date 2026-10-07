@@ -1,5 +1,5 @@
 import { ACTIVITIES, battleStory, buildQueue, examStory, fifteenAct, knownEventIds, knownMemoryChoice, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
-import { battleSpecFor } from "./battleSpec";
+import { BATTLE_SPECS, battleSpecById, battleSpecFor } from "./battleSpec";
 import {
   clamp,
   COUNTER_RANGE,
@@ -119,6 +119,7 @@ export function freshState(seed = 198401): State {
     noteScene: null,
     result: null,
     approach: null,
+    battleSpecId: null,
     battleTries: 0,
     battle: null,
     offeredExplore: false,
@@ -290,6 +291,7 @@ function choose(state: State, choice: Choice): State {
       ...next,
       phase: "battle",
       approach: choice.battle,
+      battleSpecId: choice.specId ?? "BTL_KINDY_DOOR",
       battleTries: 0,
       battle: null,
       result: { text: choice.result, deltas: applied.deltas, skills: applied.skills },
@@ -310,7 +312,7 @@ function onBattleEnd(state: State, outcome: BattleOutcome): State {
 }
 
 function settleBattle(state: State): State {
-  if (battleSpecFor(state.eventId).id === "BTL_PRIMARY_EXAM") return settleExam(state);
+  if (battleSpecById(state.battleSpecId).id === "BTL_PRIMARY_EXAM") return settleExam(state);
   const approach: Approach = state.approach ?? "safe";
   const kind = state.battle?.kind ?? "fail";
   const story = battleStory(kind, approach);
@@ -336,6 +338,7 @@ function settleBattle(state: State): State {
   return {
     ...withMemory,
     phase: "result",
+    battleSpecId: null,
     result: {
       text: story.text,
       deltas: [...(prior?.deltas ?? []), ...applied.deltas],
@@ -370,6 +373,7 @@ function settleExam(state: State): State {
   return {
     ...withMemory,
     phase: "result",
+    battleSpecId: null,
     result: {
       text: story.text,
       deltas: [...(prior?.deltas ?? []), ...applied.deltas],
@@ -392,6 +396,7 @@ function repair(state: State, talk: boolean): State {
   return {
     ...applied.state,
     phase: "result",
+    battleSpecId: null,
     result: {
       text,
       deltas: [...(prior?.deltas ?? []), ...applied.deltas],
@@ -424,6 +429,7 @@ function exploreOffer(state: State, go: boolean): State {
       memories: upsertMemory(applied.state.memories, record),
       offeredExplore: true,
       phase: "result",
+      battleSpecId: null,
       result: { text: "你留在家裡。走到走廊盡頭才會發生的事，你自己選了不去。", deltas: applied.deltas, skills: [] },
     };
   }
@@ -436,6 +442,7 @@ function exploreOffer(state: State, go: boolean): State {
     ...applied.state,
     offeredExplore: false,
     phase: "result",
+    battleSpecId: null,
     result: {
       text: enough ? "你再下了一次平台。走到屋邨門口，接著那件事才發生。" : "你下了一次平台。還差一次，才走到屋邨門口。沒有人逼你再去。",
       deltas: applied.deltas,
@@ -785,6 +792,7 @@ export function validateState(raw: Record<string, unknown>): State | null {
     noteScene: typeof raw.noteScene === "string" && SCENES.has(raw.noteScene) ? (raw.noteScene as State["noteScene"]) : null,
     result: savedResult(raw),
     approach: raw.approach === "social" || raw.approach === "safe" || raw.approach === "curious" ? raw.approach : null,
+    battleSpecId: typeof raw.battleSpecId === "string" && BATTLE_SPECS.some((spec) => spec.id === raw.battleSpecId) ? raw.battleSpecId : null,
     battleTries: typeof raw.battleTries === "number" && Number.isFinite(raw.battleTries) ? clamp(Math.floor(raw.battleTries), BATTLE_TRIES_RANGE.min, BATTLE_TRIES_RANGE.max) : 0,
     battle:
       isRecord(raw.battle) && (raw.battle.kind === "perfect" || raw.battle.kind === "win" || raw.battle.kind === "fail" || raw.battle.kind === "bad")
@@ -812,6 +820,9 @@ function reconcile(state: State): State {
   }
   if ((next.phase === "battle" || next.phase === "battle-result") && !next.approach) {
     next = { ...next, phase: next.eventId && yearIds.has(next.eventId) ? "event" : "year" };
+  }
+  if ((next.phase === "battle" || next.phase === "battle-result") && !next.battleSpecId) {
+    next = { ...next, battleSpecId: battleSpecFor(next.eventId).id };
   }
   if ((next.phase === "result" || next.phase === "note" || next.phase === "repair") && !next.result) {
     next = { ...next, phase: next.eventId && yearIds.has(next.eventId) ? "event" : "year" };

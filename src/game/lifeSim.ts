@@ -1,5 +1,5 @@
 import { resolveAuto } from "./battleBalance";
-import { battleSpecFor } from "./battleSpec";
+import { battleSpecById } from "./battleSpec";
 import { gearAttack, gearSpeed, gearStressResist } from "./catalog";
 import { createBattle } from "./battleSim";
 import type { Choice } from "./choice";
@@ -33,7 +33,7 @@ function stepLife(state: State, seed: number, step: number, policy: LifePolicy, 
     return reducer(state, { type: "choose", choice });
   }
   if (state.phase === "battle" && state.approach) {
-    const spec = battleSpecFor(state.eventId);
+    const spec = battleSpecById(state.battleSpecId);
     const battle = createBattle({
       approach: state.approach,
       hp: spiritHp(state.primary, state.approach === "safe" ? 5 : 0),

@@ -3,10 +3,10 @@ import { describe, it } from "node:test";
 import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBattle, initiativeFor, resolveTurn } from "./battleSim.ts";
 import { readFileSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
-import { KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
+import { battleSpecById, KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
 import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
 import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, ledgerSummary, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
-import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, knownEventIds, lifeVoice, sceneFor, variantOf, yearLean, YEARS } from "./content.ts";
+import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, isLastYear, knownEventIds, lifeVoice, sceneFor, variantOf, yearLean, yearOf, YEARS } from "./content.ts";
 import { CHILDHOOD_EVENT_IDS, DAILY_STATIC_IDS, renderStatic, STATIC_EVENTS } from "./data/events.ts";
 import { runLives } from "./lifeSim.ts";
 import { heardNews } from "./speak.ts";
@@ -332,7 +332,7 @@ describe("logic audit v2.4", () => {
     }
     for (const spec of SKILL_LEDGER) {
       const where = spec.consumerKind === "BATTLE" ? ui : game;
-      const battleWired = spec.consumerKind === "BATTLE" && specSrc.includes(`"${spec.id}"`) && (ui.includes("KINDY_DOOR") || ui.includes("battleSpecFor"));
+      const battleWired = spec.consumerKind === "BATTLE" && specSrc.includes(`"${spec.id}"`) && (ui.includes("battleSpecById") || ui.includes("KINDY_DOOR"));
       assert.equal(reads(where, spec.id) || battleWired || (spec.consumerKind === "ENDING" && (reads(game, spec.id) || reads(ui, spec.id))), true, spec.id);
     }
   });
@@ -743,6 +743,31 @@ describe("logic audit v2.4", () => {
     resolveTurn(bare, "walk");
     resolveTurn(held, "walk");
     assert.equal(held.stress, bare.stress - 1);
+  });
+
+  it("a failed exam does not talk about kindergarten, and 1986 is not the last year", () => {
+    assert.equal(isLastYear(2), false);
+    assert.equal(isLastYear(YEARS.length - 1), true);
+    assert.equal(yearOf({ yearIndex: 2 }).title, "走廊");
+    assert.equal(yearOf({ yearIndex: 3 }).title, "書桌");
+    const examChoice = choicesFor("EVT_1988_EXAM_01", freshState()).find((item) => item.id === "A");
+    assert.equal(examChoice?.specId, "BTL_PRIMARY_EXAM");
+    const started = reducer(
+      { ...freshState(), phase: "event", yearIndex: 3, eventId: "EVT_1988_EXAM_01", queue: [] },
+      { type: "choose", choice: examChoice! },
+    );
+    assert.equal(started.battleSpecId, "BTL_PRIMARY_EXAM");
+    const failed = reducer(
+      { ...started, phase: "battle-result", battle: { kind: "fail", stress: 40, hp: 20 }, battleTries: 1 },
+      { type: "settleBattle" },
+    );
+    assert.equal(failed.result?.text.includes("幼稚園"), false);
+    assert.equal(battleSpecById("BTL_PRIMARY_EXAM").result.retryNote.includes("幼稚園"), false);
+    assert.ok(battleSpecById("BTL_KINDY_DOOR").result.retryNote.includes("幼稚園明天仍然開"));
+    assert.ok(choicesFor("EVT_1988_PEN_01", freshState()).find((item) => item.id === "A")?.result.includes("你問他是不是他的"));
+    const ui = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    assert.equal(ui.includes("小時候那三年"), false);
+    assert.equal(ui.includes("yearIndex >= 2"), false);
   });
 });
 

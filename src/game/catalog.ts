@@ -47,7 +47,7 @@ export const QUEST_CATALOG: readonly QuestDef[] = [
     eventId: "EVT_1988_PEN_01",
     choiceId: "A",
     npc: "NPC_FRIEND_01",
-    echo: "同學說這支是多出來的。你拿去寫了那張卷。",
+    echo: "你問過他是不是他的。他說這支是多出來的，你拿去用。",
   },
 ];
 
