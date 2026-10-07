@@ -1,4 +1,4 @@
-/** Where people already are. The player does not summon them. */
+/** Where people already are, and what they are doing if you do not go. */
 
 export type Place = "home" | "market" | "estate";
 export type Day = "sat" | "sun";
@@ -46,6 +46,30 @@ export const WORLD_1986 = {
   sun: [{ npcId: "NPC_MOM_01", place: "home", eventId: "MINI_86_TV" }],
   weather: { sat: "clear", sun: "rain" },
 } as const;
+
+/** What that person is doing that afternoon, whether or not you go. */
+export const LIFE_1985 = {
+  NPC_FRIEND_01: {
+    sat: { place: "estate", doing: "抱著紅球，在平台等有沒有人來", missed: "平台上，阿傑抱著紅球玩到天色暗。你不在。" },
+    sun: { place: "away", doing: "不在屋邨", missed: "阿傑今天不在屋邨。平台沒有他。" },
+  },
+  NPC_MOM_01: {
+    sat: { place: "market", doing: "在街市買菜，沒有等人", missed: "媽媽在街市買完菜才回來。你沒有拉著她。" },
+    sun: { place: "home", doing: "在家裡看那隻袋子", missed: "媽媽今天留在家。街市沒有她。" },
+  },
+  NPC_GRAND_01: {
+    sat: { place: "home", doing: "坐在廳裡", missed: "嫲嫲在廳裡坐了一下午。屋裡沒有你。" },
+    sun: { place: "home", doing: "坐在廳裡", missed: "嫲嫲還是坐在廳裡。" },
+  },
+  NPC_DAD_01: {
+    sat: { place: "work", doing: "在上班", missed: "爸爸今天在上班。門口沒有他的鞋。" },
+    sun: { place: "home", doing: "下班回來，還沒有沖涼", missed: "爸爸回來過。你不在家。" },
+  },
+} as const;
+
+export function lifeMissed(npcId: keyof typeof LIFE_1985, day: Day) {
+  return LIFE_1985[npcId][day].missed;
+}
 
 type World = { sat: readonly Spot[]; sun: readonly Spot[]; weather: { sat: string; sun: string } };
 

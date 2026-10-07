@@ -12,6 +12,7 @@ import { BATTLE_SPECS, KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
 import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
 import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, ledgerSummary, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
 import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, isLastYear, knownEventIds, lifeVoice, sceneFor, variantOf, yearLean, yearOf, YEARS } from "./content.ts";
+import { beat1985 } from "./story.ts";
 import { CHILDHOOD_EVENT_IDS, DAILY_STATIC_IDS, renderStatic, STATIC_EVENTS } from "./data/events.ts";
 import { runLives } from "./lifeSim.ts";
 import { heardNews } from "./speak.ts";
@@ -909,6 +910,29 @@ describe("logic audit v3.1", () => {
     chain = reducer(chain, { type: "toActivities" });
     assert.equal(chain.chain.stage, 5);
     assert.equal(chain.chain.status, "completed");
+  });
+
+  it("saturday night follows what happened, not which button you pressed", () => {
+    const ball = {
+      id: "MEM_RED_BALL",
+      eventId: "EVT_1985_FRIEND_04",
+      choiceId: "B",
+      variant: "podium",
+      year: 1985,
+      age: 4,
+      npc: "NPC_FRIEND_01",
+      emotion: "share",
+      weight: 2,
+      echo: "",
+    };
+    const shared = beat1985("sat-night", { ...freshState(), spent: ["ACT_ESTATE"], memories: [ball] }).lines.join("");
+    const held = beat1985("sat-night", { ...freshState(), spent: ["ACT_ESTATE"], memories: [{ ...ball, choiceId: "A", emotion: "hold" }] }).lines.join("");
+    const stayed = beat1985("sat-night", { ...freshState(), spent: ["ACT_REST"] }).lines.join("");
+    assert.ok(shared.includes("鞋底有泥"));
+    assert.ok(held.includes("不肯放"));
+    assert.equal(held.includes("鞋底有泥"), false);
+    assert.ok(stayed.includes("你不在"));
+    assert.equal(stayed.includes("自己玩了一整天"), false);
   });
 
   it("five scripted childhoods do not meet the same people", () => {
