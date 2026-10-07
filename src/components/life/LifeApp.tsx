@@ -54,7 +54,7 @@ export function LifeApp() {
   };
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-lg overflow-y-auto overscroll-contain px-4 py-3 pb-6">
+    <main className="mx-auto h-dvh w-full max-w-lg overflow-y-auto overscroll-contain px-4 py-3 pb-8">
       <Top state={state} />
       {state.phase === "title" ? <Title onStart={() => { tap(); dispatch({ type: "begin" }); }} /> : null}
       {state.phase === "gender" ? (
@@ -414,7 +414,7 @@ const SENSE: Record<SceneId, string> = {
 function Paper({ scene, plate, kicker, title, children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; children: ReactNode }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-line/40">
-      <img src={plate ?? `/scenes/${scene}.jpg`} alt="" className={plate ? "h-52 w-full object-cover sm:h-64" : "h-16 w-full object-cover"} />
+      <img src={plate ?? `/scenes/${scene}.jpg`} alt="" className={plate ? "h-40 w-full object-cover sm:h-48" : "h-16 w-full object-cover"} />
       <div className="bg-paper px-4 py-3 text-ink">
         <p className="text-xs text-ink/60">{SENSE[scene]}</p>
         <p className="mt-2 text-xs tracking-wide text-ink/60">{kicker}</p>

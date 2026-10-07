@@ -83,7 +83,7 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
   return (
     <div className="flex flex-col gap-3" data-round={tick}>
       <div className="overflow-hidden rounded-2xl border border-line/40">
-        <div className={`relative bg-bg ${kindy ? "h-56 sm:h-72" : "h-40 sm:h-52"}`}>
+        <div className={`relative bg-bg ${kindy ? "h-40 sm:h-48" : "h-40 sm:h-52"}`}>
           <img src={src} alt="" className="h-full w-full object-cover" />
         </div>
         <div className="grid gap-3 bg-paper px-4 py-3 text-ink">
