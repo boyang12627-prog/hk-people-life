@@ -1,5 +1,15 @@
 export type Gender = "boy" | "girl";
 
+export type ChainStatus = "locked" | "available" | "active" | "delayed" | "recovered" | "completed";
+
+export type ChainState = {
+  id: "CHAIN_85_DOOR";
+  /** How many of the five stages are done: afternoons, door, someone, reflect, echo. */
+  stage: number;
+  status: ChainStatus;
+  choiceId: string | null;
+};
+
 export type SceneId = "home" | "kindy" | "corridor" | "market" | "estate" | "study";
 
 export type Tendency = "dream" | "reality" | "balance" | "think";
@@ -158,6 +168,7 @@ export type State = {
   spent: string[];
   /** 1985 meetings you did not have. Other years leave this alone. */
   missed: string[];
+  chain: ChainState;
   queue: string[];
   eventId: string | null;
   note: string | null;

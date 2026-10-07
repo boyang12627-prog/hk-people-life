@@ -1,5 +1,5 @@
 import { ACTIVITIES, battleStory, buildQueue, examStory, fifteenAct, knownEventIds, knownMemoryChoice, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
-import { MISSED_IDS, produce1985 } from "./freedom";
+import { MISSED_IDS, produce1985, advanceChain, afternoonTags, freshChain } from "./freedom";
 import { BATTLE_SPECS, battleSpecById, battleSpecFor } from "./battleSpec";
 import {
   clamp,
@@ -115,6 +115,7 @@ export function freshState(seed = 198401): State {
     apLeft: 2,
     spent: [],
     missed: [],
+    chain: freshChain(),
     queue: [],
     eventId: null,
     note: null,
@@ -195,7 +196,7 @@ export function reducer(state: State, action: Action): State {
     case "gender":
       return openYear({ ...state, gender: action.gender, name: action.name.trim().slice(0, 8), yearIndex: 0 });
     case "toActivities":
-      return { ...state, phase: "activities" };
+      return finishEcho({ ...state, phase: "activities" });
     case "activity":
       return pickActivity(state, action.id);
     case "ack":
@@ -241,6 +242,7 @@ function openYear(state: State): State {
     apLeft: 2,
     spent: [],
     queue: year?.year === 1985 ? [] : buildQueue(state.yearIndex, state.seed),
+    chain: openChain(state, year?.year ?? 0),
     eventId: null,
     note: null,
     noteScene: null,
@@ -271,6 +273,7 @@ function choose(state: State, choice: Choice): State {
   const variant = state.eventId ? variantOf(state.eventId, state) : "base";
   const applied = applyEffect(state, choice.effect);
   let next = applied.state;
+  if (state.eventId) next = { ...next, chain: advanceChain(next.chain, state.eventId, choice.id) };
   if (choice.memory && state.eventId) {
     const year = yearOf(state);
     const record: MemoryRecord = {
@@ -455,12 +458,26 @@ function exploreOffer(state: State, go: boolean): State {
   };
 }
 
+function openChain(state: State, year: number): State["chain"] {
+  if (year === 1985 && state.chain.stage === 0) return { ...state.chain, status: "available" };
+  if (year === 1986 && state.chain.stage === 4 && state.chain.status === "delayed") return { ...state.chain, status: "recovered" };
+  return state.chain;
+}
+
+function finishEcho(state: State): State {
+  if (yearOf(state).year !== 1986 || state.chain.stage !== 4) return state;
+  return { ...state, chain: { ...state.chain, stage: 5, status: "completed" } };
+}
+
 function produceIfNeeded(state: State): State {
   if (yearOf(state).year !== 1985 || state.queue.length > 0) return state;
   const produced = produce1985(state.spent);
   const missed = [...state.missed];
   for (const id of produced.missed) if (!missed.includes(id)) missed.push(id);
-  return { ...state, queue: produced.queue, missed };
+  const personalityTags = [...state.personalityTags];
+  for (const tag of afternoonTags(state.spent)) if (!personalityTags.includes(tag)) personalityTags.push(tag);
+  const chain = state.chain.stage < 1 ? { ...state.chain, stage: 1, status: "active" as const } : state.chain;
+  return { ...state, queue: produced.queue, missed, personalityTags, chain };
 }
 
 function openNext(state: State): State {
@@ -490,7 +507,11 @@ function yearEnd(state: State): State {
     derived.STATE_MOOD = clamp(derived.STATE_MOOD - 3, 0, 100);
     derived.STATE_HEALTH = clamp(derived.STATE_HEALTH - 2, 0, 100);
   }
-  return { ...state, counter, derived, phase: "year-end", eventId: null, queue: [], result: null, note: null };
+  let chain = state.chain;
+  if (year.year === 1985) {
+    chain = { ...state.chain, stage: Math.max(state.chain.stage, 4), status: state.missed.length > 0 ? "delayed" : state.chain.status === "locked" ? "active" : state.chain.status };
+  }
+  return { ...state, counter, derived, chain, phase: "year-end", eventId: null, queue: [], result: null, note: null };
 }
 
 function commitFifteen(state: State): State {
@@ -799,6 +820,7 @@ export function validateState(raw: Record<string, unknown>): State | null {
     apLeft: typeof raw.apLeft === "number" && Number.isFinite(raw.apLeft) ? clamp(Math.floor(raw.apLeft), 0, 2) : 2,
     spent: strings(raw.spent).filter((id) => id in ACTIVITIES),
     missed: strings(raw.missed).filter((id) => (MISSED_IDS as readonly string[]).includes(id)),
+    chain: savedChain(raw.chain),
     queue: strings(raw.queue),
     eventId: typeof raw.eventId === "string" ? raw.eventId : null,
     note: typeof raw.note === "string" ? raw.note : null,
@@ -816,6 +838,19 @@ export function validateState(raw: Record<string, unknown>): State | null {
     schemaVersion: 3,
   };
   return reconcile(drafted);
+}
+
+function savedChain(raw: unknown): State["chain"] {
+  const fallback = freshChain();
+  if (!isRecord(raw)) return fallback;
+  const status = raw.status;
+  const allowed = ["locked", "available", "active", "delayed", "recovered", "completed"];
+  return {
+    id: "CHAIN_85_DOOR",
+    stage: typeof raw.stage === "number" && Number.isFinite(raw.stage) ? clamp(Math.floor(raw.stage), 0, 5) : 0,
+    status: typeof status === "string" && allowed.includes(status) ? (status as State["chain"]["status"]) : "locked",
+    choiceId: raw.choiceId === "A" || raw.choiceId === "B" || raw.choiceId === "C" ? raw.choiceId : null,
+  };
 }
 
 function reconcile(state: State): State {

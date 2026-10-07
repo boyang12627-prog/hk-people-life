@@ -17,7 +17,7 @@ import {
   yearOf,
 } from "@/game/content";
 import { MEMORY_BALL, slicePlate } from "@/game/art";
-import { missedLine } from "@/game/freedom";
+import { chainEcho, missedLine } from "@/game/freedom";
 import { battleNarrative } from "@/game/battleNarrative";
 import { battleSpecById } from "@/game/battleSpec";
 import { gearAttack, gearSpeed, gearStressResist } from "@/game/catalog";
@@ -229,6 +229,9 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
           ? "今年有兩個下午。你跟誰過，今年就會見到誰。沒有去的，明年才會再提起。"
           : "今年有兩個下午。你可以陪人、自己玩，或者休息。之後的事會自己來，不必你預先留時間。"}
       </p>
+      {year.year === 1986 && state.chain.stage >= 4 ? <p className="mt-3 text-pretty text-base leading-7">{chainEcho(state.chain.choiceId)}</p> : null}
+      {year.year === 1986 && state.personalityTags.includes("TAG_ON_YOUR_OWN") ? <p className="mt-3 text-pretty text-base leading-7">去年那兩個下午，你都是自己過的。</p> : null}
+      {year.year === 1986 && state.personalityTags.includes("TAG_WITH_FAMILY") ? <p className="mt-3 text-pretty text-base leading-7">去年那兩個下午，你都在家裡人旁邊。</p> : null}
       {year.year === 1986 && missedLine(state.missed, "later") ? <p className="mt-3 text-pretty text-base leading-7">{missedLine(state.missed, "later")}</p> : null}
       <LifeNow state={state} />
       <Primary onClick={onNext}>用這兩個下午</Primary>

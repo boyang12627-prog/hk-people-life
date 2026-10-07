@@ -253,6 +253,26 @@ export const TAG_LEDGER: FlagSpec[] = [
     debugLabel: "顧住食飯",
     owner: "personality",
   },
+  {
+    id: "TAG_ON_YOUR_OWN",
+    producer: ["1985 both afternoons are play, draw, or the podium"],
+    consumer: ["1986 year open"],
+    consumerKind: "ENDING",
+    fallback: "1986 does not mention two afternoons spent alone.",
+    scope: "life",
+    debugLabel: "自己過",
+    owner: "personality",
+  },
+  {
+    id: "TAG_WITH_FAMILY",
+    producer: ["1985 both afternoons are the market or rest"],
+    consumer: ["1986 year open"],
+    consumerKind: "ENDING",
+    fallback: "1986 does not mention two afternoons spent with family.",
+    scope: "life",
+    debugLabel: "跟住人",
+    owner: "personality",
+  },
 ];
 
 export const COUNTER_LEDGER = [

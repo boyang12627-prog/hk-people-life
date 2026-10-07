@@ -1,4 +1,5 @@
 import { INITIAL_COUNTERS, INITIAL_DERIVED, INITIAL_PRIMARY, type Approach, type BattleKind, type Effect, type SceneId, type State, type Tendency } from "./types";
+import { freshChain } from "./freedom";
 import { cardFor, choicesFor, STATIC_EVENTS, type Card, type Choice } from "./data/events";
 import { heardNews, newsCold, picked, selectByPriority, type Spoken } from "./speak";
 
@@ -565,6 +566,7 @@ function buildMemoryCatalog() {
     apLeft: 2,
     spent: [],
     missed: [],
+    chain: freshChain(),
     queue: [],
     eventId: null,
     note: null,

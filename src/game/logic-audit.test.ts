@@ -4,7 +4,7 @@ import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBat
 import { readFileSync, existsSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
 import { slicePlate } from "./art.ts";
-import { produce1985, missedLine, MISS_85_FRIEND, MISS_85_MOM, MISS_85_RAIN } from "./freedom.ts";
+import { produce1985, missedLine, chainEcho, CHAIN_85_STAGES, MISS_85_FRIEND, MISS_85_MOM, MISS_85_RAIN } from "./freedom.ts";
 import { BATTLE_NARRATIVE, battleNarrative } from "./battleNarrative.ts";
 import { BATTLE_SPECS, KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
 import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
@@ -808,6 +808,26 @@ describe("logic audit v3.1", () => {
     assert.ok(withMom.queue.includes("MINI_85_RAIN"));
     assert.equal(withMom.queue.includes("EVT_1985_FRIEND_04"), false);
     assert.ok(missedLine(played.missed, "later").includes("去年"));
+    assert.equal(CHAIN_85_STAGES.length, 5);
+    let chain = reducer({ ...freshState(3), phase: "year", yearIndex: 1 }, { type: "toActivities" });
+    chain = spend(chain, ["ACT_PLAY", "ACT_DRAW"]);
+    assert.equal(chain.chain.stage, 1);
+    assert.ok(chain.personalityTags.includes("TAG_ON_YOUR_OWN"));
+    chain = chooseId(chain, "A");
+    chain = reducer(chain, { type: "settleBattle" });
+    chain = reducer(chain, { type: "ack" });
+    chain = chooseId(chain, "B");
+    chain = reducer(chain, { type: "ack" });
+    assert.equal(chain.phase, "year-end");
+    assert.equal(chain.chain.stage, 4);
+    assert.equal(chain.chain.status, "delayed");
+    assert.equal(chain.chain.choiceId, "A");
+    chain = reducer(chain, { type: "nextYear" });
+    assert.equal(chain.chain.status, "recovered");
+    assert.equal(chainEcho(chain.chain.choiceId).includes("開了口"), true);
+    chain = reducer(chain, { type: "toActivities" });
+    assert.equal(chain.chain.stage, 5);
+    assert.equal(chain.chain.status, "completed");
   });
 });
 
