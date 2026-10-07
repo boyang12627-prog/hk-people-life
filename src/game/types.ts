@@ -59,6 +59,15 @@ export type NpcId =
 
 export type Npc = { relation: number; trust: number; available: boolean };
 
+/** What one person did in a day, and what that changes for the next day. */
+export type NpcDay = {
+  currentMood: number;
+  relationshipDeltaToday: number;
+  todayOutcome: "shared" | "kept" | "left" | "watched" | "alone";
+  nextPlan: "seek" | "avoid" | "withdraw";
+  seenPlayer: boolean;
+};
+
 export type Effect = {
   primary?: Partial<Primary>;
   derived?: Partial<Derived>;
@@ -153,6 +162,8 @@ export type State = {
   derived: Derived;
   counter: Counters;
   npc: Record<NpcId, Npc>;
+  /** Days already lived. Empty until that afternoon is over. */
+  npcDays: Partial<Record<NpcId, NpcDay>>;
   flags: string[];
   personalityTags: string[];
   skills: string[];

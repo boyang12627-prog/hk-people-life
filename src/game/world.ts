@@ -1,5 +1,7 @@
 /** Where people already are, and what they are doing if you do not go. */
 
+import type { NpcDay } from "./types";
+
 export type Place = "home" | "market" | "estate";
 export type Day = "sat" | "sun";
 
@@ -69,6 +71,23 @@ export const LIFE_1985 = {
 
 export function lifeMissed(npcId: keyof typeof LIFE_1985, day: Day) {
   return LIFE_1985[npcId][day].missed;
+}
+
+export function tickKit(memories: readonly { id: string; emotion: string }[]): NpcDay {
+  const ball = memories.find((item) => item.id === "MEM_RED_BALL");
+  if (!ball) {
+    return { currentMood: -1, relationshipDeltaToday: 0, todayOutcome: "alone", nextPlan: "withdraw", seenPlayer: false };
+  }
+  if (ball.emotion === "share") {
+    return { currentMood: 1, relationshipDeltaToday: 5, todayOutcome: "shared", nextPlan: "seek", seenPlayer: true };
+  }
+  if (ball.emotion === "hold") {
+    return { currentMood: -2, relationshipDeltaToday: -3, todayOutcome: "kept", nextPlan: "avoid", seenPlayer: true };
+  }
+  if (ball.emotion === "leave") {
+    return { currentMood: 0, relationshipDeltaToday: 0, todayOutcome: "left", nextPlan: "withdraw", seenPlayer: true };
+  }
+  return { currentMood: 0, relationshipDeltaToday: 0, todayOutcome: "watched", nextPlan: "withdraw", seenPlayer: true };
 }
 
 type World = { sat: readonly Spot[]; sun: readonly Spot[]; weather: { sat: string; sun: string } };

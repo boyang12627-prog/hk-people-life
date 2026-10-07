@@ -82,7 +82,11 @@ export function missed1986(missed: readonly string[], when: "now" | "later") {
 }
 
 /** Same person, different life. The afternoon only decides whether you can meet him. */
-export function friendFollow(state: Pick<State, "missed" | "flags" | "npc" | "derived">) {
+export function friendFollow(state: Pick<State, "missed" | "flags" | "npc" | "derived"> & { npcDays?: State["npcDays"] }) {
+  const plan = state.npcDays?.NPC_FRIEND_01?.nextPlan;
+  if (plan === "avoid") return "wary";
+  if (plan === "seek") return "invite";
+  if (plan === "withdraw") return "ask";
   if (state.missed.includes(MISS_85_FRIEND)) return "ask";
   if (state.flags.includes("FLAG_TOY_MONOPOLY")) return "wary";
   if (state.flags.includes("FLAG_SHARED_BALL") || state.npc.NPC_FRIEND_01.relation >= 5) return "invite";

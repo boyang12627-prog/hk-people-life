@@ -11,6 +11,7 @@ export const CHILDHOOD_EVENT_IDS = [
   "MINI_85_GRANDMA",
   "MINI_85_DAD",
   "MINI_85_TV",
+  "MINI_85_KIT_WAIT",
   "MINI_QUIET",
   "MINI_86_ESTATE",
   "MINI_86_TV",
@@ -237,6 +238,17 @@ export function cardFor(id: string, state: State): Card {
   const gender = state.gender ?? "girl";
   const grown = grownWord(gender);
   switch (id) {
+    case "MINI_85_KIT_WAIT": {
+      const home = state.spent[1] !== "ACT_ESTATE";
+      return {
+        scene: home ? "home" : "estate",
+        kicker: "1985 · 星期日",
+        title: "他來找你",
+        lines: home
+          ? ["門開了一下。阿傑站在外面。", "他沒有帶球上來。他昨天和你玩過，今天自己來了。"]
+          : ["雨還在下。阿傑站在走廊底。", "他昨天和你玩過。今天不是你去找他，是他來了。"],
+      };
+    }
     case "EVT_1984_NEWS_01": {
       const cold = newsCold(state);
       const lines = cold
@@ -428,6 +440,33 @@ export function choicesFor(id: string, state: State): Choice[] {
   if (staticEvt) return renderStatic(staticEvt).choices;
   const heard = heardNews(state);
   switch (id) {
+    case "MINI_85_KIT_WAIT":
+      return [
+        choice(
+          "A",
+          "出去見他",
+          "balance",
+          { npc: { NPC_FRIEND_01: { relation: 1, trust: 1 } } },
+          "你出去。他說昨天那個球還在。你們沒有再搶。",
+          mem("MEM_KIT_WAIT", "MINI_85_KIT_WAIT", "A", "NPC_FRIEND_01", "meet", "星期日他來找你。你出去見了他。"),
+        ),
+        choice(
+          "B",
+          "說今天不行",
+          "reality",
+          {},
+          "你說今天不行。他應了一聲，沒有再約。",
+          mem("MEM_KIT_WAIT", "MINI_85_KIT_WAIT", "B", "NPC_FRIEND_01", "later", "星期日他來找你。你說今天不行。"),
+        ),
+        choice(
+          "C",
+          "當作沒聽見",
+          "dream",
+          { npc: { NPC_FRIEND_01: { relation: -1 } } },
+          "你沒有出聲。他等了一陣，走了。",
+          mem("MEM_KIT_WAIT", "MINI_85_KIT_WAIT", "C", "NPC_FRIEND_01", "missed-him", "星期日他來找你。你沒有出聲。"),
+        ),
+      ];
     case "EVT_1984_NEWS_01":
       return [
         choice(

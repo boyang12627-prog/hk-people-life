@@ -1,7 +1,7 @@
 import { ACTIVITIES, battleStory, buildQueue, examStory, fifteenAct, knownEventIds, knownMemoryChoice, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
 import { MISSED_IDS, produce1985, produce1986, advanceChain, afternoonTags, freshChain } from "./freedom";
 import { beat1985, isBeat } from "./story";
-import { WORLD_1985, collide } from "./world";
+import { WORLD_1985, collide, tickKit } from "./world";
 import { BATTLE_SPECS, battleSpecById, battleSpecFor } from "./battleSpec";
 import {
   clamp,
@@ -105,6 +105,7 @@ export function freshState(seed = 198401): State {
       NPC_FRIEND_01: { relation: 0, trust: 0, available: false },
       NPC_TEACH_01: { relation: 30, trust: 30, available: false },
     },
+    npcDays: {},
     flags: [],
     personalityTags: [],
     skills: [],
@@ -499,6 +500,10 @@ function begin1985Day(state: State, day: "sat" | "sun"): State {
   if (day === "sun") {
     const earlier = collide("sat", state.spent[0] ?? "", world, "MINI_85_RAIN");
     ids = ids.filter((id) => id === "MINI_QUIET" || !earlier.includes(id));
+    if (state.npcDays.NPC_FRIEND_01?.nextPlan === "seek") {
+      ids = ids.filter((id) => id !== "MINI_85_RAIN" && id !== "MINI_QUIET");
+      ids.unshift("MINI_85_KIT_WAIT");
+    }
   }
   let missed = state.missed;
   let personalityTags = state.personalityTags;
@@ -558,7 +563,12 @@ function after1985(state: State): State {
   if (yearOf(state).year !== 1985) return yearEnd({ ...state, queue: [] });
   const school = state.memories.some((item) => item.eventId === "EVT_1985_SCHOOL_01");
   if (school) return { ...state, phase: "story", note: "aftermath", queue: [], eventId: null, result: null };
-  if (state.spent.length === 1) return { ...state, phase: "story", note: "sat-night", queue: [], eventId: null, result: null };
+  if (state.spent.length === 1) {
+    const npcDays = state.npcDays.NPC_FRIEND_01
+      ? state.npcDays
+      : { ...state.npcDays, NPC_FRIEND_01: tickKit(state.memories) };
+    return { ...state, npcDays, phase: "story", note: "sat-night", queue: [], eventId: null, result: null };
+  }
   if (state.spent.length === 2) return { ...state, phase: "story", note: "sun-night", queue: [], eventId: null, result: null };
   return yearEnd({ ...state, queue: [] });
 }
@@ -873,6 +883,7 @@ export function validateState(raw: Record<string, unknown>): State | null {
     derived,
     counter,
     npc,
+    npcDays: savedNpcDays(raw.npcDays),
     flags,
     personalityTags,
     skills: strings(raw.skills).filter((id) => knownSkills.has(id)),
@@ -903,6 +914,24 @@ export function validateState(raw: Record<string, unknown>): State | null {
     schemaVersion: 3,
   };
   return reconcile(drafted);
+}
+
+function savedNpcDays(raw: unknown): State["npcDays"] {
+  if (!isRecord(raw) || !isRecord(raw.NPC_FRIEND_01)) return {};
+  const item = raw.NPC_FRIEND_01;
+  const next = item.nextPlan;
+  const outcome = item.todayOutcome;
+  if (next !== "seek" && next !== "avoid" && next !== "withdraw") return {};
+  if (outcome !== "shared" && outcome !== "kept" && outcome !== "left" && outcome !== "watched" && outcome !== "alone") return {};
+  return {
+    NPC_FRIEND_01: {
+      currentMood: typeof item.currentMood === "number" && Number.isFinite(item.currentMood) ? clamp(Math.round(item.currentMood), -2, 2) : 0,
+      relationshipDeltaToday: typeof item.relationshipDeltaToday === "number" && Number.isFinite(item.relationshipDeltaToday) ? clamp(Math.round(item.relationshipDeltaToday), -5, 5) : 0,
+      todayOutcome: outcome,
+      nextPlan: next,
+      seenPlayer: item.seenPlayer === true,
+    },
+  };
 }
 
 function savedChain(raw: unknown): State["chain"] {

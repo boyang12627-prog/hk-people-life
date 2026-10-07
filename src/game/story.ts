@@ -47,8 +47,18 @@ function satNight(state: State) {
 
 function sunNight(state: State) {
   const sun = state.spent[1];
+  const kit = state.npcDays.NPC_FRIEND_01;
+  const waited = state.memories.find((item) => item.id === "MEM_KIT_WAIT");
   const lines = ["媽媽把袋子再放到門口。", "「明天真的要去。」"];
-  if (sun === "ACT_ESTATE") lines.push(`你今天下了樓。下過雨。${lifeMissed("NPC_FRIEND_01", "sun")}`);
+  if (kit?.nextPlan === "seek") {
+    if (waited?.emotion === "meet") lines.push("你出去見了他。他說明天學校見。");
+    else if (waited?.emotion === "later") lines.push("你說今天不行。他沒有再約。");
+    else lines.push("他來過。你沒有出聲。他走了。");
+  } else if (kit?.nextPlan === "avoid") {
+    lines.push("阿傑今天沒有來。球留在他家。他沒有再約你。");
+  } else if (kit?.nextPlan === "withdraw") {
+    lines.push("阿傑今天沒有來找你。昨天平台上只有他一個人。");
+  } else if (sun === "ACT_ESTATE") lines.push(`你今天下了樓。下過雨。${lifeMissed("NPC_FRIEND_01", "sun")}`);
   else if (sun === "ACT_MARKET") lines.push(lifeMissed("NPC_MOM_01", "sun"));
   else lines.push("爸爸把鞋子脫在門口。他說累。他明天還是要上班。");
   if (!state.memories.some((item) => item.id === "MEM_RED_BALL")) lines.push("你仍然沒有提過平台上那個孩子。");
@@ -74,8 +84,10 @@ export function beat1985(id: BeatId, state: State): { scene: SceneId; kicker: st
   }
   if (id === "monday") {
     const ball = state.memories.find((item) => item.id === "MEM_RED_BALL");
+    const plan = state.npcDays.NPC_FRIEND_01?.nextPlan;
     const lines = ["媽媽牽著你。袋子在你手上，有一點重。", "幼稚園的門開著。裡面有聲音。"];
-    if (ball?.emotion === "share") lines.push("你先看門裡有沒有昨天那個孩子。");
+    if (plan === "seek") lines.push("門裡有人在等。是昨天來找你的那個孩子。");
+    else if (plan === "avoid") lines.push("你沒有找人。他昨天沒有再約你。");
     else if (ball?.emotion === "hold") lines.push("你沒有找人。你記得自己不肯放。");
     else lines.push("這一次不是你按下去才發生。明天已經到了。");
     return { scene: "kindy", kicker: "1985 · 星期一早上", title: "門開著", lines };

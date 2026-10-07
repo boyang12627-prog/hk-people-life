@@ -13,6 +13,7 @@ import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
 import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, ledgerSummary, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
 import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, isLastYear, knownEventIds, lifeVoice, sceneFor, variantOf, yearLean, yearOf, YEARS } from "./content.ts";
 import { beat1985 } from "./story.ts";
+import { tickKit } from "./world.ts";
 import { CHILDHOOD_EVENT_IDS, DAILY_STATIC_IDS, renderStatic, STATIC_EVENTS } from "./data/events.ts";
 import { runLives } from "./lifeSim.ts";
 import { heardNews } from "./speak.ts";
@@ -933,6 +934,44 @@ describe("logic audit v3.1", () => {
     assert.equal(held.includes("鞋底有泥"), false);
     assert.ok(stayed.includes("你不在"));
     assert.equal(stayed.includes("自己玩了一整天"), false);
+    const alone = tickKit([]);
+    const sharedDay = tickKit([{ id: "MEM_RED_BALL", emotion: "share" }]);
+    const kept = tickKit([{ id: "MEM_RED_BALL", emotion: "hold" }]);
+    assert.equal(alone.nextPlan, "withdraw");
+    assert.equal(alone.currentMood, -1);
+    assert.equal(alone.relationshipDeltaToday, 0);
+    assert.equal(alone.seenPlayer, false);
+    assert.equal(sharedDay.nextPlan, "seek");
+    assert.equal(sharedDay.relationshipDeltaToday, 5);
+    assert.equal(kept.nextPlan, "avoid");
+    assert.equal(kept.currentMood, -2);
+    const visit = reducer(
+      {
+        ...freshState(),
+        phase: "note",
+        yearIndex: 1,
+        apLeft: 0,
+        spent: ["ACT_ESTATE", "ACT_REST"],
+        npcDays: { NPC_FRIEND_01: sharedDay },
+        result: { text: "過了。", deltas: [], skills: [] },
+      },
+      { type: "ack" },
+    );
+    assert.equal(visit.eventId, "MINI_85_KIT_WAIT");
+    const skipped = reducer(
+      {
+        ...freshState(),
+        phase: "note",
+        yearIndex: 1,
+        apLeft: 0,
+        spent: ["ACT_REST", "ACT_DRAW"],
+        npcDays: { NPC_FRIEND_01: alone },
+        result: { text: "過了。", deltas: [], skills: [] },
+      },
+      { type: "ack" },
+    );
+    assert.equal(skipped.eventId === "MINI_85_KIT_WAIT", false);
+    assert.equal(skipped.npc.NPC_FRIEND_01.relation, 0);
   });
 
   it("five scripted childhoods do not meet the same people", () => {
