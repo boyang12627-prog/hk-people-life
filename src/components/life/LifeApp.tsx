@@ -255,22 +255,11 @@ function StoryBeat({ state, beat, onNext }: { state: State; beat: Parameters<typ
   const page = beat1985(beat, state);
   const speakers = page.shots.map((shot) => personFromName(shot.speaker)).filter((id): id is PersonId => !!id);
   const cast = speakers.length ? { present: [...new Set<PersonId>([...speakers, "child"])], speaker: speakers[0], line: page.shots.find((shot) => shot.speaker)?.line ?? page.title } : null;
+  const dialogue = page.shots.length
+    ? page.shots.map((shot) => (shot.speaker ? `${shot.speaker}：「${shot.line}」` : shot.line))
+    : page.lines;
   return (
-    <Paper scene={page.scene} kicker={page.kicker} title={page.title} cast={cast}>
-      {page.shots.length
-        ? page.shots.map((shot) => (
-            <div key={shot.line} className="mt-4 first:mt-0">
-              <p className="text-xs text-ink/50">{shot.where}</p>
-              <p className="mt-1 text-sm text-ink/70">{shot.action}</p>
-              <p className="mt-1 text-pretty text-base leading-7">{shot.speaker ? `${shot.speaker}：「${shot.line}」` : shot.line}</p>
-            </div>
-          ))
-        : page.lines.map((line) => (
-            <p key={line} className="mt-3 text-pretty text-base leading-7 first:mt-0">
-              {line}
-            </p>
-          ))}
-      {page.shots.length ? <p className="mt-4 text-sm text-ink/60">{page.lines[page.lines.length - 1]}</p> : null}
+    <Paper scene={page.scene} kicker={page.kicker} title={page.title} cast={cast} dialogue={dialogue}>
       <Primary onClick={onNext}>{beat === "aftermath" ? "這一年就這樣" : "繼續"}</Primary>
     </Paper>
   );
@@ -280,16 +269,15 @@ function Activities({ state, onPick }: { state: State; onPick: (id: string) => v
   const year = yearOf(state);
   const timed = year.year === 1985 || year.year === 1986;
   return (
-    <Paper scene={year.scene} kicker="今年" title={year.year === 1985 ? (state.spent.length ? "星期日下午" : "星期六下午") : timed ? "這兩個下午" : "今天怎麼過"} mood="think">
-      <p className="text-sm text-ink/70">
-        {year.year === 1985
-          ? state.spent.length
-            ? "昨天已經過了。今天再過一個下午。"
-            : "早上你在樓梯口停過。這個下午你自己過。"
-          : timed
-            ? "先過星期六，再過星期日。兩天不要做同一件事。"
-            : "兩個下午要不同。選完，其他事才來。"}
-      </p>
+    <Paper scene={year.scene} kicker="今年" title={year.year === 1985 ? (state.spent.length ? "星期日下午" : "星期六下午") : timed ? "這兩個下午" : "今天怎麼過"} mood="think" dialogue={[
+      year.year === 1985
+        ? state.spent.length
+          ? "昨天已經過了。今天再過一個下午。"
+          : "早上你在樓梯口停過。這個下午你自己過。"
+        : timed
+          ? "先過星期六，再過星期日。兩天不要做同一件事。"
+          : "兩個下午要不同。選完，其他事才來。",
+    ]}>
       <div className="mt-3 grid grid-cols-2 gap-2">
         {(timed ? ["星期六下午", "星期日下午"] : ["第一個下午", "第二個下午"]).map((label, slot) => {
           const id = state.spent[slot];
@@ -339,13 +327,9 @@ function EventCard({ state, onChoose }: { state: State; onChoose: (choice: Retur
       title={card.title}
       cast={room ? { present: room.present, speaker: room.speaker, line: spokenLine(card.lines) } : null}
       mood="think"
+      dialogue={card.lines}
     >
-      {card.lines.map((line) => (
-        <p key={line} className="mt-2 text-pretty text-base leading-7 first:mt-0">
-          {line}
-        </p>
-      ))}
-      <div className="mt-4 flex flex-col gap-2">
+      <div className="mt-1 flex flex-col gap-2">
         {choices.map((choice) => (
           <ChoiceButton
             key={choice.id}
@@ -363,9 +347,7 @@ function BattleResult({ state, onRetry, onSettle }: { state: State; onRetry: () 
   const retry = canRetry(state);
   const plate = copy.scene === "kindy" ? slicePlate({ year: 1985, scene: "kindy", gender: state.gender, battle: retry ? "door" : "inside" }) : null;
   return (
-    <Paper scene={copy.scene} plate={plate} kicker={copy.kicker} title={retry ? copy.retryTitle : copy.title}>
-      <p className="text-pretty text-base leading-7">{copy.text(state.battle?.kind ?? "fail", state.approach ?? "safe")}</p>
-      {retry ? <p className="mt-3 text-sm text-pretty text-ink/70">{copy.retryNote}</p> : null}
+    <Paper scene={copy.scene} plate={plate} kicker={copy.kicker} title={retry ? copy.retryTitle : copy.title} dialogue={[copy.text(state.battle?.kind ?? "fail", state.approach ?? "safe"), ...(retry ? [copy.retryNote] : [])]}>
       {retry ? <Primary onClick={onRetry}>再試一次</Primary> : null}
       <button type="button" onClick={onSettle} className="mt-2 min-h-12 w-full rounded-md border border-[#c4a574] bg-[#fff8ea] text-base text-ink">
         {retry ? copy.homeLabel : copy.continueLabel}
@@ -486,32 +468,45 @@ const SENSE: Record<SceneId, string> = {
   study: "課室的風扇響著。卷子已經翻開，時鐘在黑板旁邊。",
 };
 
-function Paper({ scene, plate, kicker, title, cast, mood = "idle", children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; cast?: { present: PersonId[]; speaker: PersonId; line: string } | null; mood?: Mood; children: ReactNode }) {
+function Dialogue({ name, src, lines }: { name: string; src?: string; lines: string[] }) {
+  return (
+    <div className="shrink-0 border-b-2 border-[#8a6232] bg-[#fffaf0] px-3 py-2 text-ink">
+      <div className="mb-1 flex items-center gap-2">
+        {src ? <img src={src} alt="" className="h-8 w-8 rounded-full border border-[#c4a574] object-cover object-[center_18%]" /> : null}
+        <p className="font-serif text-sm tracking-wide text-[#6e4524]">{name}</p>
+      </div>
+      <div className="max-h-32 overflow-y-auto">
+        {lines.map((line, index) => (
+          <p key={`${index}-${line}`} className="text-pretty text-base leading-7">
+            {line}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Paper({ scene, plate, kicker, title, cast, mood = "idle", dialogue, children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; cast?: { present: PersonId[]; speaker: PersonId; line: string } | null; mood?: Mood; dialogue?: string[]; children: ReactNode }) {
   const gender = useContext(Face);
   const present = cast?.present ?? (gender ? (["child"] as PersonId[]) : []);
   const speaker = cast?.speaker ?? (gender ? "child" : null);
   const line = cast?.line || SENSE[scene];
   const face = (id: PersonId) => personSrc(id, gender, id === "child" ? mood : "idle");
+  const lines = dialogue?.length ? dialogue : [line];
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border-4 border-[#6e4524] bg-[#f4efe4] shadow-[inset_0_0_0_2px_#e8d7a8]">
-      <div className="relative h-[36%] min-h-36 shrink-0">
+      <div className="relative h-[34%] min-h-32 shrink-0">
         <img src={plate ?? `/scenes/${scene}.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1c140c]/40 to-transparent" />
         {present.length ? (
-          <div className="pointer-events-none absolute inset-x-1 bottom-0 top-[5.25rem] flex items-end justify-center gap-1">
+          <div className="pointer-events-none absolute inset-x-1 bottom-0 top-1 flex items-end justify-center gap-1">
             {present.map((id) => (
-              <img key={id} src={face(id)} alt="" className={`h-full w-auto max-w-[34%] object-contain object-bottom drop-shadow-[0_6px_6px_rgba(0,0,0,0.35)] ${id === speaker ? "" : "opacity-95"}`} />
+              <img key={id} src={face(id)} alt="" className="h-full w-auto max-w-[34%] object-contain object-bottom drop-shadow-[0_6px_6px_rgba(0,0,0,0.35)]" />
             ))}
           </div>
         ) : null}
-        <div className="absolute left-2 right-14 top-2 flex items-start gap-2">
-          {speaker ? <img src={face(speaker)} alt="" className="h-11 w-11 shrink-0 rounded-full border-2 border-[#e8d7a8] object-cover object-[center_18%]" /> : null}
-          <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm bg-[#fffaf0]/95 px-3 py-2 text-ink shadow">
-            <p className="text-xs text-ink/50">{speaker ? personName(speaker) : kicker}</p>
-            <p className="text-pretty text-sm leading-6">{line}</p>
-          </div>
-        </div>
       </div>
+      <Dialogue name={speaker ? personName(speaker) : kicker} src={speaker ? face(speaker) : undefined} lines={lines} />
       <div className="flex min-h-0 flex-1 flex-col bg-[#f6efe0] text-ink">
         <div className="shrink-0 border-b border-[#e0d3bf] px-3 py-2">
           <p className="text-xs tracking-wide text-ink/50">{kicker}</p>

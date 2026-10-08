@@ -86,14 +86,14 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
       <div className="relative h-[34%] min-h-36 shrink-0">
         <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1c140c]/40 to-transparent" />
-        <img src={personSrc("child", gender, sim.over ? "idle" : "think")} alt="" className="pointer-events-none absolute bottom-0 left-1/2 top-[5.25rem] w-auto max-w-[42%] -translate-x-1/2 object-contain object-bottom drop-shadow-[0_6px_6px_rgba(0,0,0,0.35)]" />
-        <div className="absolute left-2 right-14 top-2 flex items-start gap-2">
-          <img src={personSrc("child", gender, sim.over ? "idle" : "think")} alt="" className="h-11 w-11 shrink-0 rounded-full border-2 border-[#e8d7a8] object-cover object-[center_18%]" />
-          <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm bg-[#fffaf0]/95 px-3 py-2 text-ink shadow">
-            <p className="text-xs text-ink/50">{spec.label}</p>
-            <p className="text-pretty text-sm leading-6">{bonusOnly ? "還可以再走一步，或停一停。" : sim.over ? (entered ? spec.voice.entered : spec.voice.back) : sim.threat.hint}</p>
-          </div>
+        <img src={personSrc("child", gender, sim.over ? "idle" : "think")} alt="" className="pointer-events-none absolute inset-x-0 bottom-0 top-1 mx-auto h-full w-auto max-w-[42%] object-contain object-bottom drop-shadow-[0_6px_6px_rgba(0,0,0,0.35)]" />
+      </div>
+      <div className="shrink-0 border-b-2 border-[#8a6232] bg-[#fffaf0] px-3 py-2 text-ink">
+        <div className="mb-1 flex items-center gap-2">
+          <img src={personSrc("child", gender, sim.over ? "idle" : "think")} alt="" className="h-8 w-8 rounded-full border border-[#c4a574] object-cover object-[center_18%]" />
+          <p className="font-serif text-sm tracking-wide text-[#6e4524]">{spec.label}</p>
         </div>
+        <p className="text-pretty text-base leading-7">{bonusOnly ? "還可以再走一步，或停一停。" : sim.over ? (entered ? spec.voice.entered : spec.voice.back) : sim.hasActed ? sim.hint : sim.threat.hint}</p>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto bg-[#f6efe0] px-3 py-2 text-ink">
           <div>
