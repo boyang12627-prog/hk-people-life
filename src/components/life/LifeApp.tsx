@@ -16,7 +16,7 @@ import {
   yearLean,
   yearOf,
 } from "@/game/content";
-import { MEMORY_BALL, personFromName, personName, personSrc, roomOf, slicePlate, spokenLine, type PersonId } from "@/game/art";
+import { MEMORY_BALL, personFromName, personName, personSrc, roomOf, slicePlate, spokenLine, type Mood, type PersonId } from "@/game/art";
 import { chainEcho, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
 import { battleNarrative } from "@/game/battleNarrative";
@@ -129,7 +129,7 @@ export function LifeApp() {
         </Paper>
       ) : null}
       {state.phase === "repair" && state.result ? (
-        <Paper scene="home" kicker="1986 · 夜晚" title="媽媽問你" cast={{ present: ["mom", "child"], speaker: "mom", line: "為什麼走到門口？" }}>
+        <Paper scene="home" kicker="1986 · 夜晚" title="媽媽問你" cast={{ present: ["mom", "child"], speaker: "mom", line: "為什麼走到門口？" }} mood="think">
           <p className="text-pretty text-base leading-7">{state.result.text}</p>
           <p className="mt-3 text-pretty text-base leading-7">
             {state.skills.includes("SKL_09")
@@ -141,7 +141,7 @@ export function LifeApp() {
         </Paper>
       ) : null}
       {state.phase === "explore-offer" ? (
-        <Paper scene="estate" kicker="1986 · 年尾" title="要不要再下一次平台">
+        <Paper scene="estate" kicker="1986 · 年尾" title="要不要再下一次平台" mood="think">
           <p className="text-pretty text-base leading-7">你下平台的次數還不夠。再下一次，才走到屋邨門口。你也可以留在家裡，不去也行。</p>
           <ChoiceButton label="下一次平台" hint="這次不計入那兩個下午" onClick={() => { tap(); dispatch({ type: "explore", go: true }); }} />
           <ChoiceButton label="留在家裡" hint="不去也行" onClick={() => { tap("soft"); dispatch({ type: "explore", go: false }); }} />
@@ -280,7 +280,7 @@ function Activities({ state, onPick }: { state: State; onPick: (id: string) => v
   const year = yearOf(state);
   const timed = year.year === 1985 || year.year === 1986;
   return (
-    <Paper scene={year.scene} kicker="今年" title={year.year === 1985 ? (state.spent.length ? "星期日下午" : "星期六下午") : timed ? "這兩個下午" : "今天怎麼過"}>
+    <Paper scene={year.scene} kicker="今年" title={year.year === 1985 ? (state.spent.length ? "星期日下午" : "星期六下午") : timed ? "這兩個下午" : "今天怎麼過"} mood="think">
       <p className="text-sm text-ink/70">
         {year.year === 1985
           ? state.spent.length
@@ -338,6 +338,7 @@ function EventCard({ state, onChoose }: { state: State; onChoose: (choice: Retur
       kicker={card.kicker}
       title={card.title}
       cast={room ? { present: room.present, speaker: room.speaker, line: spokenLine(card.lines) } : null}
+      mood="think"
     >
       {card.lines.map((line) => (
         <p key={line} className="mt-2 text-pretty text-base leading-7 first:mt-0">
@@ -485,25 +486,26 @@ const SENSE: Record<SceneId, string> = {
   study: "課室的風扇響著。卷子已經翻開，時鐘在黑板旁邊。",
 };
 
-function Paper({ scene, plate, kicker, title, cast, children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; cast?: { present: PersonId[]; speaker: PersonId; line: string } | null; children: ReactNode }) {
+function Paper({ scene, plate, kicker, title, cast, mood = "idle", children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; cast?: { present: PersonId[]; speaker: PersonId; line: string } | null; mood?: Mood; children: ReactNode }) {
   const gender = useContext(Face);
   const present = cast?.present ?? (gender ? (["child"] as PersonId[]) : []);
   const speaker = cast?.speaker ?? (gender ? "child" : null);
   const line = cast?.line || SENSE[scene];
+  const face = (id: PersonId) => personSrc(id, gender, id === "child" ? mood : "idle");
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border-4 border-[#6e4524] bg-[#f4efe4] shadow-[inset_0_0_0_2px_#e8d7a8]">
       <div className="relative h-[36%] min-h-36 shrink-0">
         <img src={plate ?? `/scenes/${scene}.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1c140c]/40 to-transparent" />
         {present.length ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-center">
+          <div className="pointer-events-none absolute inset-x-1 bottom-0 top-[5.25rem] flex items-end justify-center gap-1">
             {present.map((id) => (
-              <img key={id} src={personSrc(id, gender)} alt="" className={`w-auto object-contain drop-shadow-[0_8px_8px_rgba(0,0,0,0.35)] ${id === speaker ? "h-32 sm:h-40" : "h-24 sm:h-32"}`} />
+              <img key={id} src={face(id)} alt="" className={`h-full w-auto max-w-[34%] object-contain object-bottom drop-shadow-[0_6px_6px_rgba(0,0,0,0.35)] ${id === speaker ? "" : "opacity-95"}`} />
             ))}
           </div>
         ) : null}
-        <div className="absolute left-2 right-2 top-2 flex items-start gap-2">
-          {speaker ? <img src={personSrc(speaker, gender)} alt="" className="h-11 w-11 shrink-0 rounded-full border-2 border-[#e8d7a8] object-cover object-top" /> : null}
+        <div className="absolute left-2 right-14 top-2 flex items-start gap-2">
+          {speaker ? <img src={face(speaker)} alt="" className="h-11 w-11 shrink-0 rounded-full border-2 border-[#e8d7a8] object-cover object-[center_18%]" /> : null}
           <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm bg-[#fffaf0]/95 px-3 py-2 text-ink shadow">
             <p className="text-xs text-ink/50">{speaker ? personName(speaker) : kicker}</p>
             <p className="text-pretty text-sm leading-6">{line}</p>

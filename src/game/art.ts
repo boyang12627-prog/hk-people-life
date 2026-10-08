@@ -21,8 +21,13 @@ const FILE: Record<Exclude<PersonId, "child">, string> = {
   kit: "kit",
 };
 
-export function personSrc(id: PersonId, gender: Gender | null) {
-  if (id === "child") return gender === "boy" ? "/art/1985/people/boy.png" : "/art/1985/people/girl.png";
+export type Mood = "idle" | "think";
+
+export function personSrc(id: PersonId, gender: Gender | null, mood: Mood = "idle") {
+  if (id === "child") {
+    const who = gender === "boy" ? "boy" : "girl";
+    return mood === "think" ? `/art/1985/people/${who}-think.png` : `/art/1985/people/${who}.png`;
+  }
   return `/art/1985/people/${FILE[id]}.png`;
 }
 
