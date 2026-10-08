@@ -815,10 +815,10 @@ describe("logic audit v3.1", () => {
     for (const name of ["cast.jpg", "door-girl.jpg", "door-boy.jpg", "pressure-girl.jpg", "pressure-boy.jpg", "inside-girl.jpg", "inside-boy.jpg", "later-girl.jpg", "later-boy.jpg", "memory.jpg"]) {
       assert.equal(existsSync(new URL(`../../public/art/1985/${name}`, import.meta.url)), true, name);
     }
-    assert.equal(slicePlate({ year: 1985, scene: "kindy", gender: "girl" }), "/art/1985/door-girl.jpg");
-    assert.equal(slicePlate({ year: 1986, scene: "estate", gender: "boy" }), "/art/1985/later-boy.jpg");
-    assert.equal(slicePlate({ year: 1984, scene: "home", gender: "girl" }), null);
-    assert.equal(slicePlate({ year: 1988, scene: "study", gender: "girl" }), null);
+    assert.equal(slicePlate({ year: 1985, scene: "kindy", gender: "girl" }), "/art/q/kindy-girl.jpg");
+    assert.equal(slicePlate({ year: 1986, scene: "estate", gender: "boy" }), "/art/q/estate-boy.jpg");
+    assert.equal(slicePlate({ year: 1984, scene: "home", gender: "girl" }), "/art/q/home-girl.jpg");
+    assert.equal(slicePlate({ year: 1988, scene: "study", gender: "girl" }), "/art/q/study-girl.jpg");
     const played = produce1985(["ACT_PLAY", "ACT_DRAW"]);
     assert.deepEqual(played.queue, ["EVT_1985_SCHOOL_01", "MINI_85_GRANDMA", "MINI_85_TV", "MINI_85_DAD"]);
     assert.ok(played.missed.includes(MISS_85_MOM));

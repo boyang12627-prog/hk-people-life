@@ -1,19 +1,23 @@
 import type { Gender, SceneId } from "./types";
 
+/** Full Q-version painting for a place. People are already in the picture. */
+export function scenePlate(scene: SceneId, gender: Gender | null) {
+  const who = gender === "girl" ? "girl" : "boy";
+  return `/art/q/${scene}-${who}.jpg`;
+}
+
 /** 1985 slice only. Other years still use the empty room strips. */
 export function slicePlate(input: { year: number; scene: SceneId; gender: Gender | null; battle?: "door" | "pressure" | "inside" }): string | null {
   if (!input.gender) return null;
   const who = input.gender === "boy" ? "boy" : "girl";
-  if (input.battle) return `/art/1985/${input.battle}-${who}.jpg`;
-  if (input.year === 1985 && input.scene === "kindy") return `/art/1985/door-${who}.jpg`;
-  if (input.year === 1986 && input.scene === "estate") return `/art/1985/later-${who}.jpg`;
-  return null;
+  if (input.battle === "pressure" || input.battle === "inside") return `/art/q/${input.battle}-${who}.jpg`;
+  if (input.battle === "door") return scenePlate("kindy", input.gender);
+  return scenePlate(input.scene, input.gender);
 }
 
 /** One painted dinner. People are already in the picture, so do not paste sprites on it. */
 export function dinnerPlate(gender: Gender | null) {
-  if (!gender) return null;
-  return `/art/1984/dinner-${gender}.jpg`;
+  return scenePlate("home", gender);
 }
 
 export const MEMORY_BALL = "/art/1985/memory.jpg";

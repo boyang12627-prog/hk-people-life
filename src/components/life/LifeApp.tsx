@@ -16,7 +16,7 @@ import {
   yearLean,
   yearOf,
 } from "@/game/content";
-import { MEMORY_BALL, dinnerPlate, personFromName, personName, personSrc, roomOf, slicePlate, spokenLine, type Mood, type PersonId, type Pose } from "@/game/art";
+import { MEMORY_BALL, personFromName, personName, personSrc, roomOf, scenePlate, slicePlate, spokenLine, type Mood, type PersonId, type Pose } from "@/game/art";
 import { chainEcho, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
 import { battleNarrative } from "@/game/battleNarrative";
@@ -224,10 +224,9 @@ function GenderPick({ onPick }: { onPick: (gender: Gender, name: string) => void
 
 function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => void; onRestart: () => void }) {
   const year = yearOf(state);
-  const painted = year.year === 1984 && year.scene === "home";
-  const plate = painted ? dinnerPlate(state.gender) : slicePlate({ year: year.year, scene: year.scene, gender: state.gender });
+  const plate = slicePlate({ year: year.year, scene: year.scene, gender: state.gender });
   return (
-    <Paper scene={year.scene} plate={plate} painted={painted} kicker={String(year.year)} title={year.title}>
+    <Paper scene={year.scene} plate={plate} kicker={String(year.year)} title={year.title}>
       <p className="text-pretty text-base leading-7">{year.era}</p>
       <p className="mt-3 text-pretty text-base leading-7">{year.open}</p>
       {state.name ? <p className="mt-3 text-pretty text-base leading-7">別人叫你{state.name}。</p> : null}
@@ -318,14 +317,12 @@ function EventCard({ state, onChoose }: { state: State; onChoose: (choice: Retur
   const card = cardFor(state.eventId ?? "", state);
   const choices = choicesFor(state.eventId ?? "", state);
   const year = yearOf(state);
-  const painted = state.eventId === "EVT_1984_NEWS_01";
-  const plate = painted ? dinnerPlate(state.gender) : slicePlate({ year: year.year, scene: card.scene, gender: state.gender });
+  const plate = slicePlate({ year: year.year, scene: card.scene, gender: state.gender });
   const room = roomOf(state.eventId ?? "");
   return (
     <Paper
       scene={card.scene}
       plate={plate}
-      painted={painted}
       kicker={card.kicker}
       title={card.title}
       cast={room ? { present: room.present, speaker: room.speaker, line: spokenLine(card.lines) } : null}
@@ -489,26 +486,19 @@ function Dialogue({ name, src, lines }: { name: string; src?: string; lines: str
   );
 }
 
-function Paper({ scene, plate, kicker, title, cast, mood = "idle", dialogue, painted = false, children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; cast?: { present: PersonId[]; speaker: PersonId; line: string } | null; mood?: Mood; dialogue?: string[]; painted?: boolean; children: ReactNode }) {
+function Paper({ scene, plate, kicker, title, cast, mood = "idle", dialogue, children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; cast?: { present: PersonId[]; speaker: PersonId; line: string } | null; mood?: Mood; dialogue?: string[]; children: ReactNode }) {
   const gender = useContext(Face);
-  const present = painted ? [] : cast?.present ?? (gender ? (["child"] as PersonId[]) : []);
   const speaker = cast?.speaker ?? (gender ? "child" : null);
   const line = cast?.line || SENSE[scene];
   const pose: Pose = scene === "home" || scene === "study" ? "sit" : "stand";
   const face = (id: PersonId) => personSrc(id, gender, id === "child" ? mood : "idle", pose);
   const lines = dialogue?.length ? dialogue : [line];
+  const picture = plate ?? scenePlate(scene, gender);
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border-4 border-[#6e4524] bg-[#f4efe4] shadow-[inset_0_0_0_2px_#e8d7a8]">
       <div className="relative h-[34%] min-h-32 shrink-0">
-        <img src={plate ?? `/scenes/${scene}.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1c140c]/40 to-transparent" />
-        {present.length ? (
-          <div className="pointer-events-none absolute inset-x-1 bottom-0 top-1 flex items-end justify-center gap-1">
-            {present.map((id) => (
-              <img key={id} src={face(id)} alt="" className="h-full w-auto max-w-[34%] object-contain object-bottom drop-shadow-[0_6px_6px_rgba(0,0,0,0.35)]" />
-            ))}
-          </div>
-        ) : null}
+        <img src={picture} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1c140c]/25 to-transparent" />
       </div>
       <Dialogue name={speaker ? personName(speaker) : kicker} src={speaker ? face(speaker) : undefined} lines={lines} />
       <div className="flex min-h-0 flex-1 flex-col bg-[#f6efe0] text-ink">
