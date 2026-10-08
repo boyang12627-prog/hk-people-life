@@ -12,6 +12,7 @@ import { BATTLE_SPECS, KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
 import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
 import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, ledgerSummary, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
 import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, isLastYear, knownEventIds, lifeVoice, sceneFor, variantOf, yearLean, yearOf, YEARS } from "./content.ts";
+import { ARC_AH_KIT, echoOpen } from "./narrative.ts";
 import { beat1985 } from "./story.ts";
 import { resolveWorldAt, worldTick } from "./world.ts";
 import { CHILDHOOD_EVENT_IDS, DAILY_STATIC_IDS, renderStatic, STATIC_EVENTS } from "./data/events.ts";
@@ -948,7 +949,7 @@ describe("logic audit v3.1", () => {
     assert.equal(atPodium.npc.NPC_FRIEND_01.relation, 0);
     assert.equal(withMom.npcDays.NPC_FRIEND_01?.nextPlan, "return");
     assert.equal(withMom.npcDays.NPC_FRIEND_01?.missedPlayer, true);
-    assert.ok(beat1985("sat-night", withMom).lines.join("").includes("玩得很起勁"));
+    assert.ok(beat1985("sat-night", withMom).lines.join("").includes("踢波"));
     assert.equal(atHome.npcDays.NPC_FRIEND_01?.nextPlan, "withdraw");
     assert.equal(atHome.npcDays.NPC_FRIEND_01?.mood, "disappointed");
     assert.ok(beat1985("sat-night", atHome).lines.join("").includes("石凳"));
@@ -968,9 +969,14 @@ describe("logic audit v3.1", () => {
     const later = cardFor("EVT_1986_FRIEND_09", { ...withMom, yearIndex: 2 }).lines.join("");
     const bench = cardFor("EVT_1986_FRIEND_09", { ...atHome, yearIndex: 2 }).lines.join("");
     assert.ok(later.includes("去年你沒有下來"));
-    assert.ok(later.includes("玩得很起勁"));
+    assert.ok(later.includes("踢波"));
     assert.ok(bench.includes("石凳"));
-    assert.equal(bench.includes("玩得很起勁"), false);
+    assert.equal(bench.includes("踢波"), false);
+    assert.equal(echoOpen(ARC_AH_KIT, "next-day"), true);
+    assert.equal(echoOpen(ARC_AH_KIT, "1y"), true);
+    assert.ok(beat1985("open", freshState()).lines.join("").includes("袋子"));
+    assert.ok(beat1985("monday", atHome).shots.some((shot) => shot.where === "幼稚園門口"));
+    assert.ok(beat1985("sun-night", atHome).shots.some((shot) => shot.line === "明天真的要去。"));
     assert.equal(worldTick(atPodium, { year: 1985, day: "sat" }).npcDays.NPC_FRIEND_01?.nextPlan, "seek");
   });
 

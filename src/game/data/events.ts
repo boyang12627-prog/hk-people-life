@@ -1,6 +1,7 @@
 import { grownWord, type SceneId, type State } from "../types";
 import { choice, mem, type Card, type Choice } from "../choice";
 import { friendFollow } from "../freedom";
+import { ARC_AH_KIT, echoOpen } from "../narrative";
 import { quietCopy, slotIs } from "../world";
 import { gapLine, heardNews, newsCold, picked, selectByPriority, type Spoken } from "../speak";
 
@@ -239,7 +240,7 @@ export function cardFor(id: string, state: State): Card {
   const grown = grownWord(gender);
   switch (id) {
     case "MINI_85_KIT_WAIT": {
-      const back = state.npcDays.NPC_FRIEND_01?.nextPlan === "return";
+      const back = state.npcDays.NPC_FRIEND_01?.nextPlan === "return" && echoOpen(ARC_AH_KIT, "next-day");
       if (back) {
         return {
           scene: "estate",
@@ -345,8 +346,8 @@ export function cardFor(id: string, state: State): Card {
       const place = onPodium ? "平台上，阿傑抱著那個紅球。" : "走廊口，阿傑抱著那個紅球。";
       const missed = state.npcDays.NPC_FRIEND_01;
       const lines =
-        follow === "ask" && missed?.missedPlayer
-          ? [place, "阿傑：「去年你沒有下來。」", missed.mood === "content" ? "他說自己也玩得很起勁。" : missed.mood === "left" ? "他說玩了一陣就走了。" : "他說後來坐在石凳上。"]
+        follow === "ask" && missed?.missedPlayer && echoOpen(ARC_AH_KIT, "1y")
+          ? [place, "阿傑：「去年你沒有下來。」", missed.mood === "content" ? "他說自己也玩得很起勁。他在踢波。" : missed.mood === "left" ? "他說玩了一陣就走了。" : "他說後來坐在石凳上。"]
           : follow === "ask"
             ? [place, "他看你。「你有沒有見過這個？」", "去年你沒碰到它。"]
             : follow === "wary"
@@ -453,7 +454,7 @@ export function choicesFor(id: string, state: State): Choice[] {
   const heard = heardNews(state);
   switch (id) {
     case "MINI_85_KIT_WAIT": {
-      const back = state.npcDays.NPC_FRIEND_01?.nextPlan === "return";
+      const back = state.npcDays.NPC_FRIEND_01?.nextPlan === "return" && echoOpen(ARC_AH_KIT, "next-day");
       if (back) {
         return [
           choice("A", "過去一起玩", "balance", { npc: { NPC_FRIEND_01: { relation: 1, trust: 1 } } }, "你過去。他說昨天等過你。球仍然在轉。", mem("MEM_KIT_WAIT", "MINI_85_KIT_WAIT", "A", "NPC_FRIEND_01", "meet", "星期日他已經在平台。你昨天沒有下來。今天你過去了。")),

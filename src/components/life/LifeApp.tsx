@@ -257,9 +257,7 @@ function StoryBeat({ state, beat, onNext }: { state: State; beat: Parameters<typ
             <div key={shot.line} className="mt-4 first:mt-0">
               <p className="text-xs text-ink/50">{shot.where}</p>
               <p className="mt-1 text-sm text-ink/70">{shot.action}</p>
-              <p className="mt-1 text-pretty text-base leading-7">
-                {shot.speaker}：「{shot.line}」
-              </p>
+              <p className="mt-1 text-pretty text-base leading-7">{shot.speaker ? `${shot.speaker}：「${shot.line}」` : shot.line}</p>
             </div>
           ))
         : page.lines.map((line) => (
