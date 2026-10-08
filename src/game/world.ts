@@ -1,7 +1,7 @@
 /** Where people already are, and what they are doing if you do not go. */
 
 import type { NpcDay, NpcId, State } from "./types";
-import { pickEncounter } from "./encounter";
+import { factSplits, pickEncounter, eventSeed } from "./encounter";
 
 export type Place = "home" | "market" | "estate";
 export type Day = "sat" | "sun";
@@ -80,18 +80,17 @@ function observed(currentMood: number, relationshipDeltaToday: number, currentAc
 
 /** World fact. Same life, same Saturday. Undefined seed means the tests that do not pass one. */
 export function bagSplits(seed: number | undefined) {
-  if (seed === undefined) return false;
-  return Math.abs(seed) % 5 === 0;
+  return factSplits(seed);
 }
 
 export function dadStayedLate(seed: number | undefined) {
   if (seed === undefined) return false;
-  return Math.floor(Math.abs(seed) / 3) % 2 === 0;
+  return eventSeed(seed, [1985, "sat", "NPC_DAD_01", "shift"]) % 2 === 0;
 }
 function kitSaturday(state: Pick<State, "memories" | "seed">): NpcDay {
   const ball = state.memories.find((item) => item.id === "MEM_RED_BALL");
   if (!ball) {
-    const roll = Math.abs(state.seed) % 3;
+    const roll = eventSeed(state.seed, [1985, "sat", "NPC_FRIEND_01", "alone"]) % 3;
     if (roll === 1) {
       return {
         location: "estate",

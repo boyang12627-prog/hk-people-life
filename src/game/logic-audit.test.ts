@@ -14,8 +14,8 @@ import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, ledgerSummary, RETIRED_FLAGS,
 import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, isLastYear, knownEventIds, lifeVoice, sceneFor, variantOf, yearLean, yearOf, YEARS } from "./content.ts";
 import { ARC_AH_KIT, ENC_ORANGES, echoOpen } from "./narrative.ts";
 import { beat1985 } from "./story.ts";
-import { bagSplits, resolveWorldAt, worldTick } from "./world.ts";
-import { ENCOUNTERS, pickEncounter } from "./encounter.ts";
+import { bagSplits, dadStayedLate, resolveWorldAt, worldTick } from "./world.ts";
+import { ENCOUNTERS, factSplits, pickEncounter } from "./encounter.ts";
 import { CHILDHOOD_EVENT_IDS, DAILY_STATIC_IDS, renderStatic, STATIC_EVENTS } from "./data/events.ts";
 import { runLives } from "./lifeSim.ts";
 import { heardNews } from "./speak.ts";
@@ -45,7 +45,7 @@ function chooseId(state: State, id: string) {
 
 describe("logic audit v3.1", () => {
   it("news C is not remembered as heard", () => {
-    let state = run(freshState(1), [{ type: "gender", gender: "girl", name: "阿澄" }]);
+    let state = run(freshState(0), [{ type: "gender", gender: "girl", name: "阿澄" }]);
     state = spend(state, ["ACT_REST", "ACT_MARKET"]);
     assert.equal(state.eventId, "EVT_1984_NEWS_01");
     assert.equal(variantOf(state.eventId, state), "harmony");
@@ -943,7 +943,7 @@ describe("logic audit v3.1", () => {
       reducer({ ...freshState(), phase: "result", yearIndex: 1, apLeft: 0, queue: [], spent: [spent], seed, memories, result: done }, { type: "ack" });
     const atPodium = saturday("ACT_ESTATE", 9, [sharedBall]);
     const withMom = saturday("ACT_MARKET", 1, []);
-    const atHome = saturday("ACT_REST", 0, []);
+    const atHome = saturday("ACT_REST", 6, []);
     assert.equal(atPodium.note, "sat-night");
     assert.equal(atPodium.npcDays.NPC_FRIEND_01?.nextPlan, "seek");
     assert.equal(atPodium.npcDays.NPC_FRIEND_01?.observed.relationshipDeltaToday, 5);
@@ -991,33 +991,50 @@ describe("logic audit v3.1", () => {
   });
 
   it("oranges are on the road, and Saturday still ends if you are not there", () => {
-    assert.equal(bagSplits(0), true);
-    assert.equal(bagSplits(6), false);
+    const seeds = [...Array(80).keys()];
+    const draw = (seed: number) => pickEncounter(1985, "sat", "market", seed);
+    const orangeSeed = seeds.find((seed) => draw(seed) === "MINI_85_ORANGE");
+    const quietSeed = seeds.find((seed) => draw(seed) === "MINI_QUIET");
+    const neighborSeed = seeds.find((seed) => draw(seed) === "MINI_85_NEIGHBOR");
+    const newsSeed = seeds.find((seed) => draw(seed) === "EVT_1985_FAMILY_03");
+    const missedSpill = seeds.find((seed) => factSplits(seed) && draw(seed) !== "MINI_85_ORANGE");
+    const noSpill = seeds.find((seed) => !factSplits(seed));
+    const lateSeed = seeds.find((seed) => dadStayedLate(seed));
+    if (
+      orangeSeed === undefined ||
+      quietSeed === undefined ||
+      neighborSeed === undefined ||
+      newsSeed === undefined ||
+      missedSpill === undefined ||
+      noSpill === undefined ||
+      lateSeed === undefined
+    ) {
+      throw new Error("market pool did not reach every row");
+    }
+    assert.equal(draw(orangeSeed), draw(orangeSeed));
+    assert.equal(draw(198401), "MINI_QUIET");
+    assert.equal(draw(198401), draw(198401));
+    assert.ok(seeds.some((seed) => factSplits(seed) !== (Math.abs(seed) % 5 === 0)));
     assert.equal(echoOpen(ENC_ORANGES, "1y"), true);
-    const road = resolveWorldAt(1985, "sat", "ACT_MARKET", { npcDays: {}, seed: 0 });
-    assert.equal(road[0], "MINI_85_ORANGE");
-    assert.equal(road.includes("EVT_1985_FAMILY_03"), false);
-    assert.equal(pickEncounter(1985, "sat", "market", 1), "EVT_1985_FAMILY_03");
-    assert.equal(pickEncounter(1985, "sat", "market", 2), "MINI_85_NEIGHBOR");
-    assert.equal(pickEncounter(1985, "sat", "market", 3), "MINI_QUIET");
-    assert.equal(new Set([0, 1, 2, 3].map((seed) => pickEncounter(1985, "sat", "market", seed))).size, 4);
-    assert.ok(ENCOUNTERS.length >= 4);
+    assert.equal(resolveWorldAt(1985, "sat", "ACT_MARKET", { npcDays: {}, seed: orangeSeed })[0], "MINI_85_ORANGE");
+    assert.equal(resolveWorldAt(1985, "sat", "ACT_MARKET", { npcDays: {}, seed: quietSeed }).includes("MINI_85_ORANGE"), false);
+    assert.equal(resolveWorldAt(1985, "sat", "ACT_ESTATE", { npcDays: {}, seed: orangeSeed }).includes("MINI_85_ORANGE"), false);
+    assert.ok(produce1985(["ACT_ESTATE", "ACT_REST"], orangeSeed).missed.includes(MISS_85_ORANGE));
+    assert.equal(produce1985(["ACT_ESTATE", "ACT_REST"], noSpill).missed.includes(MISS_85_ORANGE), false);
+    assert.equal(ENCOUNTERS.length >= 4, true);
     assert.equal(cardFor("MINI_QUIET", { ...freshState(3), yearIndex: 1, spent: ["ACT_MARKET"] }).title, "走了一圈");
     assert.equal(choicesFor("MINI_85_ORANGE", freshState()).some((item) => item.label === "我要一顆"), true);
-    assert.equal(resolveWorldAt(1985, "sat", "ACT_MARKET", { npcDays: {}, seed: 6 }).includes("MINI_85_ORANGE"), false);
-    assert.equal(resolveWorldAt(1985, "sat", "ACT_ESTATE", { npcDays: {}, seed: 0 }).includes("MINI_85_ORANGE"), false);
-    assert.ok(produce1985(["ACT_ESTATE", "ACT_REST"], 0).missed.includes(MISS_85_ORANGE));
-    assert.equal(produce1985(["ACT_ESTATE", "ACT_REST"], 6).missed.includes(MISS_85_ORANGE), false);
-    const alone = worldTick({ ...freshState(0), spent: ["ACT_ESTATE"] }, { year: 1985, day: "sat" });
+    const alone = worldTick({ ...freshState(orangeSeed), spent: ["ACT_ESTATE"] }, { year: 1985, day: "sat" });
     assert.equal(alone.npcDays.NPC_MOM_01?.nextPlan, "carry");
     assert.equal(alone.npcDays.NPC_AUNT_01?.nextPlan, "alone");
     assert.equal(alone.npcDays.NPC_AUNT_01?.observed.currentActivity.includes("自己撿"), true);
     assert.equal(alone.npcDays.NPC_GRAND_01?.missedPlayer, true);
-    assert.equal(alone.npcDays.NPC_DAD_01?.todayOutcome, "overtime");
     assert.equal(alone.npc.NPC_MOM_01.relation, freshState().npc.NPC_MOM_01.relation);
+    const late = worldTick({ ...freshState(lateSeed), spent: ["ACT_ESTATE"] }, { year: 1985, day: "sat" });
+    assert.equal(late.npcDays.NPC_DAD_01?.todayOutcome, "overtime");
     assert.ok(resolveWorldAt(1985, "sun", "ACT_REST", alone).includes("MINI_85_MOM_ALONE"));
     assert.ok(cardFor("MINI_85_GRANDMA", alone).lines.join("").includes("湯已經涼了"));
-    assert.ok(cardFor("MINI_85_DAD", alone).lines[0].includes("晚"));
+    assert.ok(cardFor("MINI_85_DAD", late).lines[0].includes("晚"));
     const withHer = worldTick(
       {
         ...freshState(0),
@@ -1048,7 +1065,7 @@ describe("logic audit v3.1", () => {
     assert.ok(lives.every((life) => life.ended), lives.map((life) => life.phase).join(","));
     const traces = lives.map((life) => life.seen.join(" "));
     assert.equal(new Set(traces).size, 5);
-    assert.equal(lives[0].seen.some((line) => line.startsWith("EVT_1985_FAMILY_03")), true);
+    assert.equal(lives[0].seen.some((line) => line.startsWith("MINI_QUIET")), true);
     assert.equal(lives[0].seen.some((line) => line.startsWith("EVT_1985_FRIEND_04")), false);
     assert.equal(lives[1].missed.includes(MISS_85_FRIEND), true);
     assert.equal(lives[2].seen.some((line) => line.startsWith("EVT_1985_FRIEND_04:B")), true);

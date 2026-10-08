@@ -446,7 +446,7 @@ export function cardFor(id: string, state: State): Card {
       const remembered = echoOpen(ENC_ORANGES, "1y");
       const lines =
         orange === "C" && remembered
-          ? ["阿姨看見你，手停了一下。", "那條多出來的菜，她沒有放進來。", "她沒有說為什麼。"]
+          ? ["阿姨看見你，手停了一下。", "那條多出來的菜，她沒有放進來。", "她記得的不是一顆圓橙。她記得有個孩子拿了東西。"]
           : state.counter.REL_LOCAL_MARKET < 20
             ? ["你跟著媽媽站了很久。這檔你還不熟。", "阿姨和媽媽說話，然後多塞一條菜進袋子。", "沒有人向你解釋，也沒有多收一毫子。"]
             : [`阿姨：「又是你呀？${grown}了，長大了。」`, "媽媽：「謝謝。」", "阿姨偷偷多塞一條菜進袋子。沒有人提錢。"];
