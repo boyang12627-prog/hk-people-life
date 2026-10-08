@@ -83,8 +83,8 @@ export function LifeApp() {
         />
       ) : null}
       {state.phase === "note" && state.result ? (
-        <Paper scene={state.noteScene ?? "home"} kicker="這個下午" title="用了一個下午">
-          <ResultBody result={state.result} />
+        <Paper scene={state.noteScene ?? "home"} plate={afternoonPlate(state)} kicker="這個下午" title="用了一個下午" dialogue={state.result ? [state.result.text] : undefined}>
+          <ResultBody result={state.result} hideText />
           <Primary onClick={() => { tap(); dispatch({ type: "ack" }); }}>{state.apLeft > 0 ? "還有一個下午" : "接著是今年的事"}</Primary>
         </Paper>
       ) : null}
@@ -509,10 +509,10 @@ function Paper({ scene, plate, kicker, title, cast, mood = "idle", dialogue, chi
   );
 }
 
-function ResultBody({ result }: { result: NonNullable<State["result"]> }) {
+function ResultBody({ result, hideText = false }: { result: NonNullable<State["result"]>; hideText?: boolean }) {
   return (
     <>
-      <p className="text-pretty text-base leading-7">{result.text}</p>
+      {hideText ? null : <p className="text-pretty text-base leading-7">{result.text}</p>}
       {result.skills.length > 0 ? <p className="mt-3 text-sm text-ink/70">學會了：{result.skills.join("、")}</p> : null}
       {result.lean ? <p className="mt-3 text-sm text-ink/50">{result.lean}</p> : null}
       {result.deltas.length > 0 ? (
@@ -546,6 +546,15 @@ function Primary({ children, onClick }: { children: string; onClick: () => void 
       {children}
     </button>
   );
+}
+
+function afternoonPlate(state: State) {
+  const id = state.spent[state.spent.length - 1];
+  const who = state.gender === "girl" ? "girl" : "boy";
+  if (id === "ACT_DRAW") return `/art/q/draw-${who}.jpg`;
+  if (id === "ACT_PLAY") return `/art/q/play-${who}.jpg`;
+  if (id === "ACT_REST") return `/art/q/rest-${who}.jpg`;
+  return null;
 }
 
 function sceneOf(state: State): SceneId {
