@@ -1,6 +1,7 @@
 /** Where people already are, and what they are doing if you do not go. */
 
 import type { NpcDay, NpcId, State } from "./types";
+import { pickEncounter } from "./encounter";
 
 export type Place = "home" | "market" | "estate";
 export type Day = "sat" | "sun";
@@ -135,8 +136,8 @@ function kitSaturday(state: Pick<State, "memories" | "seed">): NpcDay {
   return { location: "away", mood: "flat", todayOutcome: "watched", seenPlayer: true, missedPlayer: false, nextPlan: "withdraw", observed: observed(0, 0, "沒有再等") };
 }
 
-function momSaturday(state: Pick<State, "memories">): NpcDay {
-  const withHer = state.memories.some((item) => item.eventId === "EVT_1985_FAMILY_03");
+function momSaturday(state: Pick<State, "memories" | "spent">): NpcDay {
+  const withHer = state.spent[0] === "ACT_MARKET" || state.memories.some((item) => item.eventId === "EVT_1985_FAMILY_03");
   if (withHer) {
     return { location: "home", mood: "easier", todayOutcome: "shared", seenPlayer: true, missedPlayer: false, nextPlan: "lighter", observed: observed(1, 0, "有人跟她去了街市") };
   }
@@ -179,7 +180,7 @@ function auntSaturday(state: Pick<State, "memories" | "seed">): NpcDay {
 }
 
 /** One row per person who finishes Saturday without waiting for the player. */
-const DAY_RULES: { npcId: NpcId; year: number; day: Day; resolve: (state: Pick<State, "memories" | "seed">) => NpcDay }[] = [
+const DAY_RULES: { npcId: NpcId; year: number; day: Day; resolve: (state: Pick<State, "memories" | "seed" | "spent">) => NpcDay }[] = [
   { npcId: "NPC_FRIEND_01", year: 1985, day: "sat", resolve: kitSaturday },
   { npcId: "NPC_MOM_01", year: 1985, day: "sat", resolve: momSaturday },
   { npcId: "NPC_GRAND_01", year: 1985, day: "sat", resolve: grandSaturday },
@@ -217,8 +218,10 @@ export function resolveWorldAt(year: number, day: Day, activity: string, state: 
   const table = year === 1986 ? WORLD_1986 : WORLD_1985;
   let spots: Spot[] = table[day].map((spot) => ({ npcId: spot.npcId, place: spot.place, eventId: spot.eventId }));
   if (year === 1985) spots.push({ npcId: "TV", place: "home", eventId: "MINI_85_TV" });
-  if (year === 1985 && day === "sat" && placeOf(activity) === "market" && bagSplits(state.seed)) {
-    spots.push({ npcId: "NPC_AUNT_01", place: "market", eventId: "MINI_85_ORANGE" });
+  if (year === 1985 && day === "sat" && placeOf(activity) === "market") {
+    spots = spots.filter((spot) => spot.place !== "market");
+    const eventId = pickEncounter(1985, "sat", "market", state.seed);
+    if (eventId) spots.push({ npcId: "POOL", place: "market", eventId });
   }
   if (year === 1985 && day === "sun") {
     spots = spots.filter((spot) => spot.npcId !== "NPC_FRIEND_01");
@@ -231,7 +234,6 @@ export function resolveWorldAt(year: number, day: Day, activity: string, state: 
   }
   const ids = eventsAt(spots, day, activity, table.weather, year === 1985 ? "MINI_85_RAIN" : null);
   if (ids.includes("MINI_85_KIT_WAIT")) return ["MINI_85_KIT_WAIT", ...ids.filter((id) => id !== "MINI_85_KIT_WAIT")];
-  if (ids.includes("MINI_85_ORANGE")) return ["MINI_85_ORANGE", ...ids.filter((id) => id !== "MINI_85_ORANGE")];
   return ids;
 }
 

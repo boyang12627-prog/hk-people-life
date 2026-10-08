@@ -43,7 +43,7 @@ export function produce1985(spent: readonly string[], seed?: number) {
   pushUnique(queue, resolveWorldAt(1985, "sat", spent[0] ?? "", empty));
   pushUnique(queue, resolveWorldAt(1985, "sun", spent[1] ?? "", empty));
   const missed: string[] = [];
-  if (!queue.includes("EVT_1985_FAMILY_03")) missed.push(MISS_85_MOM);
+  if (placeOf(spent[0] ?? "") !== "market") missed.push(MISS_85_MOM);
   if (!queue.includes("MINI_85_GRANDMA")) missed.push(MISS_85_GRANDMA);
   if (!queue.includes("EVT_1985_FRIEND_04")) missed.push(MISS_85_FRIEND);
   if (!queue.includes("MINI_85_DAD")) missed.push(MISS_85_DAD);

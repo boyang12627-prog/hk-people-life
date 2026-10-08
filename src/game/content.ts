@@ -90,7 +90,7 @@ export const YEARS: YearDef[] = [
     era: "大人有時會安靜一下。你知道自己要去幼稚園。",
     open: "你四歲。媽媽說門口有其他小朋友。你還不知道自己進不進得去。",
     events: ["EVT_1985_SCHOOL_01", "EVT_1985_FAMILY_03", "EVT_1985_FRIEND_04"],
-    dailies: ["MINI_85_RAIN", "MINI_85_GRANDMA", "MINI_85_DAD", "MINI_85_TV", "MINI_QUIET", "MINI_85_KIT_WAIT", "MINI_85_ORANGE", "MINI_85_MOM_ALONE"],
+    dailies: ["MINI_85_RAIN", "MINI_85_GRANDMA", "MINI_85_DAD", "MINI_85_TV", "MINI_QUIET", "MINI_85_KIT_WAIT", "MINI_85_ORANGE", "MINI_85_MOM_ALONE", "MINI_85_NEIGHBOR"],
     activities: ["ACT_MARKET", "ACT_PLAY", "ACT_DRAW", "ACT_REST", "ACT_ESTATE"],
   },
   {
@@ -170,6 +170,7 @@ const EVENT_SCENE: Record<string, SceneId> = {
   EVT_1985_FRIEND_04: "kindy",
   MINI_85_KIT_WAIT: "estate",
   MINI_85_ORANGE: "market",
+  MINI_85_NEIGHBOR: "market",
   MINI_85_MOM_ALONE: "home",
   EVT_1986_SKILL_05: "kindy",
   EVT_1986_FAMILY_06: "home",

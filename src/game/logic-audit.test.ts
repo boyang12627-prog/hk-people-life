@@ -15,6 +15,7 @@ import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, isLastYear,
 import { ARC_AH_KIT, ENC_ORANGES, echoOpen } from "./narrative.ts";
 import { beat1985 } from "./story.ts";
 import { bagSplits, resolveWorldAt, worldTick } from "./world.ts";
+import { ENCOUNTERS, pickEncounter } from "./encounter.ts";
 import { CHILDHOOD_EVENT_IDS, DAILY_STATIC_IDS, renderStatic, STATIC_EVENTS } from "./data/events.ts";
 import { runLives } from "./lifeSim.ts";
 import { heardNews } from "./speak.ts";
@@ -995,7 +996,14 @@ describe("logic audit v3.1", () => {
     assert.equal(echoOpen(ENC_ORANGES, "1y"), true);
     const road = resolveWorldAt(1985, "sat", "ACT_MARKET", { npcDays: {}, seed: 0 });
     assert.equal(road[0], "MINI_85_ORANGE");
-    assert.ok(road.includes("EVT_1985_FAMILY_03"));
+    assert.equal(road.includes("EVT_1985_FAMILY_03"), false);
+    assert.equal(pickEncounter(1985, "sat", "market", 1), "EVT_1985_FAMILY_03");
+    assert.equal(pickEncounter(1985, "sat", "market", 2), "MINI_85_NEIGHBOR");
+    assert.equal(pickEncounter(1985, "sat", "market", 3), "MINI_QUIET");
+    assert.equal(new Set([0, 1, 2, 3].map((seed) => pickEncounter(1985, "sat", "market", seed))).size, 4);
+    assert.ok(ENCOUNTERS.length >= 4);
+    assert.equal(cardFor("MINI_QUIET", { ...freshState(3), yearIndex: 1, spent: ["ACT_MARKET"] }).title, "走了一圈");
+    assert.equal(choicesFor("MINI_85_ORANGE", freshState()).some((item) => item.label === "我要一顆"), true);
     assert.equal(resolveWorldAt(1985, "sat", "ACT_MARKET", { npcDays: {}, seed: 6 }).includes("MINI_85_ORANGE"), false);
     assert.equal(resolveWorldAt(1985, "sat", "ACT_ESTATE", { npcDays: {}, seed: 0 }).includes("MINI_85_ORANGE"), false);
     assert.ok(produce1985(["ACT_ESTATE", "ACT_REST"], 0).missed.includes(MISS_85_ORANGE));

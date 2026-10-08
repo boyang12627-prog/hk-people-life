@@ -14,6 +14,7 @@ export const CHILDHOOD_EVENT_IDS = [
   "MINI_85_TV",
   "MINI_85_KIT_WAIT",
   "MINI_85_ORANGE",
+  "MINI_85_NEIGHBOR",
   "MINI_85_MOM_ALONE",
   "MINI_QUIET",
   "MINI_86_ESTATE",
@@ -236,6 +237,14 @@ export function cardFor(id: string, state: State): Card {
     const copy = quietCopy(state.spent, year);
     if (copy) return { scene: copy.scene, kicker: "日常", title: "沒有人在", lines: copy.lines };
   }
+  if (id === "MINI_QUIET" && state.yearIndex === 1 && state.spent[0] === "ACT_MARKET" && state.spent.length === 1) {
+    return {
+      scene: "market",
+      kicker: "1985 · 星期六",
+      title: "走了一圈",
+      lines: ["你跟著媽媽走了一圈。", "沒有人叫你。地面是濕的。", "菜買完，你們回家。"],
+    };
+  }
   if (id === "MINI_85_GRANDMA" && state.npcDays.NPC_GRAND_01?.missedPlayer) {
     const card = renderStatic(STATIC_EVENTS.MINI_85_GRANDMA).card;
     return { ...card, lines: ["你昨天不在。湯已經涼了。她還是坐在那裡。", ...card.lines] };
@@ -317,7 +326,14 @@ export function cardFor(id: string, state: State): Card {
         scene: "market",
         kicker: "1985 · 去街市的路上",
         title: "橙散了",
-        lines: ["阿姨的袋子裂了。橙滾到濕地上。", "她還沒有叫你。媽媽還在前面。"],
+        lines: ["有幾顆橙滾到濕地上。", "圓圓的。你看著它們。媽媽還在前面。"],
+      };
+    case "MINI_85_NEIGHBOR":
+      return {
+        scene: "market",
+        kicker: "1985 · 街市",
+        title: "媽媽停下來",
+        lines: ["一個阿姨叫了媽媽的名字。", "她們說話。你看不見魚檔。", "地面是濕的。沒有人問你要不要聽。"],
       };
     case "MINI_85_MOM_ALONE":
       return {
@@ -434,7 +450,8 @@ export function cardFor(id: string, state: State): Card {
           : state.counter.REL_LOCAL_MARKET < 20
             ? ["你跟著媽媽站了很久。這檔你還不熟。", "阿姨和媽媽說話，然後多塞一條菜進袋子。", "沒有人向你解釋，也沒有多收一毫子。"]
             : [`阿姨：「又是你呀？${grown}了，長大了。」`, "媽媽：「謝謝。」", "阿姨偷偷多塞一條菜進袋子。沒有人提錢。"];
-      if (orange === "A" && remembered) lines.push("阿姨：「去年那些橙，我自己撿不完。」");
+      if (orange === "A" && remembered) lines.push("阿姨：「去年那些橙滾到你腳邊。」");
+      if (orange === "B" && remembered) lines.push("阿姨沒有先看你。菜交到媽媽手上。");
       if (state.skills.includes("SKL_03") || state.counter.ART_PROGRESS >= 3) lines.push("你手指上有顏色。阿姨問你畫過這條菜沒有。");
       else if (state.skills.includes("SKL_12") || state.counter.MIND_PROGRESS >= 3) lines.push("阿姨：「你會數嗎？幫我數三條。」你數到了。");
       else if (state.skills.includes("SKL_10")) lines.push("你看一看，兩邊檔都想看。時間不夠。");
@@ -487,28 +504,34 @@ export function choicesFor(id: string, state: State): Choice[] {
       return [
         choice(
           "A",
-          "蹲下去撿",
-          "reality",
+          "它滾到腳邊",
+          "balance",
           { npc: { NPC_AUNT_01: { trust: 2, relation: 1 } }, derived: { STATE_MOOD: -1 } },
-          "你蹲下去。橙是濕的。媽媽在前面等你。你少了看別的檔的時間。",
-          mem("MEM_ORANGE", "MINI_85_ORANGE", "A", "NPC_AUNT_01", "help", "那些橙散了。你蹲下去撿。媽媽在前面等。"),
+          "它滾到你腳邊。你蹲下去。橙是濕的。媽媽在前面等。你少了看魚的時間。",
+          mem("MEM_ORANGE", "MINI_85_ORANGE", "A", "NPC_AUNT_01", "help", "那些橙滾到你腳邊。你把它們撿起來。"),
         ),
         choice(
           "B",
-          "跟著媽媽走",
+          "拉住媽媽",
           "balance",
           {},
-          "你沒有停。她自己蹲下去。你準時走到媽媽旁邊。",
-          mem("MEM_ORANGE", "MINI_85_ORANGE", "B", "NPC_AUNT_01", "pass", "那些橙散了。你沒有停。"),
+          "你拉她的手。你沒有停。橙還在地上。",
+          mem("MEM_ORANGE", "MINI_85_ORANGE", "B", "NPC_AUNT_01", "pass", "那些橙在地上。你拉著媽媽走了。"),
         ),
         choice(
           "C",
-          "撿一顆",
+          "我要一顆",
           "dream",
           { derived: { STATE_MOOD: 2 }, npc: { NPC_AUNT_01: { relation: -2, trust: -1 } } },
-          "你撿了一顆。很酸。她看見了，沒有出聲。你沒有把其餘的撿起來。",
+          "你拿了一顆。很酸。她看見了，沒有出聲。其餘的還在地上。",
           mem("MEM_ORANGE", "MINI_85_ORANGE", "C", "NPC_AUNT_01", "keep", "那些橙散了。你只拿走一顆。"),
         ),
+      ];
+    case "MINI_85_NEIGHBOR":
+      return [
+        choice("A", "拉她的衣袖", "dream", { derived: { STATE_MOOD: -1 }, npc: { NPC_MOM_01: { relation: -1 } } }, "你拉她。她說等一下。魚檔你還是看不見。"),
+        choice("B", "看著她們", "think", { derived: { INDEPENDENT_THOUGHT: 1 } }, "你看著。那個阿姨笑了一下。你不知道她們在說什麼。"),
+        choice("C", "蹲下去看水", "balance", { derived: { STATE_MOOD: 1 } }, "地面是涼的。你的手濕了。她們還在說。"),
       ];
     case "MINI_85_MOM_ALONE":
       return [
