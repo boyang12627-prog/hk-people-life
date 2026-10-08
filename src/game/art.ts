@@ -10,6 +10,12 @@ export function slicePlate(input: { year: number; scene: SceneId; gender: Gender
   return null;
 }
 
+/** One painted dinner. People are already in the picture, so do not paste sprites on it. */
+export function dinnerPlate(gender: Gender | null) {
+  if (!gender) return null;
+  return `/art/1984/dinner-${gender}.jpg`;
+}
+
 export const MEMORY_BALL = "/art/1985/memory.jpg";
 
 export type PersonId = "mom" | "dad" | "grandma" | "kit" | "child";
