@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { resolveAuto } from "@/game/battleBalance";
 import type { BattleSpec } from "@/game/battleSpec";
 import { actionCost, createBattle, resolveTurn, techniqueReady, type BattleAction, type BattleSim } from "@/game/battleSim";
+import { personSrc } from "@/game/art";
 import type { Approach, BattleKind, BattleOutcome, Gender } from "@/game/types";
 
 type Props = {
@@ -81,12 +82,20 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
     : `/scenes/${spec.scene}.jpg`;
 
   return (
-    <div className="flex flex-col gap-3" data-round={tick}>
-      <div className="overflow-hidden rounded-2xl border border-line/40">
-        <div className={`relative bg-bg ${kindy ? "h-40 sm:h-48" : "h-40 sm:h-52"}`}>
-          <img src={src} alt="" className="h-full w-full object-cover" />
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border-4 border-[#6e4524] bg-[#f4efe4] shadow-[inset_0_0_0_2px_#e8d7a8]" data-round={tick}>
+      <div className="relative h-[34%] min-h-36 shrink-0">
+        <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1c140c]/40 to-transparent" />
+        <img src={personSrc("child", gender)} alt="" className="pointer-events-none absolute bottom-0 left-1/2 h-32 w-auto -translate-x-1/2 object-contain drop-shadow-[0_8px_8px_rgba(0,0,0,0.35)] sm:h-40" />
+        <div className="absolute left-2 right-2 top-2 flex items-start gap-2">
+          <img src={personSrc("child", gender)} alt="" className="h-11 w-11 shrink-0 rounded-full border-2 border-[#e8d7a8] object-cover object-top" />
+          <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm bg-[#fffaf0]/95 px-3 py-2 text-ink shadow">
+            <p className="text-xs text-ink/50">{spec.label}</p>
+            <p className="text-pretty text-sm leading-6">{bonusOnly ? "還可以再走一步，或停一停。" : sim.over ? (entered ? spec.voice.entered : spec.voice.back) : sim.threat.hint}</p>
+          </div>
         </div>
-        <div className="grid gap-3 bg-paper px-4 py-3 text-ink">
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[#f6efe0] px-3 py-2 text-ink">
           <div>
             <p className="text-xs text-ink/60">
               第 {sim.round} / {sim.maxRounds} 步 · {spec.label}
@@ -103,15 +112,9 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
           <Meter label="氣力" value={sim.sp} max={sim.maxSp} tone="bg-amber" />
           <Meter label="壓力" value={sim.stress} max={100} tone="bg-ink" />
           <Meter label={spec.goalLabel} value={sim.goal} max={100} tone="bg-estate" />
-          {held ? <p className="text-sm text-pretty text-ink/70">{held}</p> : null}
-          {sim.over ? null : (
-            <div className="rounded-xl bg-bg px-3 py-2">
-              <p className="text-xs text-amber">下一聲</p>
-              <p className="text-sm text-pretty text-paper">{sim.threat.hint}</p>
-            </div>
-          )}
+          {held ? <p className="mt-2 text-sm text-pretty text-ink/70">{held}</p> : null}
           {sim.hasActed ? (
-            <div>
+            <div className="mt-2">
               <p className="text-xs text-muted">剛才</p>
               <p className="text-sm text-pretty text-ink/70">{sim.hint}</p>
               {sim.enemyHint ? (
@@ -122,18 +125,18 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
               ) : null}
             </div>
           ) : (
-            <p className="text-sm text-pretty text-ink/70">{sim.hint}</p>
+            <p className="mt-2 text-sm text-pretty text-ink/70">{sim.hint}</p>
           )}
-          {sim.over ? <p className="text-sm text-ink">{entered ? spec.voice.entered : spec.voice.back}</p> : null}
-        </div>
       </div>
       {sim.over ? (
-        <button type="button" className="min-h-12 rounded-xl bg-amber px-4 text-base font-medium text-ink" onClick={finish}>
-          看這一次
-        </button>
+        <div className="shrink-0 border-t border-[#c4a574] bg-[#efe2c6] p-2">
+          <button type="button" className="min-h-12 w-full rounded-md border border-[#8a6232] bg-[#e7c27a] text-base font-medium text-ink" onClick={finish}>
+            看這一次
+          </button>
+        </div>
       ) : (
-        <>
-          <div className="grid grid-cols-2 gap-2">
+        <div className="shrink-0 border-t border-[#c4a574] bg-[#efe2c6] p-2">
+          <div className="grid grid-cols-2 gap-1">
             <TurnButton label={spec.voice.walk.label} detail={spec.voice.walk.detail} disabled={locked || bonusLocked("walk")} onClick={() => choose("walk")} />
             <TurnButton label={spec.voice.guard.label} detail={costDetail(actionCost("guard"), spec.voice.guard.detail)} disabled={locked || broke("guard") || bonusLocked("guard")} onClick={() => choose("guard")} />
             <TurnButton
@@ -148,30 +151,10 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
             {ask ? (
               <TurnButton label={spec.voice.ask.label} detail={costDetail(actionCost("ask"), spec.voice.ask.detail)} disabled={locked || broke("ask") || bonusLocked("ask")} onClick={() => choose("ask")} />
             ) : null}
+            <TurnButton label={spec.voice.skipButton} detail="" disabled={locked} onClick={() => endAs(spec.skipKind, spec.voice.skip)} />
+            <TurnButton label={spec.voice.autoButton} detail="" disabled={locked} onClick={() => endAs(resolveAuto(sim), spec.voice.auto)} />
           </div>
-          <p className="text-sm text-pretty text-paper/70">
-            {bonusOnly ? "還可以再走一步，或停一停。" : null}
-            {prepared ? spec.voice.noteReady : spec.voice.noteWeak} {spec.voice.note}
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={locked}
-              className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper disabled:opacity-40"
-              onClick={() => endAs(spec.skipKind, spec.voice.skip)}
-            >
-              {spec.voice.skipButton}
-            </button>
-            <button
-              type="button"
-              disabled={locked}
-              className="min-h-11 rounded-xl border border-paper/30 px-3 text-sm text-paper disabled:opacity-40"
-              onClick={() => endAs(resolveAuto(sim), spec.voice.auto)}
-            >
-              {spec.voice.autoButton}
-            </button>
-          </div>
-        </>
+        </div>
       )}
     </div>
   );
@@ -202,7 +185,7 @@ function TurnButton({ label, detail, onClick, disabled }: { label: string; detai
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex min-h-12 flex-col items-start justify-center rounded-xl bg-amber px-3 py-2 text-left text-ink disabled:opacity-40"
+      className="flex min-h-12 flex-col items-start justify-center rounded-md border border-[#c4a574] bg-[#fff8ea] px-3 py-2 text-left text-ink disabled:opacity-40"
     >
       <span className="text-base font-medium">{label}</span>
       <span className="text-xs text-ink/70">{detail}</span>

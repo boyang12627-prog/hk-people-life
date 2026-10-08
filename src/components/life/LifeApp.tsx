@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useReducer, useState, type ReactNode } from "react";
 import { Battle } from "@/components/life/Battle";
 import { playRoom, playTone, unlockAudio } from "@/components/life/audio";
 import {
@@ -32,6 +32,8 @@ function heldLine(state: State) {
   return lines.length ? lines.join("") : undefined;
 }
 
+const Face = createContext<Gender | null>(null);
+
 export function LifeApp() {
   const [state, dispatch] = useReducer(reducer, undefined, freshState);
   const [ready, setReady] = useState(false);
@@ -56,8 +58,10 @@ export function LifeApp() {
   };
 
   return (
-    <main className="mx-auto h-dvh w-full max-w-lg overflow-y-auto overscroll-contain px-4 py-3 pb-8">
+    <Face.Provider value={state.gender}>
+    <main className="mx-auto flex h-dvh w-full max-w-lg flex-col bg-[#3a2616] px-2 py-2">
       <Top state={state} />
+      <div className="min-h-0 flex-1">
       {state.phase === "title" ? <Title onStart={() => { tap(); dispatch({ type: "begin" }); }} /> : null}
       {state.phase === "gender" ? (
         <GenderPick
@@ -125,7 +129,7 @@ export function LifeApp() {
         </Paper>
       ) : null}
       {state.phase === "repair" && state.result ? (
-        <Paper scene="home" kicker="1986 · 夜晚" title="媽媽問你">
+        <Paper scene="home" kicker="1986 · 夜晚" title="媽媽問你" cast={{ present: ["mom", "child"], speaker: "mom", line: "為什麼走到門口？" }}>
           <p className="text-pretty text-base leading-7">{state.result.text}</p>
           <p className="mt-3 text-pretty text-base leading-7">
             {state.skills.includes("SKL_09")
@@ -152,7 +156,9 @@ export function LifeApp() {
           <Primary onClick={() => dispatch({ type: "restart" })}>重新開始</Primary>
         </Paper>
       )}
+      </div>
     </main>
+    </Face.Provider>
   );
 }
 
@@ -172,12 +178,9 @@ function Top({ state }: { state: State }) {
   const showAp = state.phase === "activities" || state.phase === "year";
   const stamp = state.phase === "fifteen" ? "1996 · 15 歲" : year ? `${year.year} · ${year.age} 歲` : "1984–1988";
   return (
-    <header className="mb-3 flex items-end justify-between gap-3">
-      <div>
-        <p className="font-serif text-xl tracking-wide text-paper">人生・香港</p>
-        <p className="text-sm text-paper/70">{stamp}</p>
-      </div>
-      {showAp ? <p className="text-sm text-paper/70">{state.apLeft >= 2 ? "還有兩個下午" : "還有一個下午"}</p> : null}
+    <header className="mb-1 flex items-center justify-between rounded-t-md bg-[#5c3a1e] px-3 py-1.5 text-[#f6efe0]">
+      <p className="font-serif text-base tracking-wide">人生・香港</p>
+      <p className="text-sm">{showAp ? `${stamp} · ${state.apLeft >= 2 ? "兩個下午" : "一個下午"}` : stamp}</p>
     </header>
   );
 }
@@ -208,10 +211,10 @@ function GenderPick({ onPick }: { onPick: (gender: Gender, name: string) => void
         />
       </label>
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => onPick("boy", clean)} className="min-h-12 rounded-xl bg-amber text-base font-medium text-ink">
+        <button type="button" onClick={() => onPick("boy", clean)} className="min-h-12 rounded-md border border-[#8a6232] bg-[#e7c27a] text-base font-medium text-ink">
           男孩
         </button>
-        <button type="button" onClick={() => onPick("girl", clean)} className="min-h-12 rounded-xl bg-amber text-base font-medium text-ink">
+        <button type="button" onClick={() => onPick("girl", clean)} className="min-h-12 rounded-md border border-[#8a6232] bg-[#e7c27a] text-base font-medium text-ink">
           女孩
         </button>
       </div>
@@ -251,10 +254,9 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
 function StoryBeat({ state, beat, onNext }: { state: State; beat: Parameters<typeof beat1985>[0]; onNext: () => void }) {
   const page = beat1985(beat, state);
   const speakers = page.shots.map((shot) => personFromName(shot.speaker)).filter((id): id is PersonId => !!id);
-  const room = speakers.length ? { present: [...new Set<PersonId>([...speakers, "child"])], speaker: speakers[0] } : null;
-  const bubble = page.shots.find((shot) => shot.speaker)?.line ?? "";
+  const cast = speakers.length ? { present: [...new Set<PersonId>([...speakers, "child"])], speaker: speakers[0], line: page.shots.find((shot) => shot.speaker)?.line ?? page.title } : null;
   return (
-    <Paper scene={page.scene} kicker={page.kicker} title={page.title} stage={room ? <RoomStage present={room.present} speaker={room.speaker} gender={state.gender} line={bubble} /> : null}>
+    <Paper scene={page.scene} kicker={page.kicker} title={page.title} cast={cast}>
       {page.shots.length
         ? page.shots.map((shot) => (
             <div key={shot.line} className="mt-4 first:mt-0">
@@ -311,10 +313,10 @@ function Activities({ state, onPick }: { state: State; onPick: (id: string) => v
               type="button"
               disabled={used}
               onClick={() => onPick(id)}
-              className="flex min-h-14 flex-col items-start justify-center rounded-xl bg-bg px-4 py-3 text-left text-paper disabled:opacity-40"
+              className="mt-2 flex min-h-14 flex-col items-start justify-center rounded-md border border-[#c4a574] bg-[#fff8ea] px-3 py-2 text-left text-ink disabled:opacity-40"
             >
               <span className="text-base font-medium">{activity.label}</span>
-              <span className="text-sm text-pretty text-paper/70">{used ? "今年去過" : activity.detail}</span>
+              <span className="text-sm text-pretty text-ink/60">{used ? "今年去過" : activity.detail}</span>
             </button>
           );
         })}
@@ -335,7 +337,7 @@ function EventCard({ state, onChoose }: { state: State; onChoose: (choice: Retur
       plate={plate}
       kicker={card.kicker}
       title={card.title}
-      stage={room ? <RoomStage present={room.present} speaker={room.speaker} gender={state.gender} line={spokenLine(card.lines)} /> : null}
+      cast={room ? { present: room.present, speaker: room.speaker, line: spokenLine(card.lines) } : null}
     >
       {card.lines.map((line) => (
         <p key={line} className="mt-2 text-pretty text-base leading-7 first:mt-0">
@@ -364,7 +366,7 @@ function BattleResult({ state, onRetry, onSettle }: { state: State; onRetry: () 
       <p className="text-pretty text-base leading-7">{copy.text(state.battle?.kind ?? "fail", state.approach ?? "safe")}</p>
       {retry ? <p className="mt-3 text-sm text-pretty text-ink/70">{copy.retryNote}</p> : null}
       {retry ? <Primary onClick={onRetry}>再試一次</Primary> : null}
-      <button type="button" onClick={onSettle} className="mt-2 min-h-12 w-full rounded-xl border border-line text-base text-ink">
+      <button type="button" onClick={onSettle} className="mt-2 min-h-12 w-full rounded-md border border-[#c4a574] bg-[#fff8ea] text-base text-ink">
         {retry ? copy.homeLabel : copy.continueLabel}
       </button>
     </Paper>
@@ -483,39 +485,37 @@ const SENSE: Record<SceneId, string> = {
   study: "課室的風扇響著。卷子已經翻開，時鐘在黑板旁邊。",
 };
 
-function RoomStage({ present, speaker, gender, line }: { present: PersonId[]; speaker: PersonId; gender: Gender | null; line: string }) {
+function Paper({ scene, plate, kicker, title, cast, children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; cast?: { present: PersonId[]; speaker: PersonId; line: string } | null; children: ReactNode }) {
+  const gender = useContext(Face);
+  const present = cast?.present ?? (gender ? (["child"] as PersonId[]) : []);
+  const speaker = cast?.speaker ?? (gender ? "child" : null);
+  const line = cast?.line || SENSE[scene];
   return (
-    <div className="relative bg-[#f4efe4] px-3 pb-1 pt-3">
-      <div className="flex items-start gap-2">
-        <img src={personSrc(speaker, gender)} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover object-top ring-2 ring-[#c4a574]" />
-        <div className="relative min-w-0 flex-1 rounded-2xl bg-white px-3 py-2 text-sm leading-6 text-ink shadow-sm">
-          <p className="text-xs text-ink/50">{personName(speaker)}</p>
-          <p className="text-pretty">{line}</p>
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border-4 border-[#6e4524] bg-[#f4efe4] shadow-[inset_0_0_0_2px_#e8d7a8]">
+      <div className="relative h-[36%] min-h-36 shrink-0">
+        <img src={plate ?? `/scenes/${scene}.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1c140c]/40 to-transparent" />
+        {present.length ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-center">
+            {present.map((id) => (
+              <img key={id} src={personSrc(id, gender)} alt="" className={`w-auto object-contain drop-shadow-[0_8px_8px_rgba(0,0,0,0.35)] ${id === speaker ? "h-32 sm:h-40" : "h-24 sm:h-32"}`} />
+            ))}
+          </div>
+        ) : null}
+        <div className="absolute left-2 right-2 top-2 flex items-start gap-2">
+          {speaker ? <img src={personSrc(speaker, gender)} alt="" className="h-11 w-11 shrink-0 rounded-full border-2 border-[#e8d7a8] object-cover object-top" /> : null}
+          <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm bg-[#fffaf0]/95 px-3 py-2 text-ink shadow">
+            <p className="text-xs text-ink/50">{speaker ? personName(speaker) : kicker}</p>
+            <p className="text-pretty text-sm leading-6">{line}</p>
+          </div>
         </div>
       </div>
-      <div className="mt-1 flex items-end justify-center gap-1 overflow-hidden">
-        {present.map((id) => (
-          <img
-            key={id}
-            src={personSrc(id, gender)}
-            alt={personName(id)}
-            className={`w-auto object-contain object-bottom ${id === speaker ? "h-44 sm:h-52" : "h-36 sm:h-44"}`}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Paper({ scene, plate, kicker, title, stage, children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; stage?: ReactNode; children: ReactNode }) {
-  return (
-    <section className="overflow-hidden rounded-2xl border border-line/40">
-      {stage ?? <img src={plate ?? `/scenes/${scene}.jpg`} alt="" className={plate ? "h-40 w-full object-cover sm:h-48" : "h-16 w-full object-cover"} />}
-      <div className="bg-paper px-4 py-3 text-ink">
-        <p className="text-xs text-ink/60">{SENSE[scene]}</p>
-        <p className="mt-2 text-xs tracking-wide text-ink/60">{kicker}</p>
-        <h1 className="mt-1 font-serif text-2xl leading-snug text-pretty">{title}</h1>
-        <div className="mt-3">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col bg-[#f6efe0] text-ink">
+        <div className="shrink-0 border-b border-[#e0d3bf] px-3 py-2">
+          <p className="text-xs tracking-wide text-ink/50">{kicker}</p>
+          <h1 className="font-serif text-xl leading-snug text-pretty">{title}</h1>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">{children}</div>
       </div>
     </section>
   );
@@ -545,16 +545,16 @@ function ResultBody({ result }: { result: NonNullable<State["result"]> }) {
 
 function ChoiceButton({ label, hint, onClick }: { label: string; hint?: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="mt-2 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl bg-bg px-4 py-3 text-left">
-      <span className="min-w-0 flex-1 text-base font-medium text-pretty text-paper">{label}</span>
-      {hint ? <span className="shrink-0 text-xs text-paper/60">{hint}</span> : null}
+    <button type="button" onClick={onClick} className="mt-2 flex min-h-12 w-full items-center justify-between gap-3 rounded-md border border-[#c4a574] bg-[#fff8ea] px-3 py-2 text-left">
+      <span className="min-w-0 flex-1 text-base font-medium text-pretty text-ink">{label}</span>
+      {hint ? <span className="shrink-0 text-xs text-ink/50">{hint}</span> : null}
     </button>
   );
 }
 
 function Primary({ children, onClick }: { children: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="mt-4 min-h-12 w-full rounded-xl bg-amber text-base font-medium text-ink">
+    <button type="button" onClick={onClick} className="mt-3 min-h-12 w-full rounded-md border border-[#8a6232] bg-[#e7c27a] text-base font-medium text-ink">
       {children}
     </button>
   );
