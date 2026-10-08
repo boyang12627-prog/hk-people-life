@@ -1,6 +1,17 @@
 import type { Gender, SceneId } from "./types";
 
-/** Full Q-version painting for a place. People are already in the picture. */
+/** A picture for one event, when the place name is too broad. */
+const EVENT_PLATE: Record<string, string> = {
+  MINI_84_TOY: "toy",
+};
+
+export function eventPlate(eventId: string | null, gender: Gender | null) {
+  const name = eventId ? EVENT_PLATE[eventId] : null;
+  if (!name) return null;
+  const who = gender === "girl" ? "girl" : "boy";
+  return `/art/q/${name}-${who}.jpg`;
+}
+
 export function scenePlate(scene: SceneId, gender: Gender | null) {
   const who = gender === "girl" ? "girl" : "boy";
   return `/art/q/${scene}-${who}.jpg`;

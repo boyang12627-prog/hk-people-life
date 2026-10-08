@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBattle, initiativeFor, resolveTurn } from "./battleSim.ts";
 import { readFileSync, existsSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
-import { readLine, slicePlate } from "./art.ts";
+import { eventPlate, readLine, slicePlate } from "./art.ts";
 import { produce1985, produce1986, missed1986, missedLine, chainEcho, CHAIN_85_STAGES, friendFollow, MISS_85_FRIEND, MISS_85_MOM, MISS_85_ORANGE, MISS_85_RAIN, REPLAY_MATRIX } from "./freedom.ts";
 import { runChildhood } from "./lifeSim.ts";
 import { WORLD_1985 } from "./world.ts";
@@ -827,6 +827,8 @@ describe("logic audit v3.1", () => {
     );
     assert.equal(turns[2].text.startsWith("先吃飯"), true);
     assert.equal(turns[3].text.includes("一家人安穩"), true);
+    assert.equal(eventPlate("MINI_84_TOY", "boy"), "/art/q/toy-boy.jpg");
+    assert.equal(eventPlate("EVT_1984_NEWS_01", "boy"), null);
     const played = produce1985(["ACT_PLAY", "ACT_DRAW"]);
     assert.deepEqual(played.queue, ["EVT_1985_SCHOOL_01", "MINI_85_GRANDMA", "MINI_85_TV", "MINI_85_DAD"]);
     assert.ok(played.missed.includes(MISS_85_MOM));

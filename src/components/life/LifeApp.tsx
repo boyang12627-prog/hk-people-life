@@ -16,7 +16,7 @@ import {
   yearLean,
   yearOf,
 } from "@/game/content";
-import { MEMORY_BALL, personFromName, personSrc, readLine, roomOf, scenePlate, slicePlate, spokenLine, type Mood, type PersonId, type Pose } from "@/game/art";
+import { MEMORY_BALL, eventPlate, personFromName, personSrc, readLine, roomOf, scenePlate, slicePlate, spokenLine, type Mood, type PersonId, type Pose } from "@/game/art";
 import { chainEcho, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
 import { battleNarrative } from "@/game/battleNarrative";
@@ -123,7 +123,7 @@ export function LifeApp() {
         />
       ) : null}
       {state.phase === "result" && state.result ? (
-        <Paper scene={sceneOf(state)} kicker="之後" title="你選了">
+        <Paper scene={sceneOf(state)} plate={eventPlate(state.eventId, state.gender)} kicker="之後" title="你選了">
           <ResultBody result={state.result} />
           <Primary onClick={() => { tap(); dispatch({ type: "ack" }); }}>繼續</Primary>
         </Paper>
@@ -317,7 +317,7 @@ function EventCard({ state, onChoose }: { state: State; onChoose: (choice: Retur
   const card = cardFor(state.eventId ?? "", state);
   const choices = choicesFor(state.eventId ?? "", state);
   const year = yearOf(state);
-  const plate = slicePlate({ year: year.year, scene: card.scene, gender: state.gender });
+  const plate = eventPlate(state.eventId, state.gender) ?? slicePlate({ year: year.year, scene: card.scene, gender: state.gender });
   const room = roomOf(state.eventId ?? "");
   return (
     <Paper
