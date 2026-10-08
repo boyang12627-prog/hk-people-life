@@ -16,7 +16,7 @@ import {
   yearLean,
   yearOf,
 } from "@/game/content";
-import { MEMORY_BALL, beatPlate, eventPlate, personFromName, personSrc, readLine, roomOf, scenePlate, slicePlate, spokenLine, type Mood, type PersonId, type Pose } from "@/game/art";
+import { MEMORY_BALL, beatPlate, eventPlate, personFromName, personSrc, readLine, roomOf, scenePlate, slicePlate, spokenLine, yearPlate, type Mood, type PersonId, type Pose } from "@/game/art";
 import { chainEcho, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
 import { battleNarrative } from "@/game/battleNarrative";
@@ -123,13 +123,13 @@ export function LifeApp() {
         />
       ) : null}
       {state.phase === "result" && state.result ? (
-        <Paper scene={sceneOf(state)} plate={eventPlate(state.eventId, state.gender)} kicker="之後" title="你選了">
+        <Paper scene={sceneOf(state)} plate={eventPlate(state.eventId, state.gender, sceneOf(state))} kicker="之後" title="你選了">
           <ResultBody result={state.result} />
           <Primary onClick={() => { tap(); dispatch({ type: "ack" }); }}>繼續</Primary>
         </Paper>
       ) : null}
       {state.phase === "repair" && state.result ? (
-        <Paper scene="home" kicker="1986 · 夜晚" title="媽媽問你" cast={{ present: ["mom", "child"], speaker: "mom", line: "為什麼走到門口？" }} mood="think">
+        <Paper scene="home" plate={beatPlate("sat-night", state.gender)} kicker="1986 · 夜晚" title="媽媽問你" cast={{ present: ["mom", "child"], speaker: "mom", line: "為什麼走到門口？" }} mood="think">
           <p className="text-pretty text-base leading-7">{state.result.text}</p>
           <p className="mt-3 text-pretty text-base leading-7">
             {state.skills.includes("SKL_09")
@@ -224,7 +224,7 @@ function GenderPick({ onPick }: { onPick: (gender: Gender, name: string) => void
 
 function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => void; onRestart: () => void }) {
   const year = yearOf(state);
-  const plate = slicePlate({ year: year.year, scene: year.scene, gender: state.gender });
+  const plate = yearPlate(year.year, state.gender) ?? slicePlate({ year: year.year, scene: year.scene, gender: state.gender });
   return (
     <Paper scene={year.scene} plate={plate} kicker={String(year.year)} title={year.title}>
       <p className="text-pretty text-base leading-7">{year.era}</p>
@@ -268,8 +268,9 @@ function StoryBeat({ state, beat, onNext }: { state: State; beat: Parameters<typ
 function Activities({ state, onPick }: { state: State; onPick: (id: string) => void }) {
   const year = yearOf(state);
   const timed = year.year === 1985 || year.year === 1986;
+  const choosing = year.year === 1985 && state.spent.length === 0 ? beatPlate("downstairs", state.gender) : scenePlate("home", state.gender);
   return (
-    <Paper scene={year.scene} kicker="今年" title={year.year === 1985 ? (state.spent.length ? "星期日下午" : "星期六下午") : timed ? "這兩個下午" : "今天怎麼過"} mood="think" dialogue={[
+    <Paper scene="home" plate={choosing} kicker="今年" title={year.year === 1985 ? (state.spent.length ? "星期日下午" : "星期六下午") : timed ? "這兩個下午" : "今天怎麼過"} mood="think" dialogue={[
       year.year === 1985
         ? state.spent.length
           ? "昨天已經過了。今天再過一個下午。"
@@ -317,7 +318,7 @@ function EventCard({ state, onChoose }: { state: State; onChoose: (choice: Retur
   const card = cardFor(state.eventId ?? "", state);
   const choices = choicesFor(state.eventId ?? "", state);
   const year = yearOf(state);
-  const plate = eventPlate(state.eventId, state.gender) ?? slicePlate({ year: year.year, scene: card.scene, gender: state.gender });
+  const plate = eventPlate(state.eventId, state.gender, card.scene) ?? slicePlate({ year: year.year, scene: card.scene, gender: state.gender });
   const room = roomOf(state.eventId ?? "");
   return (
     <Paper
@@ -387,7 +388,7 @@ function Fifteen({ state, onAct }: { state: State; onAct: () => void }) {
   const act = fifteenAct(state);
   const echo = state.memories.some((item) => item.id === "MEM_FIRST_SCHOOL");
   return (
-    <Paper scene="home" kicker="1996 · 十五歲" title="自己回家">
+    <Paper scene="home" plate={beatPlate("sat-night", state.gender)} kicker="1996 · 十五歲" title="自己回家">
       <div className="relative">
         {echo ? <img src={MEMORY_BALL} alt="" className="pointer-events-none float-right mb-2 ml-3 h-24 w-24 rounded-lg object-cover opacity-50" /> : null}
         {fifteenLines(state).map((line) => (
@@ -404,7 +405,7 @@ function Fifteen({ state, onAct }: { state: State; onAct: () => void }) {
 function Ending({ state, onRestart }: { state: State; onRestart: () => void }) {
   const skills = state.skills.map((id) => SKILL_NAME[id] ?? id);
   return (
-    <Paper scene="home" kicker="十年後" title="同一個屋邨">
+    <Paper scene="estate" kicker="十年後" title="同一個屋邨">
       <p className="font-serif text-pretty text-xl leading-9">{lifeVoice(state.memories, state.name)}</p>
       <p className="mt-3 text-pretty text-base leading-7">{orientationLine(state.derived.VALUE_DREAM, state.derived.VALUE_REALITY)}</p>
       {state.flags.includes("FLAG_REPAIR_TALK") ? <p className="mt-3 text-pretty text-base leading-7">你跟媽媽談過屋邨門口。家裡近了，但心裡緊過。</p> : null}

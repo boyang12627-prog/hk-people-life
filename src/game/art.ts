@@ -11,11 +11,18 @@ const EVENT_PLATE: Record<string, string> = {
   MINI_85_ORANGE: "orange",
   MINI_86_HELP: "bags",
   EVT_1988_PEN_01: "pen",
+  EVT_1984_FAMILY_02: "play",
+  EVT_1986_FAMILY_06: "tv",
+  EVT_1986_ECHO_08: "corridor",
+  MINI_85_ALONE_PODIUM: "rain",
 };
 
 const BEAT_PLATE: Record<string, string> = {
   open: "bag",
   downstairs: "stair",
+  "sun-night": "bag",
+  "sat-night": "tv",
+  aftermath: "tv",
 };
 
 function painted(name: string, gender: Gender | null) {
@@ -23,7 +30,9 @@ function painted(name: string, gender: Gender | null) {
   return `/art/q/${name}-${who}.jpg`;
 }
 
-export function eventPlate(eventId: string | null, gender: Gender | null) {
+export function eventPlate(eventId: string | null, gender: Gender | null, scene?: string | null) {
+  if (eventId === "EVT_1985_FRIEND_04" && scene === "kindy") return painted("inside", gender);
+  if (eventId === "MINI_QUIET" && scene === "estate") return painted("rain", gender);
   const name = eventId ? EVENT_PLATE[eventId] : null;
   return name ? painted(name, gender) : null;
 }
@@ -31,6 +40,11 @@ export function eventPlate(eventId: string | null, gender: Gender | null) {
 export function beatPlate(beat: string, gender: Gender | null) {
   const name = BEAT_PLATE[beat];
   return name ? painted(name, gender) : null;
+}
+
+export function yearPlate(year: number, gender: Gender | null) {
+  if (year === 1986) return painted("tv", gender);
+  return null;
 }
 
 export function scenePlate(scene: SceneId, gender: Gender | null) {
