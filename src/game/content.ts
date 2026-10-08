@@ -90,7 +90,7 @@ export const YEARS: YearDef[] = [
     era: "大人有時會安靜一下。你知道自己要去幼稚園。",
     open: "你四歲。媽媽說門口有其他小朋友。你還不知道自己進不進得去。",
     events: ["EVT_1985_SCHOOL_01", "EVT_1985_FAMILY_03", "EVT_1985_FRIEND_04"],
-    dailies: ["MINI_85_RAIN", "MINI_85_GRANDMA", "MINI_85_DAD", "MINI_85_TV", "MINI_QUIET", "MINI_85_KIT_WAIT", "MINI_85_ORANGE", "MINI_85_MOM_ALONE", "MINI_85_NEIGHBOR"],
+    dailies: ["MINI_85_RAIN", "MINI_85_GRANDMA", "MINI_85_DAD", "MINI_85_TV", "MINI_QUIET", "MINI_85_KIT_WAIT", "MINI_85_ORANGE", "MINI_85_MOM_ALONE", "MINI_85_NEIGHBOR", "MINI_85_ALONE_PODIUM"],
     activities: ["ACT_MARKET", "ACT_PLAY", "ACT_DRAW", "ACT_REST", "ACT_ESTATE"],
   },
   {
@@ -172,6 +172,7 @@ const EVENT_SCENE: Record<string, SceneId> = {
   MINI_85_ORANGE: "market",
   MINI_85_NEIGHBOR: "market",
   MINI_85_MOM_ALONE: "home",
+  MINI_85_ALONE_PODIUM: "estate",
   EVT_1986_SKILL_05: "kindy",
   EVT_1986_FAMILY_06: "home",
   EVT_1986_MARKET_07: "market",
@@ -348,6 +349,7 @@ export function fifteenLines(state: State) {
   else if (again === "B") lines.push("五歲那年，你看著，沒有馬上加入。");
   else if (again === "C") lines.push("五歲那年，你又走開了一次。");
   lines.push(...thirdHop(state));
+  lines.push(...rememberedPeople(state));
   lines.push("原來你小時候那些選擇，沒有消失。");
   return lines;
 }
@@ -398,6 +400,17 @@ function thirdHop(state: State) {
   if (state.flags.includes("FLAG_CURIOUS_SCHOOL")) spoken.push({ priority: 2, text: "你小時候自己走近過。現在回學校，你不必再拉著人。" });
   else if (state.flags.includes("FLAG_FAMILY_NEWS_SILENCE") && picked(state, "MEM_SILENT_NEWS_01") === "A") spoken.push({ priority: 2, text: "家裡靜過。你現在也明白，靜有時是擔心。" });
   return selectByPriority(spoken, 3);
+}
+
+function rememberedPeople(state: State) {
+  const spoken: Spoken[] = [];
+  if (picked(state, "MEM_ORANGE") === "C") spoken.push({ priority: 1, text: "阿姨沒有再說那顆橙。你記得它很圓，也很酸。" });
+  if (picked(state, "MEM_MOM_ALONE") === "B") spoken.push({ priority: 1, text: "那袋菜她一個人提過。你去玩了。她沒有再提。" });
+  if (picked(state, "MEM_GRAND_DAY") === "B") spoken.push({ priority: 1, text: "嫲嫲後來說湯還是熱的。你記得它涼了。" });
+  if (picked(state, "MEM_NEIGHBOR") === "A") spoken.push({ priority: 1, text: "媽媽以為你不喜歡街市。你只是拉過她的衣袖。" });
+  if (state.memories.some((item) => item.id === "MEM_OTHER_CHILD")) spoken.push({ priority: 1, text: "平台上那個孩子，你到現在也不知道名字。" });
+  if (state.npcDays.NPC_DAD_01?.todayOutcome === "overtime") spoken.push({ priority: 1, text: "那個星期六他替人留到最後。當時你只知道，鞋子脫得很慢。" });
+  return selectByPriority(spoken, 2);
 }
 
 const RECALL: Record<string, Record<string, string>> = {

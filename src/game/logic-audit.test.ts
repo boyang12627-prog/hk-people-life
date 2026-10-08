@@ -964,7 +964,8 @@ describe("logic audit v3.1", () => {
     assert.equal(cardFor("MINI_85_KIT_WAIT", visit).lines.join("").includes("昨天沒有下來"), false);
     assert.equal(found.eventId, "MINI_85_KIT_WAIT");
     assert.ok(cardFor("MINI_85_KIT_WAIT", found).lines.join("").includes("昨天沒有下來"));
-    assert.equal(rain.eventId, "MINI_85_RAIN");
+    assert.equal(rain.eventId, "MINI_85_ALONE_PODIUM");
+    assert.ok(cardFor(rain.eventId, rain).lines.join("").includes("不認識"));
     assert.ok(resolveWorldAt(1985, "sun", "ACT_ESTATE", withMom).includes("MINI_85_KIT_WAIT"));
     assert.equal(resolveWorldAt(1985, "sun", "ACT_HOME", atHome).includes("MINI_85_KIT_WAIT"), false);
     const later = cardFor("EVT_1986_FRIEND_09", { ...withMom, yearIndex: 2 }).lines.join("");

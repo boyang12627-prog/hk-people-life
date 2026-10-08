@@ -16,6 +16,7 @@ export const CHILDHOOD_EVENT_IDS = [
   "MINI_85_ORANGE",
   "MINI_85_NEIGHBOR",
   "MINI_85_MOM_ALONE",
+  "MINI_85_ALONE_PODIUM",
   "MINI_QUIET",
   "MINI_86_ESTATE",
   "MINI_86_TV",
@@ -342,6 +343,13 @@ export function cardFor(id: string, state: State): Card {
         title: "菜已經提回來",
         lines: ["廚房有一袋菜。媽媽一個人提的。", "她坐著，沒有叫你。"],
       };
+    case "MINI_85_ALONE_PODIUM":
+      return {
+        scene: "estate",
+        kicker: "1985 · 星期日",
+        title: "平台沒有他",
+        lines: ["你下了樓。雨還在下。", "阿傑不在。", "另一個孩子在踢一個瓶蓋。你不認識他。"],
+      };
     case "EVT_1985_FAMILY_03": {
       const news = picked(state, "MEM_NEWS_01");
       const lines = ["你四歲，不懂說這些。你只知道新聞完了，家裡很靜。", "電視有人說「九七」。你不知道那是兩個數字，還是一件事。", "爸爸把甜品推過來：「沒事，吃甜品。」", "媽媽沒有笑，只是把電視聲調小。"];
@@ -397,6 +405,7 @@ export function cardFor(id: string, state: State): Card {
               : follow === "watch"
                 ? [place, "你沒有走過去。你看他們怎麼輪。"]
                 : [place, "去年你站著看過。這次他沒有把球抱那麼緊。"];
+      if (state.memories.some((item) => item.id === "MEM_OTHER_CHILD")) lines.push("你沒有再見過那個沒有名字的孩子。");
       return { scene: onPodium ? "estate" : "corridor", kicker: "1986 · 阿傑", title: follow === "invite" ? "今次不是搶" : "紅波還在", lines };
     }
     case "EVT_1986_SKILL_05": {
@@ -439,6 +448,7 @@ export function cardFor(id: string, state: State): Card {
       else if (state.counter.NPC_MOM_STRESS >= 26) lines.push("媽媽沒有出聲幫你。她自己也還沒鬆下來。");
       else if (state.counter.NPC_MOM_STRESS < 20) lines.push("媽媽看你一眼，低聲說：「下星期也可以。」");
       if (state.npcDays.NPC_DAD_01?.todayOutcome === "overtime") lines.push("去年星期六他做到天黑。今天公園又去不成。");
+      if (picked(state, "MEM_MOM_ALONE") === "B") lines.push("去年那袋菜你沒有拿。她沒有再叫你。");
       return { scene: "home", kicker: "1986 · 星期日", title: "爸爸說要上班", lines };
     }
     case "EVT_1986_MARKET_07": {
@@ -452,6 +462,7 @@ export function cardFor(id: string, state: State): Card {
             : [`阿姨：「又是你呀？${grown}了，長大了。」`, "媽媽：「謝謝。」", "阿姨偷偷多塞一條菜進袋子。沒有人提錢。"];
       if (orange === "A" && remembered) lines.push("阿姨：「去年那些橙滾到你腳邊。」");
       if (orange === "B" && remembered) lines.push("阿姨沒有先看你。菜交到媽媽手上。");
+      if (picked(state, "MEM_NEIGHBOR") === "A") lines.push("媽媽以為你不喜歡跟著來。你只是拉過她的衣袖。");
       if (state.skills.includes("SKL_03") || state.counter.ART_PROGRESS >= 3) lines.push("你手指上有顏色。阿姨問你畫過這條菜沒有。");
       else if (state.skills.includes("SKL_12") || state.counter.MIND_PROGRESS >= 3) lines.push("阿姨：「你會數嗎？幫我數三條。」你數到了。");
       else if (state.skills.includes("SKL_10")) lines.push("你看一看，兩邊檔都想看。時間不夠。");
@@ -529,9 +540,15 @@ export function choicesFor(id: string, state: State): Choice[] {
       ];
     case "MINI_85_NEIGHBOR":
       return [
-        choice("A", "拉她的衣袖", "dream", { derived: { STATE_MOOD: -1 }, npc: { NPC_MOM_01: { relation: -1 } } }, "你拉她。她說等一下。魚檔你還是看不見。"),
+        choice("A", "拉她的衣袖", "dream", { derived: { STATE_MOOD: -1 }, npc: { NPC_MOM_01: { relation: -1 } } }, "你拉她。她說等一下。魚檔你還是看不見。", mem("MEM_NEIGHBOR", "MINI_85_NEIGHBOR", "A", "NPC_MOM_01", "pull", "你拉過媽媽的衣袖。她以為你不想留在街市。")),
         choice("B", "看著她們", "think", { derived: { INDEPENDENT_THOUGHT: 1 } }, "你看著。那個阿姨笑了一下。你不知道她們在說什麼。"),
         choice("C", "蹲下去看水", "balance", { derived: { STATE_MOOD: 1 } }, "地面是涼的。你的手濕了。她們還在說。"),
+      ];
+    case "MINI_85_ALONE_PODIUM":
+      return [
+        choice("A", "坐下來", "balance", { derived: { STATE_MOOD: -1 } }, "你坐下。雨打在臉上。那個孩子沒有叫你。", mem("MEM_OTHER_CHILD", "MINI_85_ALONE_PODIUM", "A", "", "sit", "阿傑不在。你在雨裡坐了一陣。那個孩子沒有名字。")),
+        choice("B", "看他踢", "think", { derived: { INDEPENDENT_THOUGHT: 1 } }, "瓶蓋滾來滾去。你看完了。你還是不知道他叫什麼。", mem("MEM_OTHER_CHILD", "MINI_85_ALONE_PODIUM", "B", "", "watch", "阿傑不在。你看另一個孩子踢瓶蓋。你沒有問名字。")),
+        choice("C", "回家", "reality", { derived: { STATE_FAMILY_HARMONY: 1 } }, "你回家。平台還在下雨。", mem("MEM_OTHER_CHILD", "MINI_85_ALONE_PODIUM", "C", "", "home", "你去了平台。阿傑不在。你回家了。")),
       ];
     case "MINI_85_MOM_ALONE":
       return [

@@ -227,6 +227,9 @@ export function resolveWorldAt(year: number, day: Day, activity: string, state: 
     const kit = state.npcDays.NPC_FRIEND_01;
     const event = kit ? kitMeets(kit, placeOf(activity)) : null;
     if (event) spots.push({ npcId: "NPC_FRIEND_01", place: placeOf(activity), eventId: event });
+    else if (kit && kit.location !== "estate" && placeOf(activity) === "estate") {
+      spots.push({ npcId: "PASSER", place: "estate", eventId: "MINI_85_ALONE_PODIUM" });
+    }
     if (state.npcDays.NPC_MOM_01?.nextPlan === "carry" && placeOf(activity) === "home") {
       spots.push({ npcId: "NPC_MOM_01", place: "home", eventId: "MINI_85_MOM_ALONE" });
     }
