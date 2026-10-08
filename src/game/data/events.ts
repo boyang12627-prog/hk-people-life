@@ -1,7 +1,7 @@
 import { grownWord, type SceneId, type State } from "../types";
 import { choice, mem, type Card, type Choice } from "../choice";
 import { friendFollow } from "../freedom";
-import { ARC_AH_KIT, echoOpen } from "../narrative";
+import { ARC_AH_KIT, ENC_ORANGES, echoOpen } from "../narrative";
 import { quietCopy, slotIs } from "../world";
 import { gapLine, heardNews, newsCold, picked, selectByPriority, type Spoken } from "../speak";
 
@@ -13,6 +13,8 @@ export const CHILDHOOD_EVENT_IDS = [
   "MINI_85_DAD",
   "MINI_85_TV",
   "MINI_85_KIT_WAIT",
+  "MINI_85_ORANGE",
+  "MINI_85_MOM_ALONE",
   "MINI_QUIET",
   "MINI_86_ESTATE",
   "MINI_86_TV",
@@ -91,9 +93,9 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
     title: "嫲嫲揭開煲蓋",
     lines: ["湯很香。嫲嫲說，以前這棟樓要自己走樓梯。", "碗很熱，你用手托住。"],
     choices: [
-      choice("A", "聽她講", "reality", { npc: { NPC_GRAND_01: { trust: 3, relation: 2 } }, derived: { INDEPENDENT_THOUGHT: 1 } }, "你聽。你不知道全部，但你知道這棟樓以前更難走。"),
-      choice("B", "走去玩", "dream", { derived: { STATE_MOOD: 2 }, npc: { NPC_GRAND_01: { relation: -1 } } }, "你留下碗湯，走到玩具那裡。嫲嫲沒有叫你回來。"),
-      choice("C", "問為什麼要走樓梯", "think", { derived: { INDEPENDENT_THOUGHT: 2 }, npc: { NPC_GRAND_01: { trust: 2 } } }, "嫲嫲笑：「因為那時候沒有這些按鈕。」你記住「以前」兩個字。"),
+      choice("A", "聽她講", "reality", { npc: { NPC_GRAND_01: { trust: 3, relation: 2 } }, derived: { INDEPENDENT_THOUGHT: 1 } }, "你聽。你不知道全部，但你知道這棟樓以前更難走。", mem("MEM_GRAND_DAY", "MINI_85_GRANDMA", "A", "NPC_GRAND_01", "listen", "你留在廳裡聽嫲嫲講以前。")),
+      choice("B", "走去玩", "dream", { derived: { STATE_MOOD: 2 }, npc: { NPC_GRAND_01: { relation: -1 } } }, "你留下碗湯，走到玩具那裡。嫲嫲沒有叫你回來。", mem("MEM_GRAND_DAY", "MINI_85_GRANDMA", "B", "NPC_GRAND_01", "left", "湯還在。你聽了一半就走。")),
+      choice("C", "問為什麼要走樓梯", "think", { derived: { INDEPENDENT_THOUGHT: 2 }, npc: { NPC_GRAND_01: { trust: 2 } } }, "嫲嫲笑：「因為那時候沒有這些按鈕。」你記住「以前」兩個字。", mem("MEM_GRAND_DAY", "MINI_85_GRANDMA", "C", "NPC_GRAND_01", "ask", "你問了以前為什麼要走樓梯。")),
     ],
   },
   MINI_85_DAD: {
@@ -234,6 +236,14 @@ export function cardFor(id: string, state: State): Card {
     const copy = quietCopy(state.spent, year);
     if (copy) return { scene: copy.scene, kicker: "日常", title: "沒有人在", lines: copy.lines };
   }
+  if (id === "MINI_85_GRANDMA" && state.npcDays.NPC_GRAND_01?.missedPlayer) {
+    const card = renderStatic(STATIC_EVENTS.MINI_85_GRANDMA).card;
+    return { ...card, lines: ["你昨天不在。湯已經涼了。她還是坐在那裡。", ...card.lines] };
+  }
+  if (id === "MINI_85_DAD" && state.npcDays.NPC_DAD_01?.todayOutcome === "overtime") {
+    const card = renderStatic(STATIC_EVENTS.MINI_85_DAD).card;
+    return { ...card, lines: ["他比平時晚。鞋子脫得很慢。", "爸爸把鞋子脫在門口。他還沒去沖涼。"] };
+  }
   const staticEvt = STATIC_EVENTS[id];
   if (staticEvt) return renderStatic(staticEvt).card;
   const gender = state.gender ?? "girl";
@@ -302,6 +312,20 @@ export function cardFor(id: string, state: State): Card {
       if (lean) lines.push(lean);
       return { scene: "kindy", kicker: "1985 · 第一日", title: "幼稚園門口", lines };
     }
+    case "MINI_85_ORANGE":
+      return {
+        scene: "market",
+        kicker: "1985 · 去街市的路上",
+        title: "橙散了",
+        lines: ["阿姨的袋子裂了。橙滾到濕地上。", "她還沒有叫你。媽媽還在前面。"],
+      };
+    case "MINI_85_MOM_ALONE":
+      return {
+        scene: "home",
+        kicker: "1985 · 星期日",
+        title: "菜已經提回來",
+        lines: ["廚房有一袋菜。媽媽一個人提的。", "她坐著，沒有叫你。"],
+      };
     case "EVT_1985_FAMILY_03": {
       const news = picked(state, "MEM_NEWS_01");
       const lines = ["你四歲，不懂說這些。你只知道新聞完了，家裡很靜。", "電視有人說「九七」。你不知道那是兩個數字，還是一件事。", "爸爸把甜品推過來：「沒事，吃甜品。」", "媽媽沒有笑，只是把電視聲調小。"];
@@ -398,13 +422,19 @@ export function cardFor(id: string, state: State): Card {
       if (state.counter.WORLD_DAD_WORK_OCCURRENCES >= 2) lines.unshift("這不是第一次。外套摺好又拆開，你見過。");
       else if (state.counter.NPC_MOM_STRESS >= 26) lines.push("媽媽沒有出聲幫你。她自己也還沒鬆下來。");
       else if (state.counter.NPC_MOM_STRESS < 20) lines.push("媽媽看你一眼，低聲說：「下星期也可以。」");
+      if (state.npcDays.NPC_DAD_01?.todayOutcome === "overtime") lines.push("去年星期六他做到天黑。今天公園又去不成。");
       return { scene: "home", kicker: "1986 · 星期日", title: "爸爸說要上班", lines };
     }
     case "EVT_1986_MARKET_07": {
+      const orange = picked(state, "MEM_ORANGE");
+      const remembered = echoOpen(ENC_ORANGES, "1y");
       const lines =
-        state.counter.REL_LOCAL_MARKET < 20
-          ? ["你跟著媽媽站了很久。這檔你還不熟。", "阿姨和媽媽說話，然後多塞一條菜進袋子。", "沒有人向你解釋，也沒有多收一毫子。"]
-          : [`阿姨：「又是你呀？${grown}了，長大了。」`, "媽媽：「謝謝。」", "阿姨偷偷多塞一條菜進袋子。沒有人提錢。"];
+        orange === "C" && remembered
+          ? ["阿姨看見你，手停了一下。", "那條多出來的菜，她沒有放進來。", "她沒有說為什麼。"]
+          : state.counter.REL_LOCAL_MARKET < 20
+            ? ["你跟著媽媽站了很久。這檔你還不熟。", "阿姨和媽媽說話，然後多塞一條菜進袋子。", "沒有人向你解釋，也沒有多收一毫子。"]
+            : [`阿姨：「又是你呀？${grown}了，長大了。」`, "媽媽：「謝謝。」", "阿姨偷偷多塞一條菜進袋子。沒有人提錢。"];
+      if (orange === "A" && remembered) lines.push("阿姨：「去年那些橙，我自己撿不完。」");
       if (state.skills.includes("SKL_03") || state.counter.ART_PROGRESS >= 3) lines.push("你手指上有顏色。阿姨問你畫過這條菜沒有。");
       else if (state.skills.includes("SKL_12") || state.counter.MIND_PROGRESS >= 3) lines.push("阿姨：「你會數嗎？幫我數三條。」你數到了。");
       else if (state.skills.includes("SKL_10")) lines.push("你看一看，兩邊檔都想看。時間不夠。");
@@ -453,6 +483,60 @@ export function choicesFor(id: string, state: State): Choice[] {
   if (staticEvt) return renderStatic(staticEvt).choices;
   const heard = heardNews(state);
   switch (id) {
+    case "MINI_85_ORANGE":
+      return [
+        choice(
+          "A",
+          "蹲下去撿",
+          "reality",
+          { npc: { NPC_AUNT_01: { trust: 2, relation: 1 } }, derived: { STATE_MOOD: -1 } },
+          "你蹲下去。橙是濕的。媽媽在前面等你。你少了看別的檔的時間。",
+          mem("MEM_ORANGE", "MINI_85_ORANGE", "A", "NPC_AUNT_01", "help", "那些橙散了。你蹲下去撿。媽媽在前面等。"),
+        ),
+        choice(
+          "B",
+          "跟著媽媽走",
+          "balance",
+          {},
+          "你沒有停。她自己蹲下去。你準時走到媽媽旁邊。",
+          mem("MEM_ORANGE", "MINI_85_ORANGE", "B", "NPC_AUNT_01", "pass", "那些橙散了。你沒有停。"),
+        ),
+        choice(
+          "C",
+          "撿一顆",
+          "dream",
+          { derived: { STATE_MOOD: 2 }, npc: { NPC_AUNT_01: { relation: -2, trust: -1 } } },
+          "你撿了一顆。很酸。她看見了，沒有出聲。你沒有把其餘的撿起來。",
+          mem("MEM_ORANGE", "MINI_85_ORANGE", "C", "NPC_AUNT_01", "keep", "那些橙散了。你只拿走一顆。"),
+        ),
+      ];
+    case "MINI_85_MOM_ALONE":
+      return [
+        choice(
+          "A",
+          "幫她拿出來",
+          "reality",
+          { npc: { NPC_MOM_01: { trust: 1 } }, derived: { STATE_FAMILY_HARMONY: 1 } },
+          "菜是涼的。你一件一件拿出來。她的手空了一點。",
+          mem("MEM_MOM_ALONE", "MINI_85_MOM_ALONE", "A", "NPC_MOM_01", "unpack", "她一個人把菜提回來。你幫她拿出來。"),
+        ),
+        choice(
+          "B",
+          "走去玩",
+          "dream",
+          { derived: { STATE_MOOD: 1 }, npc: { NPC_MOM_01: { relation: -1 } } },
+          "你沒有過去。袋子一直放在廚房。",
+          mem("MEM_MOM_ALONE", "MINI_85_MOM_ALONE", "B", "NPC_MOM_01", "leave", "她一個人把菜提回來。你去玩了。"),
+        ),
+        choice(
+          "C",
+          "問重不重",
+          "think",
+          { derived: { INDEPENDENT_THOUGHT: 1 } },
+          "她說還好。你看得出不是還好。你沒有再問。",
+          mem("MEM_MOM_ALONE", "MINI_85_MOM_ALONE", "C", "NPC_MOM_01", "ask", "她一個人把菜提回來。你問了，她說還好。"),
+        ),
+      ];
     case "MINI_85_KIT_WAIT": {
       const back = state.npcDays.NPC_FRIEND_01?.nextPlan === "return" && echoOpen(ARC_AH_KIT, "next-day");
       if (back) {

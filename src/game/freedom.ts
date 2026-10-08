@@ -1,5 +1,5 @@
 import type { ChainState, State } from "./types";
-import { resolveWorldAt, collide, placeOf, WORLD_1986 } from "./world";
+import { resolveWorldAt, collide, placeOf, WORLD_1986, bagSplits } from "./world";
 
 /** 1985 and 1986. Two afternoons decide which of the existing scenes you get. 1984 and 1988 stay on a fixed queue. */
 
@@ -11,6 +11,7 @@ export const MISS_85_FRIEND = "MISS_85_FRIEND";
 export const MISS_85_DAD = "MISS_85_DAD";
 export const MISS_85_TV = "MISS_85_TV";
 export const MISS_85_AUNT = "MISS_85_AUNT";
+export const MISS_85_ORANGE = "MISS_85_ORANGE";
 
 export const MISS_86_MARKET = "MISS_86_MARKET";
 export const MISS_86_ESTATE = "MISS_86_ESTATE";
@@ -25,6 +26,7 @@ export const MISSED_IDS = [
   MISS_85_DAD,
   MISS_85_TV,
   MISS_85_AUNT,
+  MISS_85_ORANGE,
   MISS_86_MARKET,
   MISS_86_ESTATE,
   MISS_86_TV,
@@ -35,8 +37,8 @@ function pushUnique(queue: string[], ids: readonly string[]) {
   for (const id of ids) if (!queue.includes(id)) queue.push(id);
 }
 
-export function produce1985(spent: readonly string[]) {
-  const empty = { npcDays: {} };
+export function produce1985(spent: readonly string[], seed?: number) {
+  const empty = { npcDays: {}, seed };
   const queue = ["EVT_1985_SCHOOL_01"];
   pushUnique(queue, resolveWorldAt(1985, "sat", spent[0] ?? "", empty));
   pushUnique(queue, resolveWorldAt(1985, "sun", spent[1] ?? "", empty));
@@ -48,6 +50,7 @@ export function produce1985(spent: readonly string[]) {
   if (!queue.includes("MINI_85_RAIN")) missed.push(MISS_85_RAIN);
   if (!queue.includes("MINI_85_TV")) missed.push(MISS_85_TV);
   if (placeOf(spent[0] ?? "") !== "market") missed.push(MISS_85_AUNT);
+  if (bagSplits(seed) && !queue.includes("MINI_85_ORANGE")) missed.push(MISS_85_ORANGE);
   return { queue, missed };
 }
 
@@ -97,6 +100,7 @@ export function missedLine(missed: readonly string[], when: "now" | "later") {
   if (missed.includes(MISS_85_DAD)) bits.push("沒有在家等到爸爸");
   if (missed.includes(MISS_85_TV)) bits.push("沒有看見電視又開著");
   if (missed.includes(MISS_85_AUNT)) bits.push("沒有聽見阿姨叫你");
+  if (missed.includes(MISS_85_ORANGE)) bits.push("沒有看見散開的橙");
   if (!bits.length) return "";
   const lead = when === "now" ? "今年你" : "去年你";
   return `${lead}${bits.join("，")}。那些事沒有消失，只是晚了一年。`;

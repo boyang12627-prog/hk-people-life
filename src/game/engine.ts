@@ -503,7 +503,7 @@ function begin1985Day(state: State, day: "sat" | "sun"): State {
   let chain = state.chain;
   if (day === "sat" && chain.stage < 1) chain = { ...chain, stage: 1, status: "active" };
   if (day === "sun") {
-    const produced = produce1985(state.spent);
+    const produced = produce1985(state.spent, state.seed);
     missed = [...missed];
     for (const id of produced.missed) if (!missed.includes(id)) missed.push(id);
     for (const tag of afternoonTags(state.spent)) if (!personalityTags.includes(tag)) personalityTags = [...personalityTags, tag];
@@ -525,7 +525,7 @@ function finishEcho(state: State): State {
 function produceIfNeeded(state: State): State {
   const year = yearOf(state).year;
   if ((year !== 1985 && year !== 1986) || state.queue.length > 0) return state;
-  const produced = year === 1985 ? produce1985(state.spent) : produce1986(state.spent);
+  const produced = year === 1985 ? produce1985(state.spent, state.seed) : produce1986(state.spent);
   const missed = [...state.missed];
   for (const id of produced.missed) if (!missed.includes(id)) missed.push(id);
   const personalityTags = [...state.personalityTags];
@@ -921,7 +921,7 @@ function oneNpcDay(raw: unknown): NpcDay | null {
   if (!isRecord(raw)) return null;
   const next = raw.nextPlan;
   const outcome = raw.todayOutcome;
-  if (next !== "seek" && next !== "avoid" && next !== "withdraw" && next !== "return") return null;
+  if (next !== "seek" && next !== "avoid" && next !== "withdraw" && next !== "return" && next !== "carry" && next !== "lighter" && next !== "grateful" && next !== "cool" && next !== "unseen" && next !== "alone" && next !== "late" && next !== "stay" && next !== "ordinary") return null;
   if (
     outcome !== "shared" &&
     outcome !== "kept" &&
@@ -930,7 +930,9 @@ function oneNpcDay(raw: unknown): NpcDay | null {
     outcome !== "alone" &&
     outcome !== "disappointed" &&
     outcome !== "content" &&
-    outcome !== "left-early"
+    outcome !== "left-early" &&
+    outcome !== "carried" &&
+    outcome !== "overtime"
   ) {
     return null;
   }

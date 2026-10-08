@@ -70,10 +70,10 @@ export type NpcObservation = {
 export type NpcDay = {
   location: "estate" | "home" | "away";
   mood: string;
-  todayOutcome: "shared" | "kept" | "left" | "watched" | "alone" | "disappointed" | "content" | "left-early";
+  todayOutcome: "shared" | "kept" | "left" | "watched" | "alone" | "disappointed" | "content" | "left-early" | "carried" | "overtime";
   seenPlayer: boolean;
   missedPlayer: boolean;
-  nextPlan: "seek" | "avoid" | "withdraw" | "return";
+  nextPlan: "seek" | "avoid" | "withdraw" | "return" | "carry" | "lighter" | "grateful" | "cool" | "unseen" | "alone" | "late" | "stay" | "ordinary";
   observed: NpcObservation;
 };
 

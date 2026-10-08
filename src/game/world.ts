@@ -73,13 +73,22 @@ export function lifeMissed(npcId: keyof typeof LIFE_1985, day: Day) {
   return LIFE_1985[npcId][day].missed;
 }
 
+function observed(currentMood: number, relationshipDeltaToday: number, currentActivity: string): NpcDay["observed"] {
+  return { currentMood, relationshipDeltaToday, currentActivity };
+}
+
+/** World fact. Same life, same Saturday. Undefined seed means the tests that do not pass one. */
+export function bagSplits(seed: number | undefined) {
+  if (seed === undefined) return false;
+  return Math.abs(seed) % 5 === 0;
+}
+
+export function dadStayedLate(seed: number | undefined) {
+  if (seed === undefined) return false;
+  return Math.floor(Math.abs(seed) / 3) % 2 === 0;
+}
 function kitSaturday(state: Pick<State, "memories" | "seed">): NpcDay {
   const ball = state.memories.find((item) => item.id === "MEM_RED_BALL");
-  const note = (currentMood: number, relationshipDeltaToday: number, currentActivity: string): NpcDay["observed"] => ({
-    currentMood,
-    relationshipDeltaToday,
-    currentActivity,
-  });
   if (!ball) {
     const roll = Math.abs(state.seed) % 3;
     if (roll === 1) {
@@ -90,7 +99,7 @@ function kitSaturday(state: Pick<State, "memories" | "seed">): NpcDay {
         seenPlayer: false,
         missedPlayer: true,
         nextPlan: "return",
-        observed: note(0, 0, "一個人把球踢來踢去"),
+        observed: observed(0, 0, "一個人把球踢來踢去"),
       };
     }
     if (roll === 2) {
@@ -101,7 +110,7 @@ function kitSaturday(state: Pick<State, "memories" | "seed">): NpcDay {
         seenPlayer: false,
         missedPlayer: true,
         nextPlan: "withdraw",
-        observed: note(-1, 0, "玩了一陣就走了"),
+        observed: observed(-1, 0, "玩了一陣就走了"),
       };
     }
     return {
@@ -111,24 +120,71 @@ function kitSaturday(state: Pick<State, "memories" | "seed">): NpcDay {
       seenPlayer: false,
       missedPlayer: true,
       nextPlan: "withdraw",
-      observed: note(-1, 0, "一個人玩到天黑，坐在石凳上"),
+      observed: observed(-1, 0, "一個人玩到天黑，坐在石凳上"),
     };
   }
   if (ball.emotion === "share") {
-    return { location: "home", mood: "glad", todayOutcome: "shared", seenPlayer: true, missedPlayer: false, nextPlan: "seek", observed: note(1, 5, "來找你") };
+    return { location: "home", mood: "glad", todayOutcome: "shared", seenPlayer: true, missedPlayer: false, nextPlan: "seek", observed: observed(1, 5, "來找你") };
   }
   if (ball.emotion === "hold") {
-    return { location: "away", mood: "sore", todayOutcome: "kept", seenPlayer: true, missedPlayer: false, nextPlan: "avoid", observed: note(-2, -3, "把球留在家") };
+    return { location: "away", mood: "sore", todayOutcome: "kept", seenPlayer: true, missedPlayer: false, nextPlan: "avoid", observed: observed(-2, -3, "把球留在家") };
   }
   if (ball.emotion === "leave") {
-    return { location: "away", mood: "flat", todayOutcome: "left", seenPlayer: true, missedPlayer: false, nextPlan: "withdraw", observed: note(0, 0, "沒有再等") };
+    return { location: "away", mood: "flat", todayOutcome: "left", seenPlayer: true, missedPlayer: false, nextPlan: "withdraw", observed: observed(0, 0, "沒有再等") };
   }
-  return { location: "away", mood: "flat", todayOutcome: "watched", seenPlayer: true, missedPlayer: false, nextPlan: "withdraw", observed: note(0, 0, "沒有再等") };
+  return { location: "away", mood: "flat", todayOutcome: "watched", seenPlayer: true, missedPlayer: false, nextPlan: "withdraw", observed: observed(0, 0, "沒有再等") };
 }
 
-/** One row per person. Ah Kit is the only row that changes the next day. */
+function momSaturday(state: Pick<State, "memories">): NpcDay {
+  const withHer = state.memories.some((item) => item.eventId === "EVT_1985_FAMILY_03");
+  if (withHer) {
+    return { location: "home", mood: "easier", todayOutcome: "shared", seenPlayer: true, missedPlayer: false, nextPlan: "lighter", observed: observed(1, 0, "有人跟她去了街市") };
+  }
+  return { location: "home", mood: "tired", todayOutcome: "carried", seenPlayer: false, missedPlayer: true, nextPlan: "carry", observed: observed(-1, 0, "一個人把菜提回來") };
+}
+
+function grandSaturday(state: Pick<State, "memories">): NpcDay {
+  const met = state.memories.find((item) => item.id === "MEM_GRAND_DAY");
+  if (!met) {
+    return { location: "home", mood: "waiting", todayOutcome: "alone", seenPlayer: false, missedPlayer: true, nextPlan: "stay", observed: observed(0, 0, "坐在廳裡，湯涼了") };
+  }
+  if (met.emotion === "left") {
+    return { location: "home", mood: "flat", todayOutcome: "left", seenPlayer: true, missedPlayer: false, nextPlan: "stay", observed: observed(-1, 0, "你聽了一半就走") };
+  }
+  return { location: "home", mood: "glad", todayOutcome: "shared", seenPlayer: true, missedPlayer: false, nextPlan: "stay", observed: observed(1, 0, "你留在廳裡聽") };
+}
+
+function dadSaturday(state: Pick<State, "seed">): NpcDay {
+  if (dadStayedLate(state.seed)) {
+    return { location: "away", mood: "tired", todayOutcome: "overtime", seenPlayer: false, missedPlayer: true, nextPlan: "late", observed: observed(-1, 0, "做到天黑才下班") };
+  }
+  return { location: "away", mood: "steady", todayOutcome: "watched", seenPlayer: false, missedPlayer: false, nextPlan: "ordinary", observed: observed(0, 0, "按時下班") };
+}
+
+function auntSaturday(state: Pick<State, "memories" | "seed">): NpcDay {
+  if (!bagSplits(state.seed)) {
+    return { location: "away", mood: "ordinary", todayOutcome: "watched", seenPlayer: false, missedPlayer: false, nextPlan: "ordinary", observed: observed(0, 0, "自己買完就走") };
+  }
+  const orange = state.memories.find((item) => item.id === "MEM_ORANGE");
+  if (!orange) {
+    return { location: "away", mood: "alone", todayOutcome: "alone", seenPlayer: false, missedPlayer: true, nextPlan: "alone", observed: observed(0, 0, "橙散了一地，她自己撿") };
+  }
+  if (orange.emotion === "help") {
+    return { location: "away", mood: "glad", todayOutcome: "shared", seenPlayer: true, missedPlayer: false, nextPlan: "grateful", observed: observed(1, 0, "有個孩子幫她撿橙") };
+  }
+  if (orange.emotion === "keep") {
+    return { location: "away", mood: "sore", todayOutcome: "kept", seenPlayer: true, missedPlayer: false, nextPlan: "cool", observed: observed(-1, 0, "有個孩子撿了一顆走") };
+  }
+  return { location: "away", mood: "flat", todayOutcome: "left", seenPlayer: true, missedPlayer: false, nextPlan: "unseen", observed: observed(0, 0, "孩子看見了，沒有停") };
+}
+
+/** One row per person who finishes Saturday without waiting for the player. */
 const DAY_RULES: { npcId: NpcId; year: number; day: Day; resolve: (state: Pick<State, "memories" | "seed">) => NpcDay }[] = [
   { npcId: "NPC_FRIEND_01", year: 1985, day: "sat", resolve: kitSaturday },
+  { npcId: "NPC_MOM_01", year: 1985, day: "sat", resolve: momSaturday },
+  { npcId: "NPC_GRAND_01", year: 1985, day: "sat", resolve: grandSaturday },
+  { npcId: "NPC_DAD_01", year: 1985, day: "sat", resolve: dadSaturday },
+  { npcId: "NPC_AUNT_01", year: 1985, day: "sat", resolve: auntSaturday },
 ];
 
 /** Finish the day for every person who has a rule. Does not touch relation. */
@@ -157,19 +213,26 @@ function eventsAt(spots: readonly Spot[], day: Day, activity: string, weather: {
 }
 
 /** The only answer to who is here now. Base schedule first, then a finished day. */
-export function resolveWorldAt(year: number, day: Day, activity: string, state: Pick<State, "npcDays">): string[] {
+export function resolveWorldAt(year: number, day: Day, activity: string, state: Pick<State, "npcDays"> & { seed?: number }): string[] {
   const table = year === 1986 ? WORLD_1986 : WORLD_1985;
   let spots: Spot[] = table[day].map((spot) => ({ npcId: spot.npcId, place: spot.place, eventId: spot.eventId }));
   if (year === 1985) spots.push({ npcId: "TV", place: "home", eventId: "MINI_85_TV" });
+  if (year === 1985 && day === "sat" && placeOf(activity) === "market" && bagSplits(state.seed)) {
+    spots.push({ npcId: "NPC_AUNT_01", place: "market", eventId: "MINI_85_ORANGE" });
+  }
   if (year === 1985 && day === "sun") {
     spots = spots.filter((spot) => spot.npcId !== "NPC_FRIEND_01");
     const kit = state.npcDays.NPC_FRIEND_01;
     const event = kit ? kitMeets(kit, placeOf(activity)) : null;
     if (event) spots.push({ npcId: "NPC_FRIEND_01", place: placeOf(activity), eventId: event });
+    if (state.npcDays.NPC_MOM_01?.nextPlan === "carry" && placeOf(activity) === "home") {
+      spots.push({ npcId: "NPC_MOM_01", place: "home", eventId: "MINI_85_MOM_ALONE" });
+    }
   }
   const ids = eventsAt(spots, day, activity, table.weather, year === 1985 ? "MINI_85_RAIN" : null);
-  if (!ids.includes("MINI_85_KIT_WAIT")) return ids;
-  return ["MINI_85_KIT_WAIT", ...ids.filter((id) => id !== "MINI_85_KIT_WAIT")];
+  if (ids.includes("MINI_85_KIT_WAIT")) return ["MINI_85_KIT_WAIT", ...ids.filter((id) => id !== "MINI_85_KIT_WAIT")];
+  if (ids.includes("MINI_85_ORANGE")) return ["MINI_85_ORANGE", ...ids.filter((id) => id !== "MINI_85_ORANGE")];
+  return ids;
 }
 
 type World = { sat: readonly Spot[]; sun: readonly Spot[]; weather: { sat: string; sun: string } };

@@ -4,7 +4,7 @@ import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBat
 import { readFileSync, existsSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
 import { slicePlate } from "./art.ts";
-import { produce1985, produce1986, missed1986, missedLine, chainEcho, CHAIN_85_STAGES, friendFollow, MISS_85_FRIEND, MISS_85_MOM, MISS_85_RAIN, REPLAY_MATRIX } from "./freedom.ts";
+import { produce1985, produce1986, missed1986, missedLine, chainEcho, CHAIN_85_STAGES, friendFollow, MISS_85_FRIEND, MISS_85_MOM, MISS_85_ORANGE, MISS_85_RAIN, REPLAY_MATRIX } from "./freedom.ts";
 import { runChildhood } from "./lifeSim.ts";
 import { WORLD_1985 } from "./world.ts";
 import { BATTLE_NARRATIVE, battleNarrative } from "./battleNarrative.ts";
@@ -12,9 +12,9 @@ import { BATTLE_SPECS, KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
 import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
 import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, ledgerSummary, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
 import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, isLastYear, knownEventIds, lifeVoice, sceneFor, variantOf, yearLean, yearOf, YEARS } from "./content.ts";
-import { ARC_AH_KIT, echoOpen } from "./narrative.ts";
+import { ARC_AH_KIT, ENC_ORANGES, echoOpen } from "./narrative.ts";
 import { beat1985 } from "./story.ts";
-import { resolveWorldAt, worldTick } from "./world.ts";
+import { bagSplits, resolveWorldAt, worldTick } from "./world.ts";
 import { CHILDHOOD_EVENT_IDS, DAILY_STATIC_IDS, renderStatic, STATIC_EVENTS } from "./data/events.ts";
 import { runLives } from "./lifeSim.ts";
 import { heardNews } from "./speak.ts";
@@ -987,6 +987,52 @@ describe("logic audit v3.1", () => {
     assert.ok(beat1985("monday", atHome).shots.some((shot) => shot.where === "幼稚園門口"));
     assert.ok(beat1985("sun-night", atHome).shots.some((shot) => shot.line === "明天真的要去。"));
     assert.equal(worldTick(atPodium, { year: 1985, day: "sat" }).npcDays.NPC_FRIEND_01?.nextPlan, "seek");
+  });
+
+  it("oranges are on the road, and Saturday still ends if you are not there", () => {
+    assert.equal(bagSplits(0), true);
+    assert.equal(bagSplits(6), false);
+    assert.equal(echoOpen(ENC_ORANGES, "1y"), true);
+    const road = resolveWorldAt(1985, "sat", "ACT_MARKET", { npcDays: {}, seed: 0 });
+    assert.equal(road[0], "MINI_85_ORANGE");
+    assert.ok(road.includes("EVT_1985_FAMILY_03"));
+    assert.equal(resolveWorldAt(1985, "sat", "ACT_MARKET", { npcDays: {}, seed: 6 }).includes("MINI_85_ORANGE"), false);
+    assert.equal(resolveWorldAt(1985, "sat", "ACT_ESTATE", { npcDays: {}, seed: 0 }).includes("MINI_85_ORANGE"), false);
+    assert.ok(produce1985(["ACT_ESTATE", "ACT_REST"], 0).missed.includes(MISS_85_ORANGE));
+    assert.equal(produce1985(["ACT_ESTATE", "ACT_REST"], 6).missed.includes(MISS_85_ORANGE), false);
+    const alone = worldTick({ ...freshState(0), spent: ["ACT_ESTATE"] }, { year: 1985, day: "sat" });
+    assert.equal(alone.npcDays.NPC_MOM_01?.nextPlan, "carry");
+    assert.equal(alone.npcDays.NPC_AUNT_01?.nextPlan, "alone");
+    assert.equal(alone.npcDays.NPC_AUNT_01?.observed.currentActivity.includes("自己撿"), true);
+    assert.equal(alone.npcDays.NPC_GRAND_01?.missedPlayer, true);
+    assert.equal(alone.npcDays.NPC_DAD_01?.todayOutcome, "overtime");
+    assert.equal(alone.npc.NPC_MOM_01.relation, freshState().npc.NPC_MOM_01.relation);
+    assert.ok(resolveWorldAt(1985, "sun", "ACT_REST", alone).includes("MINI_85_MOM_ALONE"));
+    assert.ok(cardFor("MINI_85_GRANDMA", alone).lines.join("").includes("湯已經涼了"));
+    assert.ok(cardFor("MINI_85_DAD", alone).lines[0].includes("晚"));
+    const withHer = worldTick(
+      {
+        ...freshState(0),
+        memories: [{ id: "MEM_SILENT_NEWS_01", eventId: "EVT_1985_FAMILY_03", choiceId: "A", variant: "", year: 1985, age: 4, npc: "NPC_MOM_01", emotion: "empathy", weight: 1, echo: "" }],
+      },
+      { year: 1985, day: "sat" },
+    );
+    assert.equal(withHer.npcDays.NPC_MOM_01?.nextPlan, "lighter");
+    assert.equal(resolveWorldAt(1985, "sun", "ACT_REST", withHer).includes("MINI_85_MOM_ALONE"), false);
+    const helped = cardFor("EVT_1986_MARKET_07", {
+      ...freshState(),
+      yearIndex: 2,
+      memories: [{ id: "MEM_ORANGE", eventId: "MINI_85_ORANGE", choiceId: "A", variant: "", year: 1985, age: 4, npc: "NPC_AUNT_01", emotion: "help", weight: 1, echo: "" }],
+    }).lines.join("");
+    const kept = cardFor("EVT_1986_MARKET_07", {
+      ...freshState(),
+      yearIndex: 2,
+      memories: [{ id: "MEM_ORANGE", eventId: "MINI_85_ORANGE", choiceId: "C", variant: "", year: 1985, age: 4, npc: "NPC_AUNT_01", emotion: "keep", weight: 1, echo: "" }],
+    }).lines.join("");
+    assert.ok(helped.includes("橙"));
+    assert.ok(kept.includes("沒有放進來"));
+    assert.equal(cardFor("EVT_1986_MARKET_07", { ...freshState(), yearIndex: 2 }).lines.join("").includes("橙"), false);
+    assert.equal(cardFor("MINI_85_ORANGE", freshState()).title, "橙散了");
   });
 
   it("five scripted childhoods do not meet the same people", () => {

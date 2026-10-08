@@ -11,7 +11,7 @@ export type NarrativeArc = {
   missedMeaning: string;
 };
 
-/** The only arc in this slice. Ah Kit, the red ball, the next day, and the next year. */
+/** The only arcs in this slice. They do not add a button, and they do not change numbers by themselves. */
 export const ARC_AH_KIT: NarrativeArc = {
   id: "ARC_AH_KIT_FRIENDSHIP",
   chapterId: "CH_1985_CHILDHOOD",
@@ -20,6 +20,15 @@ export const ARC_AH_KIT: NarrativeArc = {
   missedMeaning: "他仍在平台過完那個下午。你不在場。",
 };
 
-export function echoOpen(arc: NarrativeArc, window: EchoWindow) {
+export function echoOpen(arc: { echoWindow: readonly EchoWindow[] }, window: EchoWindow) {
   return arc.echoWindow.includes(window);
 }
+
+/** Not a quest. The bag splits on some Saturdays. You only see it if you are on that road. */
+export const ENC_ORANGES = {
+  id: "ENC_85_ORANGES",
+  chapterId: "CH_1985_CHILDHOOD",
+  npcId: "NPC_AUNT_01" as const,
+  echoWindow: ["1y"] as const,
+  missedMeaning: "那些橙散過。她自己撿完。你不在場。",
+};

@@ -1,6 +1,6 @@
 import type { SceneId, State } from "./types";
 import { picked } from "./speak";
-import { lifeMissed } from "./world";
+import { lifeMissed, placeOf } from "./world";
 
 export type BeatId = "open" | "downstairs" | "sat-night" | "sun-night" | "monday" | "aftermath";
 
@@ -83,7 +83,9 @@ function sunNight(state: State): { lines: string[]; shots: Shot[] } {
   else if (sun === "ACT_MARKET") heard = lifeMissed("NPC_MOM_01", "sun");
   lines.push(heard);
   if (!state.memories.some((item) => item.id === "MEM_RED_BALL")) lines.push("你仍然沒有提過平台上那個孩子。");
-  lines.push("你還沒有進過那扇門。");
+  const grand = state.npcDays.NPC_GRAND_01;
+  const away = placeOf(sun ?? "") !== "home";
+  lines.push(grand?.missedPlayer && away ? "嫲嫲昨天一個人坐到湯涼。你還沒有進過那扇門。" : "你還沒有進過那扇門。");
   return {
     lines,
     shots: [
