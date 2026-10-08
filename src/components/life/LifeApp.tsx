@@ -16,7 +16,7 @@ import {
   yearLean,
   yearOf,
 } from "@/game/content";
-import { MEMORY_BALL, personFromName, personName, personSrc, roomOf, slicePlate, spokenLine, type Mood, type PersonId } from "@/game/art";
+import { MEMORY_BALL, personFromName, personName, personSrc, roomOf, slicePlate, spokenLine, type Mood, type PersonId, type Pose } from "@/game/art";
 import { chainEcho, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
 import { battleNarrative } from "@/game/battleNarrative";
@@ -226,7 +226,7 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
   const year = yearOf(state);
   const plate = slicePlate({ year: year.year, scene: year.scene, gender: state.gender });
   return (
-    <Paper scene={year.scene} plate={plate} kicker={String(year.year)} title={year.title}>
+    <Paper scene={year.scene} plate={plate} kicker={String(year.year)} title={year.title} cast={year.scene === "home" ? { present: ["dad", "mom", "child"], speaker: "child", line: "" } : null}>
       <p className="text-pretty text-base leading-7">{year.era}</p>
       <p className="mt-3 text-pretty text-base leading-7">{year.open}</p>
       {state.name ? <p className="mt-3 text-pretty text-base leading-7">別人叫你{state.name}。</p> : null}
@@ -491,7 +491,8 @@ function Paper({ scene, plate, kicker, title, cast, mood = "idle", dialogue, chi
   const present = cast?.present ?? (gender ? (["child"] as PersonId[]) : []);
   const speaker = cast?.speaker ?? (gender ? "child" : null);
   const line = cast?.line || SENSE[scene];
-  const face = (id: PersonId) => personSrc(id, gender, id === "child" ? mood : "idle");
+  const pose: Pose = scene === "home" || scene === "study" ? "sit" : "stand";
+  const face = (id: PersonId) => personSrc(id, gender, id === "child" ? mood : "idle", pose);
   const lines = dialogue?.length ? dialogue : [line];
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border-4 border-[#6e4524] bg-[#f4efe4] shadow-[inset_0_0_0_2px_#e8d7a8]">

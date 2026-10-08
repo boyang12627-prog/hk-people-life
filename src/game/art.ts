@@ -22,12 +22,21 @@ const FILE: Record<Exclude<PersonId, "child">, string> = {
 };
 
 export type Mood = "idle" | "think";
+export type Pose = "stand" | "sit";
 
-export function personSrc(id: PersonId, gender: Gender | null, mood: Mood = "idle") {
+const SIT: Partial<Record<Exclude<PersonId, "child">, string>> = {
+  mom: "mom-sit",
+  dad: "dad-sit",
+  grandma: "grandma-sit",
+};
+
+export function personSrc(id: PersonId, gender: Gender | null, mood: Mood = "idle", pose: Pose = "stand") {
   if (id === "child") {
     const who = gender === "boy" ? "boy" : "girl";
+    if (pose === "sit") return `/art/1985/people/${who}-sit${mood === "think" ? "-think" : ""}.png`;
     return mood === "think" ? `/art/1985/people/${who}-think.png` : `/art/1985/people/${who}.png`;
   }
+  if (pose === "sit" && SIT[id]) return `/art/1985/people/${SIT[id]}.png`;
   return `/art/1985/people/${FILE[id]}.png`;
 }
 
