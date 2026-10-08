@@ -16,7 +16,7 @@ import {
   yearLean,
   yearOf,
 } from "@/game/content";
-import { MEMORY_BALL, slicePlate } from "@/game/art";
+import { MEMORY_BALL, personFromName, personName, personSrc, roomOf, slicePlate, spokenLine, type PersonId } from "@/game/art";
 import { chainEcho, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
 import { battleNarrative } from "@/game/battleNarrative";
@@ -250,8 +250,11 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
 
 function StoryBeat({ state, beat, onNext }: { state: State; beat: Parameters<typeof beat1985>[0]; onNext: () => void }) {
   const page = beat1985(beat, state);
+  const speakers = page.shots.map((shot) => personFromName(shot.speaker)).filter((id): id is PersonId => !!id);
+  const room = speakers.length ? { present: [...new Set<PersonId>([...speakers, "child"])], speaker: speakers[0] } : null;
+  const bubble = page.shots.find((shot) => shot.speaker)?.line ?? "";
   return (
-    <Paper scene={page.scene} kicker={page.kicker} title={page.title}>
+    <Paper scene={page.scene} kicker={page.kicker} title={page.title} stage={room ? <RoomStage present={room.present} speaker={room.speaker} gender={state.gender} line={bubble} /> : null}>
       {page.shots.length
         ? page.shots.map((shot) => (
             <div key={shot.line} className="mt-4 first:mt-0">
@@ -325,8 +328,15 @@ function EventCard({ state, onChoose }: { state: State; onChoose: (choice: Retur
   const choices = choicesFor(state.eventId ?? "", state);
   const year = yearOf(state);
   const plate = slicePlate({ year: year.year, scene: card.scene, gender: state.gender });
+  const room = roomOf(state.eventId ?? "");
   return (
-    <Paper scene={card.scene} plate={plate} kicker={card.kicker} title={card.title}>
+    <Paper
+      scene={card.scene}
+      plate={plate}
+      kicker={card.kicker}
+      title={card.title}
+      stage={room ? <RoomStage present={room.present} speaker={room.speaker} gender={state.gender} line={spokenLine(card.lines)} /> : null}
+    >
       {card.lines.map((line) => (
         <p key={line} className="mt-2 text-pretty text-base leading-7 first:mt-0">
           {line}
@@ -473,10 +483,34 @@ const SENSE: Record<SceneId, string> = {
   study: "課室的風扇響著。卷子已經翻開，時鐘在黑板旁邊。",
 };
 
-function Paper({ scene, plate, kicker, title, children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; children: ReactNode }) {
+function RoomStage({ present, speaker, gender, line }: { present: PersonId[]; speaker: PersonId; gender: Gender | null; line: string }) {
+  return (
+    <div className="relative bg-[#f4efe4] px-3 pb-1 pt-3">
+      <div className="flex items-start gap-2">
+        <img src={personSrc(speaker, gender)} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover object-top ring-2 ring-[#c4a574]" />
+        <div className="relative min-w-0 flex-1 rounded-2xl bg-white px-3 py-2 text-sm leading-6 text-ink shadow-sm">
+          <p className="text-xs text-ink/50">{personName(speaker)}</p>
+          <p className="text-pretty">{line}</p>
+        </div>
+      </div>
+      <div className="mt-1 flex items-end justify-center gap-1 overflow-hidden">
+        {present.map((id) => (
+          <img
+            key={id}
+            src={personSrc(id, gender)}
+            alt={personName(id)}
+            className={`w-auto object-contain object-bottom ${id === speaker ? "h-44 sm:h-52" : "h-36 sm:h-44"}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Paper({ scene, plate, kicker, title, stage, children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; stage?: ReactNode; children: ReactNode }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-line/40">
-      <img src={plate ?? `/scenes/${scene}.jpg`} alt="" className={plate ? "h-40 w-full object-cover sm:h-48" : "h-16 w-full object-cover"} />
+      {stage ?? <img src={plate ?? `/scenes/${scene}.jpg`} alt="" className={plate ? "h-40 w-full object-cover sm:h-48" : "h-16 w-full object-cover"} />}
       <div className="bg-paper px-4 py-3 text-ink">
         <p className="text-xs text-ink/60">{SENSE[scene]}</p>
         <p className="mt-2 text-xs tracking-wide text-ink/60">{kicker}</p>
