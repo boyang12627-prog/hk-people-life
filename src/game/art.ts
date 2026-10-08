@@ -3,13 +3,34 @@ import type { Gender, SceneId } from "./types";
 /** A picture for one event, when the place name is too broad. */
 const EVENT_PLATE: Record<string, string> = {
   MINI_84_TOY: "toy",
+  MINI_85_RAIN: "rain",
+  MINI_85_GRANDMA: "soup",
+  MINI_85_DAD: "shoes",
+  MINI_85_TV: "tv",
+  MINI_86_TV: "tv",
+  MINI_85_ORANGE: "orange",
+  MINI_86_HELP: "bags",
+  EVT_1988_PEN_01: "pen",
 };
+
+const BEAT_PLATE: Record<string, string> = {
+  open: "bag",
+  downstairs: "stair",
+};
+
+function painted(name: string, gender: Gender | null) {
+  const who = gender === "girl" ? "girl" : "boy";
+  return `/art/q/${name}-${who}.jpg`;
+}
 
 export function eventPlate(eventId: string | null, gender: Gender | null) {
   const name = eventId ? EVENT_PLATE[eventId] : null;
-  if (!name) return null;
-  const who = gender === "girl" ? "girl" : "boy";
-  return `/art/q/${name}-${who}.jpg`;
+  return name ? painted(name, gender) : null;
+}
+
+export function beatPlate(beat: string, gender: Gender | null) {
+  const name = BEAT_PLATE[beat];
+  return name ? painted(name, gender) : null;
 }
 
 export function scenePlate(scene: SceneId, gender: Gender | null) {

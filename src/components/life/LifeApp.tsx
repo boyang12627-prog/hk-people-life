@@ -16,7 +16,7 @@ import {
   yearLean,
   yearOf,
 } from "@/game/content";
-import { MEMORY_BALL, eventPlate, personFromName, personSrc, readLine, roomOf, scenePlate, slicePlate, spokenLine, type Mood, type PersonId, type Pose } from "@/game/art";
+import { MEMORY_BALL, beatPlate, eventPlate, personFromName, personSrc, readLine, roomOf, scenePlate, slicePlate, spokenLine, type Mood, type PersonId, type Pose } from "@/game/art";
 import { chainEcho, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
 import { battleNarrative } from "@/game/battleNarrative";
@@ -259,7 +259,7 @@ function StoryBeat({ state, beat, onNext }: { state: State; beat: Parameters<typ
     ? page.shots.map((shot) => (shot.speaker ? `${shot.speaker}：「${shot.line}」` : shot.line))
     : page.lines;
   return (
-    <Paper scene={page.scene} kicker={page.kicker} title={page.title} cast={cast} dialogue={dialogue}>
+    <Paper scene={page.scene} plate={beatPlate(beat, state.gender)} kicker={page.kicker} title={page.title} cast={cast} dialogue={dialogue}>
       <Primary onClick={onNext}>{beat === "aftermath" ? "這一年就這樣" : "繼續"}</Primary>
     </Paper>
   );
