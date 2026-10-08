@@ -59,17 +59,22 @@ export type NpcId =
 
 export type Npc = { relation: number; trust: number; available: boolean };
 
-/** What one person did in a day, and what that changes for the next day. */
-export type NpcDay = {
-  location: "estate" | "home" | "away";
-  currentActivity: string;
-  mood: string;
+/** Numbers written down after a day. They do not change relation by themselves. */
+export type NpcObservation = {
   currentMood: number;
   relationshipDeltaToday: number;
+  currentActivity: string;
+};
+
+/** Where one person is after a day, and what the next slot should read. */
+export type NpcDay = {
+  location: "estate" | "home" | "away";
+  mood: string;
   todayOutcome: "shared" | "kept" | "left" | "watched" | "alone" | "disappointed" | "content" | "left-early";
   seenPlayer: boolean;
   missedPlayer: boolean;
   nextPlan: "seek" | "avoid" | "withdraw" | "return";
+  observed: NpcObservation;
 };
 
 export type Effect = {

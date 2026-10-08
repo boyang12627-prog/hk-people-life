@@ -1,7 +1,7 @@
 import { ACTIVITIES, battleStory, buildQueue, examStory, fifteenAct, knownEventIds, knownMemoryChoice, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
 import { MISSED_IDS, produce1985, produce1986, advanceChain, afternoonTags, freshChain } from "./freedom";
 import { beat1985, isBeat } from "./story";
-import { WORLD_1985, collide, placeOf, tickKit } from "./world";
+import { resolveWorldAt, worldTick } from "./world";
 import { BATTLE_SPECS, battleSpecById, battleSpecFor } from "./battleSpec";
 import {
   clamp,
@@ -22,6 +22,7 @@ import {
   type Gender,
   type MemoryRecord,
   type Npc,
+  type NpcDay,
   type NpcId,
   type Primary,
   type ResultView,
@@ -490,23 +491,11 @@ function advanceStory(state: State): State {
 }
 
 function begin1985Day(state: State, day: "sat" | "sun"): State {
-  const world = {
-    sat: [...WORLD_1985.sat, { npcId: "TV", place: "home" as const, eventId: "MINI_85_TV" }],
-    sun: [...WORLD_1985.sun, { npcId: "TV", place: "home" as const, eventId: "MINI_85_TV" }],
-    weather: WORLD_1985.weather,
-  };
   const activity = state.spent[day === "sat" ? 0 : 1] ?? "";
-  let ids = collide(day, activity, world, "MINI_85_RAIN");
+  let ids = resolveWorldAt(1985, day, activity, state);
   if (day === "sun") {
-    const earlier = collide("sat", state.spent[0] ?? "", world, "MINI_85_RAIN");
-    ids = ids.filter((id) => id === "MINI_QUIET" || !earlier.includes(id));
-    if (state.npcDays.NPC_FRIEND_01?.nextPlan === "seek") {
-      ids = ids.filter((id) => id !== "MINI_85_RAIN" && id !== "MINI_QUIET");
-      ids.unshift("MINI_85_KIT_WAIT");
-    } else if (state.npcDays.NPC_FRIEND_01?.nextPlan === "return" && placeOf(activity) === "estate") {
-      ids = ids.filter((id) => id !== "MINI_85_RAIN" && id !== "MINI_QUIET");
-      ids.unshift("MINI_85_KIT_WAIT");
-    }
+    const earlier = new Set(resolveWorldAt(1985, "sat", state.spent[0] ?? "", state));
+    ids = ids.filter((id) => id === "MINI_QUIET" || !earlier.has(id));
   }
   let missed = state.missed;
   let personalityTags = state.personalityTags;
@@ -567,10 +556,8 @@ function after1985(state: State): State {
   const school = state.memories.some((item) => item.eventId === "EVT_1985_SCHOOL_01");
   if (school) return { ...state, phase: "story", note: "aftermath", queue: [], eventId: null, result: null };
   if (state.spent.length === 1) {
-    const npcDays = state.npcDays.NPC_FRIEND_01
-      ? state.npcDays
-      : { ...state.npcDays, NPC_FRIEND_01: tickKit(state.memories, state.seed) };
-    return { ...state, npcDays, phase: "story", note: "sat-night", queue: [], eventId: null, result: null };
+    const ticked = worldTick(state, { year: 1985, day: "sat" });
+    return { ...ticked, phase: "story", note: "sat-night", queue: [], eventId: null, result: null };
   }
   if (state.spent.length === 2) return { ...state, phase: "story", note: "sun-night", queue: [], eventId: null, result: null };
   return yearEnd({ ...state, queue: [] });
@@ -920,11 +907,20 @@ export function validateState(raw: Record<string, unknown>): State | null {
 }
 
 function savedNpcDays(raw: unknown): State["npcDays"] {
-  if (!isRecord(raw) || !isRecord(raw.NPC_FRIEND_01)) return {};
-  const item = raw.NPC_FRIEND_01;
-  const next = item.nextPlan;
-  const outcome = item.todayOutcome;
-  if (next !== "seek" && next !== "avoid" && next !== "withdraw" && next !== "return") return {};
+  if (!isRecord(raw)) return {};
+  const out: State["npcDays"] = {};
+  for (const id of Object.keys(freshState().npc) as NpcId[]) {
+    const day = oneNpcDay(raw[id]);
+    if (day) out[id] = day;
+  }
+  return out;
+}
+
+function oneNpcDay(raw: unknown): NpcDay | null {
+  if (!isRecord(raw)) return null;
+  const next = raw.nextPlan;
+  const outcome = raw.todayOutcome;
+  if (next !== "seek" && next !== "avoid" && next !== "withdraw" && next !== "return") return null;
   if (
     outcome !== "shared" &&
     outcome !== "kept" &&
@@ -935,20 +931,24 @@ function savedNpcDays(raw: unknown): State["npcDays"] {
     outcome !== "content" &&
     outcome !== "left-early"
   ) {
-    return {};
+    return null;
   }
-  const location = item.location === "estate" || item.location === "home" || item.location === "away" ? item.location : "away";
+  const location = raw.location === "estate" || raw.location === "home" || raw.location === "away" ? raw.location : "away";
+  const observedRaw = isRecord(raw.observed) ? raw.observed : raw;
   return {
-    NPC_FRIEND_01: {
-      location,
-      currentActivity: typeof item.currentActivity === "string" ? item.currentActivity : "",
-      mood: typeof item.mood === "string" ? item.mood : "",
-      currentMood: typeof item.currentMood === "number" && Number.isFinite(item.currentMood) ? clamp(Math.round(item.currentMood), -2, 2) : 0,
-      relationshipDeltaToday: typeof item.relationshipDeltaToday === "number" && Number.isFinite(item.relationshipDeltaToday) ? clamp(Math.round(item.relationshipDeltaToday), -5, 5) : 0,
-      todayOutcome: outcome,
-      nextPlan: next,
-      seenPlayer: item.seenPlayer === true,
-      missedPlayer: typeof item.missedPlayer === "boolean" ? item.missedPlayer : item.seenPlayer !== true,
+    location,
+    mood: typeof raw.mood === "string" ? raw.mood : "",
+    todayOutcome: outcome,
+    nextPlan: next,
+    seenPlayer: raw.seenPlayer === true,
+    missedPlayer: typeof raw.missedPlayer === "boolean" ? raw.missedPlayer : raw.seenPlayer !== true,
+    observed: {
+      currentMood: typeof observedRaw.currentMood === "number" && Number.isFinite(observedRaw.currentMood) ? clamp(Math.round(observedRaw.currentMood), -2, 2) : 0,
+      relationshipDeltaToday:
+        typeof observedRaw.relationshipDeltaToday === "number" && Number.isFinite(observedRaw.relationshipDeltaToday)
+          ? clamp(Math.round(observedRaw.relationshipDeltaToday), -5, 5)
+          : 0,
+      currentActivity: typeof observedRaw.currentActivity === "string" ? observedRaw.currentActivity : "",
     },
   };
 }

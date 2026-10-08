@@ -13,7 +13,7 @@ import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
 import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, ledgerSummary, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
 import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, isLastYear, knownEventIds, lifeVoice, sceneFor, variantOf, yearLean, yearOf, YEARS } from "./content.ts";
 import { beat1985 } from "./story.ts";
-import { tickKit } from "./world.ts";
+import { resolveWorldAt, worldTick } from "./world.ts";
 import { CHILDHOOD_EVENT_IDS, DAILY_STATIC_IDS, renderStatic, STATIC_EVENTS } from "./data/events.ts";
 import { runLives } from "./lifeSim.ts";
 import { heardNews } from "./speak.ts";
@@ -935,79 +935,43 @@ describe("logic audit v3.1", () => {
     assert.ok(stayed.includes("自己玩了很久"));
     assert.equal(stayed.includes("自己玩了一整天"), false);
     assert.equal(beat1985("sat-night", { ...freshState(), spent: ["ACT_REST"] }).shots.length, 2);
-    const alone = tickKit([], 0);
-    const sharedDay = tickKit([{ id: "MEM_RED_BALL", emotion: "share" }]);
-    const kept = tickKit([{ id: "MEM_RED_BALL", emotion: "hold" }]);
-    const content = tickKit([], 1);
-    assert.equal(alone.nextPlan, "withdraw");
-    assert.equal(alone.mood, "disappointed");
-    assert.equal(alone.missedPlayer, true);
-    assert.equal(alone.location, "away");
-    assert.equal(alone.currentMood, -1);
-    assert.equal(alone.relationshipDeltaToday, 0);
-    assert.equal(alone.seenPlayer, false);
-    assert.equal(content.nextPlan, "return");
-    assert.equal(content.location, "estate");
-    assert.equal(sharedDay.nextPlan, "seek");
-    assert.equal(sharedDay.relationshipDeltaToday, 5);
-    assert.equal(kept.nextPlan, "avoid");
-    assert.equal(kept.currentMood, -2);
-    const visit = reducer(
-      {
-        ...freshState(),
-        phase: "note",
-        yearIndex: 1,
-        apLeft: 0,
-        spent: ["ACT_ESTATE", "ACT_REST"],
-        npcDays: { NPC_FRIEND_01: sharedDay },
-        result: { text: "過了。", deltas: [], skills: [] },
-      },
-      { type: "ack" },
-    );
+    const sharedBall = { id: "MEM_RED_BALL", eventId: "EVT_1985_FRIEND_04", choiceId: "B", variant: "podium", year: 1985, age: 4, npc: "NPC_FRIEND_01", emotion: "share", weight: 2, echo: "" };
+    const done = { text: "過了。", deltas: [], skills: [] };
+    const saturday = (spent: string, seed: number, memories: (typeof sharedBall)[]) =>
+      reducer({ ...freshState(), phase: "result", yearIndex: 1, apLeft: 0, queue: [], spent: [spent], seed, memories, result: done }, { type: "ack" });
+    const atPodium = saturday("ACT_ESTATE", 9, [sharedBall]);
+    const withMom = saturday("ACT_MARKET", 1, []);
+    const atHome = saturday("ACT_REST", 0, []);
+    assert.equal(atPodium.note, "sat-night");
+    assert.equal(atPodium.npcDays.NPC_FRIEND_01?.nextPlan, "seek");
+    assert.equal(atPodium.npcDays.NPC_FRIEND_01?.observed.relationshipDeltaToday, 5);
+    assert.equal(atPodium.npc.NPC_FRIEND_01.relation, 0);
+    assert.equal(withMom.npcDays.NPC_FRIEND_01?.nextPlan, "return");
+    assert.equal(withMom.npcDays.NPC_FRIEND_01?.missedPlayer, true);
+    assert.ok(beat1985("sat-night", withMom).lines.join("").includes("玩得很起勁"));
+    assert.equal(atHome.npcDays.NPC_FRIEND_01?.nextPlan, "withdraw");
+    assert.equal(atHome.npcDays.NPC_FRIEND_01?.mood, "disappointed");
+    assert.ok(beat1985("sat-night", atHome).lines.join("").includes("石凳"));
+    assert.equal(atHome.npc.NPC_FRIEND_01.relation, freshState().npc.NPC_FRIEND_01.relation);
+    const sunday = (state: State, activity: string) =>
+      reducer({ ...state, phase: "note", apLeft: 0, spent: [...state.spent, activity], result: done }, { type: "ack" });
+    const visit = sunday(atPodium, "ACT_REST");
+    const found = sunday(withMom, "ACT_ESTATE");
+    const rain = sunday(atHome, "ACT_ESTATE");
     assert.equal(visit.eventId, "MINI_85_KIT_WAIT");
-    const skipped = reducer(
-      {
-        ...freshState(),
-        phase: "note",
-        yearIndex: 1,
-        apLeft: 0,
-        spent: ["ACT_REST", "ACT_DRAW"],
-        npcDays: { NPC_FRIEND_01: alone },
-        result: { text: "過了。", deltas: [], skills: [] },
-      },
-      { type: "ack" },
-    );
-    assert.equal(skipped.eventId === "MINI_85_KIT_WAIT", false);
-    assert.equal(skipped.npc.NPC_FRIEND_01.relation, 0);
-    const found = reducer(
-      {
-        ...freshState(),
-        phase: "note",
-        yearIndex: 1,
-        apLeft: 0,
-        spent: ["ACT_MARKET", "ACT_ESTATE"],
-        npcDays: { NPC_FRIEND_01: content },
-        result: { text: "過了。", deltas: [], skills: [] },
-      },
-      { type: "ack" },
-    );
+    assert.equal(cardFor("MINI_85_KIT_WAIT", visit).lines.join("").includes("昨天沒有下來"), false);
     assert.equal(found.eventId, "MINI_85_KIT_WAIT");
     assert.ok(cardFor("MINI_85_KIT_WAIT", found).lines.join("").includes("昨天沒有下來"));
-    const sad = reducer(
-      {
-        ...freshState(),
-        phase: "note",
-        yearIndex: 1,
-        apLeft: 0,
-        spent: ["ACT_MARKET", "ACT_ESTATE"],
-        npcDays: { NPC_FRIEND_01: alone },
-        result: { text: "過了。", deltas: [], skills: [] },
-      },
-      { type: "ack" },
-    );
-    assert.equal(sad.eventId, "MINI_85_RAIN");
-    const later = cardFor("EVT_1986_FRIEND_09", { ...freshState(), yearIndex: 2, npcDays: { NPC_FRIEND_01: content }, missed: ["MISS_85_FRIEND"] }).lines.join("");
+    assert.equal(rain.eventId, "MINI_85_RAIN");
+    assert.ok(resolveWorldAt(1985, "sun", "ACT_ESTATE", withMom).includes("MINI_85_KIT_WAIT"));
+    assert.equal(resolveWorldAt(1985, "sun", "ACT_HOME", atHome).includes("MINI_85_KIT_WAIT"), false);
+    const later = cardFor("EVT_1986_FRIEND_09", { ...withMom, yearIndex: 2 }).lines.join("");
+    const bench = cardFor("EVT_1986_FRIEND_09", { ...atHome, yearIndex: 2 }).lines.join("");
     assert.ok(later.includes("去年你沒有下來"));
+    assert.ok(later.includes("玩得很起勁"));
+    assert.ok(bench.includes("石凳"));
+    assert.equal(bench.includes("玩得很起勁"), false);
+    assert.equal(worldTick(atPodium, { year: 1985, day: "sat" }).npcDays.NPC_FRIEND_01?.nextPlan, "seek");
   });
 
   it("five scripted childhoods do not meet the same people", () => {

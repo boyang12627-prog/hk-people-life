@@ -1,5 +1,5 @@
 import type { ChainState, State } from "./types";
-import { WORLD_1985, WORLD_1986, collide, placeOf } from "./world";
+import { resolveWorldAt, collide, placeOf, WORLD_1986 } from "./world";
 
 /** 1985 and 1986. Two afternoons decide which of the existing scenes you get. 1984 and 1988 stay on a fixed queue. */
 
@@ -31,21 +31,15 @@ export const MISSED_IDS = [
   MISS_86_FRIEND,
 ] as const;
 
-const TV_1985 = { npcId: "TV", place: "home" as const, eventId: "MINI_85_TV" };
-
 function pushUnique(queue: string[], ids: readonly string[]) {
   for (const id of ids) if (!queue.includes(id)) queue.push(id);
 }
 
 export function produce1985(spent: readonly string[]) {
-  const world = {
-    sat: [...WORLD_1985.sat, TV_1985],
-    sun: [...WORLD_1985.sun, TV_1985],
-    weather: WORLD_1985.weather,
-  };
+  const empty = { npcDays: {} };
   const queue = ["EVT_1985_SCHOOL_01"];
-  pushUnique(queue, collide("sat", spent[0] ?? "", world, "MINI_85_RAIN"));
-  pushUnique(queue, collide("sun", spent[1] ?? "", world, "MINI_85_RAIN"));
+  pushUnique(queue, resolveWorldAt(1985, "sat", spent[0] ?? "", empty));
+  pushUnique(queue, resolveWorldAt(1985, "sun", spent[1] ?? "", empty));
   const missed: string[] = [];
   if (!queue.includes("EVT_1985_FAMILY_03")) missed.push(MISS_85_MOM);
   if (!queue.includes("MINI_85_GRANDMA")) missed.push(MISS_85_GRANDMA);
