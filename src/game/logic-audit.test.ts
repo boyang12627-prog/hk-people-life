@@ -27,7 +27,7 @@ function run(state: State, actions: Action[]) {
 
 function spend(state: State, ids: string[]) {
   let next = state.phase === "activities" || state.phase === "story" ? state : reducer(state, { type: "toActivities" });
-  if (next.phase === "story" && next.note === "open") next = reducer(next, { type: "ack" });
+  while (next.phase === "story" && (next.note === "open" || next.note === "downstairs")) next = reducer(next, { type: "ack" });
   for (const id of ids) {
     if (next.phase !== "activities") break;
     next = reducer(next, { type: "activity", id });
@@ -975,6 +975,15 @@ describe("logic audit v3.1", () => {
     assert.equal(echoOpen(ARC_AH_KIT, "next-day"), true);
     assert.equal(echoOpen(ARC_AH_KIT, "1y"), true);
     assert.ok(beat1985("open", freshState()).lines.join("").includes("袋子"));
+    const morning = reducer({ ...freshState(), phase: "year", yearIndex: 1 }, { type: "toActivities" });
+    assert.equal(morning.note, "open");
+    const downstairs = reducer(morning, { type: "ack" });
+    assert.equal(downstairs.note, "downstairs");
+    assert.equal(downstairs.eventId, null);
+    assert.ok(beat1985("downstairs", downstairs).lines.join("").includes("紅球"));
+    const board = reducer(downstairs, { type: "ack" });
+    assert.equal(board.phase, "activities");
+    assert.equal(board.spent.length, 0);
     assert.ok(beat1985("monday", atHome).shots.some((shot) => shot.where === "幼稚園門口"));
     assert.ok(beat1985("sun-night", atHome).shots.some((shot) => shot.line === "明天真的要去。"));
     assert.equal(worldTick(atPodium, { year: 1985, day: "sat" }).npcDays.NPC_FRIEND_01?.nextPlan, "seek");

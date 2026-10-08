@@ -229,7 +229,7 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
       {state.name ? <p className="mt-3 text-pretty text-base leading-7">別人叫你{state.name}。</p> : null}
       <p className="mt-3 text-sm text-pretty text-ink/70">
         {year.year === 1985
-          ? "今年有兩個下午，是星期六和星期日。人在的地方不會因為你選了就出現。沒有去的，明年才會再提起。"
+          ? "星期六早上。門還沒有開。"
           : year.year === 1986
             ? "星期六和星期日，人在的地方不一樣。你去了，不一定見到。"
             : "今年有兩個下午。你可以陪人、自己玩，或者休息。之後的事會自己來，不必你預先留時間。"}
@@ -240,7 +240,7 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
       {year.year === 1986 && missedLine(state.missed, "later") ? <p className="mt-3 text-pretty text-base leading-7">{missedLine(state.missed, "later")}</p> : null}
       {year.year === 1988 && missed1986(state.missed, "later") ? <p className="mt-3 text-pretty text-base leading-7">{missed1986(state.missed, "later")}</p> : null}
       <LifeNow state={state} />
-      <Primary onClick={onNext}>{year.year === 1985 ? "星期六還沒到" : "用這兩個下午"}</Primary>
+      <Primary onClick={onNext}>{year.year === 1985 ? "早上" : "用這兩個下午"}</Primary>
       <button type="button" onClick={onRestart} className="mt-2 min-h-11 w-full text-sm text-ink/70">
         從頭開始
       </button>
@@ -275,8 +275,16 @@ function Activities({ state, onPick }: { state: State; onPick: (id: string) => v
   const year = yearOf(state);
   const timed = year.year === 1985 || year.year === 1986;
   return (
-    <Paper scene={year.scene} kicker="今年" title={timed ? "這兩個下午" : "今天怎麼過"}>
-      <p className="text-sm text-ink/70">{timed ? "先過星期六，再過星期日。兩天不要做同一件事。" : "兩個下午要不同。選完，其他事才來。"}</p>
+    <Paper scene={year.scene} kicker="今年" title={year.year === 1985 ? (state.spent.length ? "星期日下午" : "星期六下午") : timed ? "這兩個下午" : "今天怎麼過"}>
+      <p className="text-sm text-ink/70">
+        {year.year === 1985
+          ? state.spent.length
+            ? "昨天已經過了。今天再過一個下午。"
+            : "早上你在樓梯口停過。這個下午你自己過。"
+          : timed
+            ? "先過星期六，再過星期日。兩天不要做同一件事。"
+            : "兩個下午要不同。選完，其他事才來。"}
+      </p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         {(timed ? ["星期六下午", "星期日下午"] : ["第一個下午", "第二個下午"]).map((label, slot) => {
           const id = state.spent[slot];

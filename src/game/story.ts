@@ -2,11 +2,11 @@ import type { SceneId, State } from "./types";
 import { picked } from "./speak";
 import { lifeMissed } from "./world";
 
-export type BeatId = "open" | "sat-night" | "sun-night" | "monday" | "aftermath";
+export type BeatId = "open" | "downstairs" | "sat-night" | "sun-night" | "monday" | "aftermath";
 
 export type Shot = { where: string; action: string; speaker: string; line: string };
 
-const BEATS = new Set<BeatId>(["open", "sat-night", "sun-night", "monday", "aftermath"]);
+const BEATS = new Set<BeatId>(["open", "downstairs", "sat-night", "sun-night", "monday", "aftermath"]);
 
 export function isBeat(value: string | null): value is BeatId {
   return !!value && BEATS.has(value as BeatId);
@@ -104,6 +104,18 @@ export function beat1985(id: BeatId, state: State): { scene: SceneId; kicker: st
       shots: [
         { where: "家裡 · 早上", action: "媽媽把袋子放在門口。", speaker: "媽媽", line: "明天開始上學。" },
         { where: "電視前面", action: "爸爸在穿鞋。", speaker: "爸爸", line: "我去上班。" },
+      ],
+    };
+  }
+  if (id === "downstairs") {
+    return {
+      scene: "estate",
+      kicker: "1985 · 星期六早上",
+      title: "樓下",
+      lines: ["你跟到樓梯口。", "平台在下面。有個孩子抱著紅球。", "你沒有下去。下午還沒有開始。"],
+      shots: [
+        { where: "屋邨走廊", action: "你跟媽媽走到樓梯口。", speaker: "媽媽", line: "不要自己跑出去。" },
+        { where: "平台", action: "下面有個孩子，抱著一個紅球。你還沒有下去。", speaker: "", line: "他沒有看見你。" },
       ],
     };
   }

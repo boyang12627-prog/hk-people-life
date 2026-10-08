@@ -482,7 +482,8 @@ function exploreOffer(state: State, go: boolean): State {
 }
 
 function advanceStory(state: State): State {
-  if (state.note === "open") return { ...state, phase: "activities", note: null };
+  if (state.note === "open") return { ...state, phase: "story", note: "downstairs" };
+  if (state.note === "downstairs") return { ...state, phase: "activities", note: null };
   if (state.note === "sat-night") return { ...state, phase: "activities", note: null, apLeft: 1 };
   if (state.note === "sun-night") return { ...state, phase: "story", note: "monday", result: null };
   if (state.note === "monday") return { ...state, phase: "event", eventId: "EVT_1985_SCHOOL_01", note: null, queue: [], result: null };
