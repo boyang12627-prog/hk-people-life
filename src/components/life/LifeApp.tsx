@@ -16,7 +16,7 @@ import {
   yearLean,
   yearOf,
 } from "@/game/content";
-import { MEMORY_BALL, personFromName, personName, personSrc, roomOf, scenePlate, slicePlate, spokenLine, type Mood, type PersonId, type Pose } from "@/game/art";
+import { MEMORY_BALL, personFromName, personSrc, readLine, roomOf, scenePlate, slicePlate, spokenLine, type Mood, type PersonId, type Pose } from "@/game/art";
 import { chainEcho, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
 import { battleNarrative } from "@/game/battleNarrative";
@@ -468,31 +468,28 @@ const SENSE: Record<SceneId, string> = {
   study: "課室的風扇響著。卷子已經翻開，時鐘在黑板旁邊。",
 };
 
-function Dialogue({ name, src, lines }: { name: string; src?: string; lines: string[] }) {
+function Dialogue({ turns, face }: { turns: ReturnType<typeof readLine>[]; face: (id: PersonId) => string }) {
   return (
-    <div className="shrink-0 border-b-2 border-[#8a6232] bg-[#fffaf0] px-3 py-2 text-ink">
-      <div className="mb-1 flex items-center gap-2">
-        {src ? <img src={src} alt="" className="h-8 w-8 rounded-full border border-[#c4a574] object-cover object-[center_18%]" /> : null}
-        <p className="font-serif text-sm tracking-wide text-[#6e4524]">{name}</p>
-      </div>
-      <div className="max-h-32 overflow-y-auto">
-        {lines.map((line, index) => (
-          <p key={`${index}-${line}`} className="text-pretty text-base leading-7">
-            {line}
-          </p>
-        ))}
-      </div>
+    <div className="max-h-40 shrink-0 overflow-y-auto border-b-2 border-[#8a6232] bg-[#fffaf0] px-3 py-2 text-ink">
+      {turns.map((turn, index) => (
+        <div key={`${index}-${turn.text}`} className="mt-2 flex items-start gap-2 first:mt-0">
+          {turn.speaker ? <img src={face(turn.speaker)} alt="" className="h-8 w-8 shrink-0 rounded-full border border-[#c4a574] object-cover object-[center_18%]" /> : <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#c4a574] text-xs text-[#6e4524]">{turn.name.slice(0, 1)}</span>}
+          <div className="min-w-0">
+            <p className="font-serif text-sm tracking-wide text-[#6e4524]">{turn.name}</p>
+            <p className="text-pretty text-base leading-7">{turn.text}</p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
 function Paper({ scene, plate, kicker, title, cast, mood = "idle", dialogue, children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; cast?: { present: PersonId[]; speaker: PersonId; line: string } | null; mood?: Mood; dialogue?: string[]; children: ReactNode }) {
   const gender = useContext(Face);
-  const speaker = cast?.speaker ?? (gender ? "child" : null);
   const line = cast?.line || SENSE[scene];
   const pose: Pose = scene === "home" || scene === "study" ? "sit" : "stand";
   const face = (id: PersonId) => personSrc(id, gender, id === "child" ? mood : "idle", pose);
-  const lines = dialogue?.length ? dialogue : [line];
+  const turns = (dialogue?.length ? dialogue : [line]).map((text) => readLine(text, cast?.speaker ?? null));
   const picture = plate ?? scenePlate(scene, gender);
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border-4 border-[#6e4524] bg-[#f4efe4] shadow-[inset_0_0_0_2px_#e8d7a8]">
@@ -500,7 +497,7 @@ function Paper({ scene, plate, kicker, title, cast, mood = "idle", dialogue, chi
         <img src={picture} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1c140c]/25 to-transparent" />
       </div>
-      <Dialogue name={speaker ? personName(speaker) : kicker} src={speaker ? face(speaker) : undefined} lines={lines} />
+      <Dialogue turns={turns} face={face} />
       <div className="flex min-h-0 flex-1 flex-col bg-[#f6efe0] text-ink">
         <div className="shrink-0 border-b border-[#e0d3bf] px-3 py-2">
           <p className="text-xs tracking-wide text-ink/50">{kicker}</p>

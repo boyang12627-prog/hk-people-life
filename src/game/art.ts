@@ -84,6 +84,17 @@ export function personFromName(name: string): PersonId | null {
   return null;
 }
 
+export type DialogueTurn = { speaker: PersonId | null; name: string; text: string };
+
+/** A whole line spoken by one person. Narration that only mentions a quote stays narration. */
+export function readLine(line: string, quoteFallback: PersonId | null = null): DialogueTurn {
+  const named = line.match(/^(媽媽|爸爸|嫲嫲|阿傑|老師|阿姨)([^「]{0,10})：「([^」]+)」$/);
+  if (named) return { speaker: personFromName(named[1]), name: named[1], text: named[3] };
+  const bare = line.match(/^「([^」]+)」$/);
+  if (bare && quoteFallback) return { speaker: quoteFallback, name: personName(quoteFallback), text: bare[1] };
+  return { speaker: null, name: "旁白", text: line };
+}
+
 export function spokenLine(lines: readonly string[]) {
   for (const line of lines) {
     const hit = line.match(/「([^」]+)」/);

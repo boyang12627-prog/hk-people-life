@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBattle, initiativeFor, resolveTurn } from "./battleSim.ts";
 import { readFileSync, existsSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
-import { slicePlate } from "./art.ts";
+import { readLine, slicePlate } from "./art.ts";
 import { produce1985, produce1986, missed1986, missedLine, chainEcho, CHAIN_85_STAGES, friendFollow, MISS_85_FRIEND, MISS_85_MOM, MISS_85_ORANGE, MISS_85_RAIN, REPLAY_MATRIX } from "./freedom.ts";
 import { runChildhood } from "./lifeSim.ts";
 import { WORLD_1985 } from "./world.ts";
@@ -819,6 +819,14 @@ describe("logic audit v3.1", () => {
     assert.equal(slicePlate({ year: 1986, scene: "estate", gender: "boy" }), "/art/q/estate-boy.jpg");
     assert.equal(slicePlate({ year: 1984, scene: "home", gender: "girl" }), "/art/q/home-girl.jpg");
     assert.equal(slicePlate({ year: 1988, scene: "study", gender: "girl" }), "/art/q/study-girl.jpg");
+    const news = cardFor("EVT_1984_NEWS_01", freshState());
+    const turns = news.lines.map((line) => readLine(line, "dad"));
+    assert.deepEqual(
+      turns.map((turn) => turn.name),
+      ["旁白", "旁白", "媽媽", "爸爸"],
+    );
+    assert.equal(turns[2].text.startsWith("先吃飯"), true);
+    assert.equal(turns[3].text.includes("一家人安穩"), true);
     const played = produce1985(["ACT_PLAY", "ACT_DRAW"]);
     assert.deepEqual(played.queue, ["EVT_1985_SCHOOL_01", "MINI_85_GRANDMA", "MINI_85_TV", "MINI_85_DAD"]);
     assert.ok(played.missed.includes(MISS_85_MOM));

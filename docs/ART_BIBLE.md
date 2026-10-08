@@ -1,8 +1,8 @@
 # 人生・香港 Art Bible V1.0
 
-狀態：1985 直切已放進 `public/art/1985/`。臉以 `cast.jpg` 為準。其他年份的空房間不是標準，沒有重畫。
+狀態：畫面鎖定為 Q 版全圖。人畫在場景裡面，不再貼上去。男女各一套，檔在 `public/art/q/`。
 
-倉庫裡原先沒有場景檔。工作區裡有六張空房間，是大人的視線，沒有人。那些不是這份的標準，1985 直切不沿用。
+這是玩家定下來的方向，用來改掉上一句「禁止 chibi」。下面「1:4.5、不要大頭」是早一版的規格，現行畫面不跟那套比例。地標仍然不准當主體。
 
 ## 一句
 
@@ -113,5 +113,5 @@ No neon, no tram, no harbour, no skyline, no photo, no anime, no pixel art, no m
 負面：
 
 ```
-photoreal, anime, chibi, pixel art, monster, health bar, treasure icon, black contour, postcard skyline, readable sign, sexualized child
+photoreal, pixel art, monster, health bar, treasure icon, black contour, postcard skyline, readable sign, sexualized child
 ```
