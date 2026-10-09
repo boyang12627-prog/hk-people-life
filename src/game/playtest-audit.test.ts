@@ -35,6 +35,7 @@ import { KINDY_DOOR, PRIMARY_EXAM, playtestTools } from "./battleSpec.ts";
 import { CANTONESE_TO_WRITTEN, cantoneseHits, dialogueWarnings, quotedSpeaker } from "./wording.ts";
 import { scanSources } from "../../scripts/voice-scan.ts";
 import type { Gender, State } from "./types.ts";
+import { isDone, skipReveal, startReveal, stepReveal } from "./reveal.ts";
 
 type Page = { year: number; phase: string; known: boolean; text: string; state: State };
 
@@ -476,5 +477,51 @@ describe("voice v3.4 — Dad arc pays off only when earned", () => {
     const earned = { ...unearned, memories: [mem("MEM_DAD_WORK", "B", 1986)] } as unknown as State;
     assert.equal(reducer(earned, { type: "ack" }).eventId, "EVT_1986_DAD_NIGHT");
     assert.equal(EVENT_GATES.EVT_1988_DAD_SIGN({ memories: [mem("MEM_DAD_WORK", "A", 1986)] }), false);
+  });
+});
+
+describe("ui v4 — stage, paper panel, line-by-line reveal", () => {
+  it("one tap finishes the typed line, the next tap shows the next line, and it never runs past the end", () => {
+    const lengths = [5, 3, 4];
+    let r = startReveal(false);
+    assert.deepEqual(r, { shown: 1, chars: 0 });
+    assert.equal(isDone(r, lengths), false);
+    r = stepReveal(r, lengths, false);
+    assert.equal(r.shown, 1, "first tap only finishes typing");
+    r = stepReveal(r, lengths, false);
+    assert.deepEqual(r, { shown: 2, chars: 0 });
+    r = stepReveal(stepReveal(r, lengths, false), lengths, false);
+    r = stepReveal(r, lengths, false);
+    assert.equal(r.shown, 3);
+    assert.equal(isDone(r, lengths), true);
+    assert.deepEqual(stepReveal(r, lengths, false), r);
+    let still = startReveal(true);
+    assert.equal(isDone(still, [9]), true, "reduced motion: one line, already done");
+    still = stepReveal(still, [9, 9], true);
+    assert.equal(isDone(still, [9, 9]), true);
+    assert.equal(isDone(skipReveal(lengths), lengths), true);
+  });
+
+  it("every line is drawn, choices wait for the last line, lines are announced, and the palette stays at or below amber", () => {
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    const battle = readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+    assert.ok(app.includes('aria-live="polite"'));
+    assert.ok(app.includes("reveal.done ? ("), "actions only after every line");
+    assert.ok(app.includes("useAdvanceKeys"));
+    assert.ok(stage.includes("下午 {afternoons}/2"));
+    assert.ok(stage.includes("prefers-reduced-motion"));
+    assert.equal(stage.includes("/art/"), false, "Stage.tsx builds no art path");
+    assert.ok(/<details/.test(app), "folded numbers stay");
+    // Nothing brighter than amber #c9843a: no colour with more chroma (max - min channel).
+    const chroma = (hex: string) => {
+      const n = hex.length === 4 ? hex.slice(1).split("").map((c) => parseInt(c + c, 16)) : [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+      return Math.max(...n) - Math.min(...n);
+    };
+    const limit = chroma("#c9843a");
+    for (const [name, src] of Object.entries({ app, stage, battle, css })) {
+      for (const hex of src.match(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g) ?? []) assert.ok(chroma(hex) <= limit, `${name} ${hex} is brighter than amber`);
+    }
   });
 });
