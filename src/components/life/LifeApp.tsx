@@ -53,6 +53,18 @@ export function LifeApp() {
     playRoom(sceneOf(state));
   }, [state.phase, state.eventId, state.noteScene, state.yearIndex]);
 
+  // Warm the cache for the next event's painting so it is ready when the card opens.
+  const nextId = state.queue[0];
+  useEffect(() => {
+    if (!nextId || typeof Image === "undefined") return;
+    const scene = cardFor(nextId, state).scene;
+    const src = eventPlate(nextId, state.gender, scene) ?? slicePlate({ year: yearOf(state).year, scene, gender: state.gender });
+    if (!src) return;
+    const img = new Image();
+    img.decoding = "async";
+    img.src = src;
+  }, [nextId, state.gender]);
+
   const tap = (kind: "tap" | "soft" | "good" | "hit" = "tap") => {
     unlockAudio();
     playTone(kind);
@@ -384,7 +396,7 @@ function Fifteen({ state, onAct }: { state: State; onAct: () => void }) {
   return (
     <Paper scene="home" plate={beatPlate("sat-night", state.gender)} kicker="1996 · 十五歲" title="自己回家">
       <div className="relative">
-        {echo ? <img src={MEMORY_BALL} alt="" className="pointer-events-none float-right mb-2 ml-3 h-24 w-24 rounded-lg object-cover opacity-50" /> : null}
+        {echo ? <img src={MEMORY_BALL} alt="" loading="lazy" decoding="async" className="pointer-events-none float-right mb-2 ml-3 h-24 w-24 rounded-lg object-cover opacity-50" /> : null}
         {fifteenLines(state).map((line) => (
           <p key={line} className="mt-2 text-pretty text-base leading-7 first:mt-0">
             {line}
@@ -471,7 +483,7 @@ function Dialogue({ turns, face }: { turns: Turn[]; face: (id: PersonId) => stri
         const person = turn.speaker ? personFromSpeaker(turn.speaker) : null;
         return (
           <div key={`${index}-${turn.text}`} className="mt-2 flex items-start gap-2 first:mt-0" data-kind={turn.kind}>
-            {person ? <img src={face(person)} alt="" className="h-8 w-8 shrink-0 rounded-full border border-[#c4a574] object-cover object-[center_18%]" /> : <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#c4a574] text-xs text-[#6e4524]">{turn.name.slice(0, 1)}</span>}
+            {person ? <img src={face(person)} alt="" loading="lazy" decoding="async" className="h-8 w-8 shrink-0 rounded-full border border-[#c4a574] object-cover object-[center_18%]" /> : <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#c4a574] text-xs text-[#6e4524]">{turn.name.slice(0, 1)}</span>}
             <div className="min-w-0">
               <p className={turn.kind === "action" ? "text-xs tracking-wide text-ink/50" : "font-serif text-sm tracking-wide text-[#6e4524]"}>{turn.name}</p>
               <p className={turn.kind === "dialogue" ? "text-pretty text-base leading-7" : "text-pretty text-base leading-7 text-ink/80"}>{turn.text}</p>
@@ -492,7 +504,7 @@ function Paper({ scene, plate, kicker, title, mood = "idle", dialogue, children 
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border-4 border-[#6e4524] bg-[#f4efe4] shadow-[inset_0_0_0_2px_#e8d7a8]">
       <div className="relative h-[34%] min-h-32 shrink-0">
-        <img src={picture} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
+        <img src={picture} alt="" decoding="async" className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1c140c]/25 to-transparent" />
       </div>
       <Dialogue turns={turns} face={face} />

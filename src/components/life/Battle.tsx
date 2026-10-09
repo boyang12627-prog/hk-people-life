@@ -76,12 +76,12 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border-4 border-[#6e4524] bg-[#f4efe4] shadow-[inset_0_0_0_2px_#e8d7a8]" data-round={tick}>
       <div className="relative h-[34%] min-h-36 shrink-0">
-        <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={src} alt="" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1c140c]/25 to-transparent" />
       </div>
       <div className="shrink-0 border-b-2 border-[#8a6232] bg-[#fffaf0] px-3 py-2 text-ink">
         <div className="mb-1 flex items-center gap-2">
-          <img src={personSrc("child", gender, sim.over ? "idle" : "think", spec.scene === "study" || spec.scene === "home" ? "sit" : "stand")} alt="" className="h-8 w-8 rounded-full border border-[#c4a574] object-cover object-[center_18%]" />
+          <img loading="lazy" decoding="async" src={personSrc("child", gender, sim.over ? "idle" : "think", spec.scene === "study" || spec.scene === "home" ? "sit" : "stand")} alt="" className="h-8 w-8 rounded-full border border-[#c4a574] object-cover object-[center_18%]" />
           <p className="font-serif text-sm tracking-wide text-[#6e4524]">{spec.label}</p>
         </div>
         {!sim.over && !sim.hasActed ? <p className="text-xs text-[#6e4524]">下一聲</p> : null}
