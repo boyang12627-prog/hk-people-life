@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { Battle } from "@/components/life/Battle";
 import { playRoom, playTone, unlockAudio } from "@/components/life/audio";
-import { Bust, Frame, PanelHeading, PaperPanel, SpeechLayer, StatusContext, Tag, useAdvanceKeys, useReveal, type HeadPoint, type Side, type Status } from "@/components/life/Stage";
-import { SCENE_ANCHORS, SPEAKER_ACCENT, anchorFor, isOffscreen, plateName } from "@/game/sceneAnchors";
+import { Frame, PanelHeading, PanelPortrait, PanelTail, PaperPanel, StatusContext, Tag, useAdvanceKeys, useReveal, type Status } from "@/components/life/Stage";
+import { SPEAKER_ACCENT, anchorFor, isOffscreen } from "@/game/sceneAnchors";
 import {
   activityDetail,
   activityLabel,
@@ -22,7 +22,7 @@ import {
   yearOf,
   yearSummary,
 } from "@/game/content";
-import { MEMORY_BALL, afternoonPlate, beatPlate, eventPlate, personFromSpeaker, personSrc, scenePlate, slicePlate, yearPlate, type Mood, type PersonId, type Pose } from "@/game/art";
+import { MEMORY_BALL, afternoonPlate, beatPlate, eventPlate, personFromSpeaker, personPortrait, personSrc, scenePlate, slicePlate, yearPlate, type Mood } from "@/game/art";
 import { narrate, say, sceneTurns, type SceneLine, type Turn } from "@/game/scene";
 import { chainEcho, knowsKit, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
@@ -547,21 +547,9 @@ function Paper(props: PaperProps) {
   return <PaperPage key={signature} {...props} turns={turns} />;
 }
 
-/**
- * Each speaker's bust sits on the side away from their head in the painting, so it never covers them.
- * Offscreen voices keep the side they come from. Without an anchor: right.
- */
-function bustSide(anchor: ReturnType<typeof anchorFor>): Side {
-  if (!anchor) return "right";
-  if (isOffscreen(anchor)) return anchor.offscreen === "left" ? "left" : "right";
-  return anchor.x < 0.5 ? "right" : "left";
-}
-
-/** Narration, action, and dialogue are all drawn; none is dropped. Dialogue goes in a bubble, the rest on the paper. */
-function PaperPage({ scene, plate, kicker, title, mood = "idle", turns, overlay, actions, children }: PaperProps & { turns: Turn[] }) {
+/** Narration, action, and dialogue are all drawn on the paper; none is dropped. A dialogue line brings its speaker's portrait and a tail pointing at them. */
+function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, children }: PaperProps & { turns: Turn[] }) {
   const gender = useContext(Face);
-  const pose: Pose = scene === "home" || scene === "study" ? "sit" : "stand";
-  const face = (id: PersonId) => personSrc(id, gender, id === "child" ? mood : "idle", pose);
   const picture = plate ?? scenePlate(scene, gender);
   const reveal = useReveal(turns.map((turn) => turn.text.length));
   useAdvanceKeys(!reveal.done, reveal.advance);
@@ -574,22 +562,18 @@ function PaperPage({ scene, plate, kicker, title, mood = "idle", turns, overlay,
 
   const index = reveal.shown - 1;
   const current = turns[index];
+  const linesRef = useRef<HTMLDivElement>(null);
+  // Keep the newest line in view when the panel's text overflows.
+  useEffect(() => {
+    const box = linesRef.current?.closest<HTMLElement>(".overflow-y-auto");
+    if (box) box.scrollTop = box.scrollHeight;
+  }, [reveal.shown, reveal.chars, reveal.done]);
   const textOf = (at: number) => (at === index ? turns[at].text.slice(0, reveal.chars) : turns[at].text);
-  const anchorOf = (turn: Turn) => (turn.speaker ? anchorFor(picture, turn.speaker) : undefined);
-  const latest: Partial<Record<Side, Turn>> = {};
-  turns.slice(0, reveal.shown).forEach((turn) => {
-    if (turn.kind === "dialogue") latest[bustSide(anchorOf(turn))] = turn;
-  });
   const speaking = current.kind === "dialogue" ? current : null;
-  const busts = (["left", "right"] as const).flatMap((side) => {
-    const turn = latest[side];
-    const person = turn?.speaker ? personFromSpeaker(turn.speaker) : null;
-    return turn && person ? [{ side, turn, person }] : [];
-  });
-  const anchor = speaking ? anchorOf(speaking) : undefined;
-  const head = anchor && !isOffscreen(anchor) ? anchor : null;
-  const sceneName = plateName(picture);
-  const faces = Object.values(sceneName ? (SCENE_ANCHORS[sceneName] ?? {}) : {}).filter((item): item is HeadPoint => !!item && !isOffscreen(item));
+  const anchor = speaking?.speaker ? anchorFor(picture, speaking.speaker) : undefined;
+  const accent = speaking?.speaker ? SPEAKER_ACCENT[speaking.speaker] : "#6e4524";
+  const person = speaking?.speaker ? personFromSpeaker(speaking.speaker) : null;
+  const where = anchor && isOffscreen(anchor) ? anchor.label : null;
 
   return (
     <Frame
@@ -597,37 +581,11 @@ function PaperPage({ scene, plate, kicker, title, mood = "idle", turns, overlay,
       picture={picture}
       overlay={overlay}
       onStageClick={reveal.done ? undefined : reveal.advance}
-      stage={
-        <>
-          {busts.map((bust) => (
-            <Bust
-              key={bust.side}
-              side={bust.side}
-              name={bust.turn.name}
-              src={face(bust.person)}
-              accent={bust.turn.speaker ? SPEAKER_ACCENT[bust.turn.speaker] : "#6e4524"}
-              dim={!speaking || speaking.name !== bust.turn.name}
-            />
-          ))}
-          {speaking?.speaker ? (
-            <SpeechLayer
-              key={`${index}-${speaking.name}`}
-              name={speaking.name}
-              label={anchor && isOffscreen(anchor) ? anchor.label : undefined}
-              accent={SPEAKER_ACCENT[speaking.speaker]}
-              head={head}
-              faces={faces.filter((item) => item !== head)}
-              edge={anchor && isOffscreen(anchor) ? { side: anchor.offscreen, bustSide: bustSide(anchor) } : null}
-            >
-              <span>{textOf(index)}</span>
-              {reveal.typing ? <span className="invisible">{speaking.text.slice(textOf(index).length)}</span> : null}
-            </SpeechLayer>
-          ) : null}
-        </>
-      }
       panel={
         <PaperPanel
           heading={<PanelHeading kicker={kicker} title={title} />}
+          portrait={speaking && person && person !== "child" ? <PanelPortrait key={speaking.name} {...personPortrait(person)} name={speaking.name} accent={accent} /> : null}
+          tail={speaking?.speaker ? <PanelTail head={anchor && !isOffscreen(anchor) ? anchor : null} offscreen={anchor && isOffscreen(anchor) ? anchor.offscreen : null} accent={accent} /> : null}
           live={
             <p className="sr-only" aria-live="polite">
               {current.kind === "dialogue" ? `${current.name}：「${current.text}」` : current.text}
@@ -653,10 +611,24 @@ function PaperPage({ scene, plate, kicker, title, mood = "idle", turns, overlay,
             </div>
           }
         >
-          <div className="flex flex-col gap-1.5" onClick={reveal.done ? undefined : reveal.advance} data-lines={turns.length} data-shown={reveal.shown}>
+          <div ref={linesRef} className="flex flex-col gap-1.5" onClick={reveal.done ? undefined : reveal.advance} data-lines={turns.length} data-shown={reveal.shown}>
             {turns.slice(0, reveal.shown).map((turn, at) => {
               if (turn.kind === "dialogue") {
-                if (at === index) return null;
+                if (at === index) {
+                  return (
+                    <div key={`${at}-${turn.text}`} className="mt-0.5" data-kind="dialogue" data-current="true" data-speaker={turn.name}>
+                      <p className="flex items-center gap-1.5 text-sm tracking-wide md:text-base" style={{ color: accent }}>
+                        <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full" style={{ background: accent }} />
+                        <span className="font-medium">{turn.name}</span>
+                        {where ? <span className="text-ink/70">{where}</span> : null}
+                      </p>
+                      <p className="text-pretty text-base leading-7 text-ink md:text-xl md:leading-9">
+                        「{textOf(at)}
+                        {reveal.typing ? <span aria-hidden="true" className="ui-caret">▍</span> : "」"}
+                      </p>
+                    </div>
+                  );
+                }
                 return (
                   <p key={`${at}-${turn.text}`} className="text-sm text-pretty text-ink/70" data-kind="dialogue">
                     <span className="mr-1 text-xs tracking-wide text-[#5c3a1e]">{turn.name}</span>「{turn.text}」

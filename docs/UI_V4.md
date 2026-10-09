@@ -27,10 +27,18 @@
 - **面板高度**：面板最多佔舞台高度的 38%。半身窗放在面板上方，不會擋住面板。戰鬥時四條數值排成一行。
 - **圖片解析度**：場景圖是 1280×720 的 WebP。原圖（assets）也只有 1280×720，沒有更大的版本。所以在 1920 寬會放大約 1.4 倍，在 2560 寬約 1.9 倍，會略為柔和。要更清晰，就要重新生成更高解析度的原圖。
 
-## V4.2 — speech bubbles point at the speaker
+## V4.2 — speaker anchors
 
-- `src/game/sceneAnchors.ts` records the head of every person in each Q painting (`x`, `y` as fractions of the 16:9 image, `r` head radius as a fraction of its height), measured by eye on a 10% grid; boy and girl versions share a layout. A speaker who talks on a page but is not painted gets `{ offscreen, label }` (e.g. Dad in EVT_1986_SKILL_05 on the kindergarten plate: 「（旁邊）」).
-- `src/game/bubble.ts` (pure, tested) places the bubble above or beside the head, clamped inside the stage and above the panel, scoring away from the speaker's face, other faces, the status frame and the bust windows. The SVG tail ends on a ring round the head and points at its centre.
-- The speaker shares one accent (`SPEAKER_ACCENT`) across the head ring, bubble border, tail, bust frame and name plate. Other busts dim. Busts sit on the side away from the speaker's head so they never cover them.
-- Offscreen voices: dashed bubble border and dashed tail toward the bust/edge, with the label after the name.
-- Audits: every dialogue speaker on a painted page across the playtest lives must have an anchor or offscreen entry; tips land on the ring; bubbles stay on stage without covering the face; accents pass the amber chroma check.
+- `src/game/sceneAnchors.ts` records the head of every person in each Q painting (`x`, `y` as fractions of the 16:9 image, `r` head radius as a fraction of its height), measured by eye; boy and girl versions share a layout. A speaker who talks on a page but is not painted gets `{ offscreen, label }` (e.g. Dad in EVT_1986_SKILL_05 on the kindergarten plate: 「（旁邊）」).
+- Audit: every dialogue speaker on a painted page across the playtest lives must have an anchor or offscreen entry.
+
+## V4.3 — RPG dialogue box with a pointer tail (replaces the V4.2 bubble)
+
+- No speech bubble and no head ring on the painting any more; the painting stays clean.
+- Dialogue lives in the bottom panel. When the current line is dialogue, the speaker's portrait (arched window, name plate under it) sits at the panel's left edge, right of the purple scroll end, and the line is shown beside it as name + 「line」 in a larger size. Narration and action lines show no portrait. Earlier dialogue lines stay in the panel history in small type. The panel auto-scrolls to keep the newest line in view.
+- The panel grows a tail from its **top edge** up into the painting (`PanelTail` in `Stage.tsx`, geometry in `src/game/panelTail.ts`, pure and tested). The base slides along the top edge under the speaker's head (clamped `TAIL_EDGE` from the corners); the tip aims at the head centre and stops `TAIL_STOP` (1.45) head radii away, i.e. under the chin, never on the face. If the head is at or under the panel edge, no tail.
+- Offscreen speakers: a short dashed stub leaning toward the side the voice comes from, plus the label (「（旁邊）」) after the name.
+- One accent per speaker (`SPEAKER_ACCENT`) on the portrait frame, name plate, name dot/text and tail stroke. All accents pass the amber chroma check.
+- Portrait crops: the standing sprites draw heads at very different sizes, so `personPortrait()` in `art.ts` gives each person its own height so the faces come out about the same size. Portrait windows are rem-sized, so they scale with the stage like the rest of the panel.
+- a11y unchanged: the `aria-live` line still reads 「name：「line」」; the portrait and tail are decorative (`alt=""`, `aria-hidden`).
+- Tests: for every anchored speaker in every scene, on a desktop layout (panel over the stage) and a phone layout (panel below), the tip sits on the ring round the head, base, tip and head centre line up, the tip is above the panel, and the base stays on the top edge; plus clamping, the offscreen stub, and a guard that no bubble/ring code comes back.

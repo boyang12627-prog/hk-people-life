@@ -98,6 +98,24 @@ const SIT: Partial<Record<Exclude<PersonId, "child">, string>> = {
   grandma: "grandma-sit",
 };
 
+/**
+ * Speaker portrait crop for the panel window. The standing sprites draw heads at very different
+ * sizes (dad's is about half his sprite, the teacher's a quarter), so each gets its own height
+ * (as % of the window) so the faces come out about the same size.
+ */
+const PORTRAIT_HEIGHT: Record<Exclude<PersonId, "child">, number> = {
+  dad: 150,
+  mom: 210,
+  grandma: 185,
+  kit: 210,
+  teacher: 270,
+  auntie: 205,
+};
+
+export function personPortrait(id: Exclude<PersonId, "child">) {
+  return { src: `${ART}/1985/people/${FILE[id]}.png`, height: PORTRAIT_HEIGHT[id] };
+}
+
 export function personSrc(id: PersonId, gender: Gender | null, mood: Mood = "idle", pose: Pose = "stand") {
   if (id === "child") {
     const who = gender === "boy" ? "boy" : "girl";

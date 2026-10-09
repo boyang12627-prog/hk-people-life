@@ -61,7 +61,7 @@ main {
 
 /* ---------- UI V4: stage + paper panel (新武林群俠傳-style layout) ----------
  * Desktop web game. The root font size follows the 16:9 stage width (stage width / 80), so every
- * rem-based size (type, spacing, tags, frame, bubble) scales with the stage: 16px at 1280x720,
+ * rem-based size (type, spacing, tags, frame, portrait) scales with the stage: 16px at 1280x720,
  * 18px at 1440x900, 24px at 1920x1080, 32px at 2560x1440. Phones fall back to 15px and stay usable.
  * Everything is CSS: no text lives in images. Palette stays at or below amber #c9843a.
  */
@@ -129,43 +129,18 @@ main {
   box-shadow: 0 0.125rem 0.25rem rgb(20 12 6 / 0.45), inset 0 0 0 1px rgb(110 69 36 / 0.4);
 }
 
-/* Speech bubble. The tail points toward the speaker's side. */
-.ui-bubble {
-  color: var(--color-ink);
-  background: #fbf5e6;
-  border: 0.125rem solid #6e4524;
-  box-shadow: 0 0.25rem 0.625rem rgb(20 12 6 / 0.4);
-}
-/* Bust window at the stage edge. */
+/* (V4.3) speech bubble removed; dialogue lives in the panel. */
+/* Speaker portrait at the panel's left edge. */
 .ui-bust {
   background: radial-gradient(circle at 50% 30%, #f3ead7, #d9c7a2);
-  box-shadow: 0 0.25rem 0.625rem rgb(20 12 6 / 0.5), inset 0 0 0 0.1875rem #6e4524, inset 0 0 0 0.3125rem #a77f4c;
-  transition: opacity 200ms ease, filter 200ms ease;
-}
-.ui-bust-wrap[data-dim="false"] .ui-bust {
-  box-shadow: 0 0 0 0.2rem var(--accent), 0 0 0.9rem 0.2rem rgb(246 238 219 / 0.55), inset 0 0 0 0.1875rem #6e4524;
+  box-shadow: 0 0 0 0.2rem var(--accent, #6e4524), inset 0 0 0 0.1875rem #6e4524, 0 0.25rem 0.5rem rgb(20 12 6 / 0.35);
 }
 .ui-nameplate {
   color: #f6eedb;
   background: var(--accent, #6e4524);
   box-shadow: 0 0.125rem 0.25rem rgb(20 12 6 / 0.45);
-  transition: opacity 200ms ease;
 }
-.ui-nameplate[data-dim="true"] {
-  opacity: 0.6;
-  background: #6e4524;
-}
-.ui-head-ring {
-  filter: drop-shadow(0 0 0.35rem rgb(246 238 219 / 0.6));
-  animation: ui-ring 2.4s ease-in-out infinite;
-}
-@keyframes ui-ring {
-  50% { opacity: 0.6; }
-}
-.ui-bust[data-dim="true"] {
-  opacity: 0.55;
-  filter: saturate(0.4) brightness(0.85);
-}
+
 
 /* Hanging paper tag for choices: a string and a punched hole. */
 .ui-tag {
@@ -221,8 +196,8 @@ main {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ui-caret, .ui-head-ring { animation: none; }
-  .ui-tag, .ui-bust { transition: none; }
+  .ui-caret { animation: none; }
+  .ui-tag { transition: none; }
 }
 
 html {

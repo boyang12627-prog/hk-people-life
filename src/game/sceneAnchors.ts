@@ -7,7 +7,7 @@ import type { Speaker } from "./scene";
  * share one layout (checked side by side, the child's head moves by at most 0.02).
  *
  * A speaker who talks on a page but is not in the painting gets an `offscreen` entry instead, so the
- * bubble comes in from the stage edge with a dashed tail and a label such as 「（門外）」.
+ * panel shows a short dashed stub toward that side and a label such as 「（旁邊）」.
  */
 export type HeadAnchor = { x: number; y: number; r: number };
 export type Offscreen = { offscreen: "left" | "right" | "top"; label: string };
@@ -39,7 +39,7 @@ export const SCENE_ANCHORS: Record<string, SceneAnchors> = {
   pressure: { 媽媽: a(0.33, 0.21, 0.09), 老師: a(0.61, 0.14, 0.08), child: a(0.34, 0.53, 0.08) },
   rain: { child: a(0.42, 0.3, 0.09) },
   rest: { 嫲嫲: a(0.68, 0.13, 0.08), child: a(0.33, 0.6, 0.09) },
-  shoes: { 爸爸: a(0.4, 0.12, 0.09), child: a(0.67, 0.54, 0.08) },
+  shoes: { 爸爸: a(0.41, 0.16, 0.1), child: a(0.67, 0.54, 0.08) },
   soup: { 嫲嫲: a(0.69, 0.17, 0.1), child: a(0.25, 0.38, 0.1) },
   stair: { 媽媽: a(0.69, 0.17, 0.09), 阿傑: a(0.53, 0.25, 0.04), child: a(0.45, 0.47, 0.09) },
   study: { 老師: a(0.64, 0.32, 0.05), child: a(0.32, 0.48, 0.12) },
@@ -62,7 +62,7 @@ export function anchorFor(src: string | null | undefined, who: Who): HeadAnchor 
   return name ? SCENE_ANCHORS[name]?.[who] : undefined;
 }
 
-/** One accent per speaker: the ring at the head, the bust frame, and the name plate share it. All at or below amber. */
+/** One accent per speaker: the panel portrait frame, name plate and pointer tail share it. All at or below amber. */
 export const SPEAKER_ACCENT: Record<Speaker, string> = {
   媽媽: "#35665d",
   爸爸: "#3e4e6c",

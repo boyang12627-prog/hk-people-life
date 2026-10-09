@@ -37,7 +37,7 @@ import { scanSources } from "../../scripts/voice-scan.ts";
 import type { Gender, State } from "./types.ts";
 import { isDone, skipReveal, startReveal, stepReveal } from "./reveal.ts";
 import { SCENE_ANCHORS, SPEAKER_ACCENT, isOffscreen, plateName } from "./sceneAnchors.ts";
-import { placeBubble } from "./bubble.ts";
+import { TAIL_EDGE, TAIL_STOP, offscreenStub, panelTail } from "./panelTail.ts";
 import { beatPlate, eventPlate, scenePlate } from "./art.ts";
 import { say, type SceneLine } from "./scene.ts";
 
@@ -574,34 +574,58 @@ describe("ui v4.2 — speech bubbles point at the person who speaks", () => {
   });
 });
 
-describe("ui v4.2 — bubble geometry", () => {
-  const W = 1280;
-  const H = 720;
-  const overlaps = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
-    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-  it("the tail ends on the ring round the speaker's head, pointing at its centre, and the bubble stays on stage without covering the face", () => {
-    for (const [name, anchors] of Object.entries(SCENE_ANCHORS)) {
-      for (const [who, head] of Object.entries(anchors)) {
-        if (!head || isOffscreen(head)) continue;
-        const placed = placeBubble({ W, H, bw: 360, bh: 72, maxBottom: H * 0.58, head, faces: [], avoid: [], edge: null });
-        assert.ok(placed.tip && placed.ring, `${name}:${who}`);
-        const A = { x: head.x * W, y: head.y * H };
-        const d = Math.hypot(placed.tip.x - A.x, placed.tip.y - A.y);
-        assert.ok(Math.abs(d - head.r * H * 1.12) < 0.5, `${name}:${who} tip on the ring`);
-        assert.ok(placed.left >= 8 && placed.left + 360 <= W - 8 && placed.top >= 8 && placed.top + 72 <= H * 0.58, `${name}:${who} on stage`);
-        const R = head.r * H;
-        const face = { x: A.x - R * 0.7, y: A.y - R * 0.5, w: R * 1.4, h: R * 1.2 };
-        assert.equal(overlaps({ x: placed.left, y: placed.top, w: 360, h: 72 }, face), false, `${name}:${who} bubble covers the face`);
-        assert.ok(placed.tail.startsWith("M") && !placed.dashed);
+describe("ui v4.3 — the dialogue panel's tail points at the speaker's head", () => {
+  // Desktop: the panel overlays the bottom ~40% of a 1280x720 stage. Phone: the panel sits below the stage.
+  const LAYOUTS = {
+    desktop: { stage: { x: 0, y: 0, w: 1280, h: 720 }, panel: { x: 26, y: 446, w: 1228, h: 256 } },
+    phone: { stage: { x: 0, y: 0, w: 390, h: 219 }, panel: { x: 6, y: 227, w: 378, h: 600 } },
+  };
+  it("for every anchored speaker, the tip stops on a ring round the head, aims at its centre, sits above the panel, and the base stays on the panel's top edge", () => {
+    for (const [layout, { stage, panel }] of Object.entries(LAYOUTS)) {
+      const half = 14;
+      for (const [name, anchors] of Object.entries(SCENE_ANCHORS)) {
+        for (const [who, head] of Object.entries(anchors)) {
+          // The child never speaks a dialogue line; only speakers get a tail.
+          if (!head || isOffscreen(head) || who === "child") continue;
+          const tail = panelTail({ stage, panel, head, half });
+          const label = `${layout} ${name}:${who}`;
+          assert.ok(tail, label);
+          const A = { x: stage.x + head.x * stage.w - panel.x, y: stage.y + head.y * stage.h - panel.y };
+          const R = head.r * stage.h;
+          assert.ok(Math.abs(Math.hypot(tail.tip.x - A.x, tail.tip.y - A.y) - R * TAIL_STOP) < 0.5, `${label} tip on the ring`);
+          const base = { x: (tail.b1.x + tail.b2.x) / 2, y: 0 };
+          const cross = (tail.tip.x - A.x) * (base.y - A.y) - (tail.tip.y - A.y) * (base.x - A.x);
+          assert.ok(Math.abs(cross) < 1e-6 * Math.max(1, R * R * 100), `${label} base, tip and head centre are in line`);
+          assert.ok(tail.tip.y < 0, `${label} tip above the panel`);
+          assert.ok(tail.b1.y === 0 && tail.b2.y === 0 && tail.b1.x >= TAIL_EDGE && tail.b2.x <= panel.w - TAIL_EDGE, `${label} base on the top edge`);
+          assert.ok(tail.tip.y > A.y || Math.abs(tail.tip.x - A.x) > R, `${label} tip comes from below or beside, not across the face`);
+          assert.equal(tail.dashed, false);
+        }
       }
     }
   });
-  it("an offscreen voice gets a dashed tail from the stage edge and no ring", () => {
-    const placed = placeBubble({ W, H, bw: 300, bh: 70, maxBottom: H * 0.58, head: null, faces: [], avoid: [], edge: { side: "left", target: { x: 20, y: 200, w: 140, h: 175 } } });
-    assert.equal(placed.dashed, true);
-    assert.equal(placed.ring, null);
-    assert.ok(placed.left >= 160, "beside the bust, not over it");
-    assert.ok(placed.tip && placed.tip.x < placed.left, "tail points back toward the edge");
+  it("the base slides under the speaker and clamps at the panel's ends", () => {
+    const { stage, panel } = LAYOUTS.desktop;
+    const left = panelTail({ stage, panel, head: { x: 0.16, y: 0.25, r: 0.08 }, half: 14 });
+    const right = panelTail({ stage, panel, head: { x: 0.72, y: 0.17, r: 0.08 }, half: 14 });
+    const edge = panelTail({ stage, panel, head: { x: 0.005, y: 0.2, r: 0.05 }, half: 14 });
+    assert.ok(left && right && edge);
+    assert.ok(Math.abs((left.b1.x + left.b2.x) / 2 - (0.16 * 1280 - 26)) < 0.01);
+    assert.ok(Math.abs((right.b1.x + right.b2.x) / 2 - (0.72 * 1280 - 26)) < 0.01);
+    assert.equal(edge.b1.x, TAIL_EDGE);
+    assert.equal(panelTail({ stage, panel: { ...panel, y: 100 }, head: { x: 0.5, y: 0.2, r: 0.1 }, half: 14 }), null, "head at the panel edge: no tail");
+  });
+  it("an offscreen voice gets a short dashed stub leaning toward its side", () => {
+    const stub = offscreenStub({ panelW: 1228, side: "left", half: 14 });
+    assert.equal(stub.dashed, true);
+    assert.ok(stub.tip.y < 0 && stub.tip.y > -40 && stub.tip.x < stub.b1.x);
+    assert.ok(offscreenStub({ panelW: 1228, side: "right", half: 14 }).tip.x > 1100);
+  });
+  it("no speech bubble or head ring on the painting; portrait and dialogue live in the panel", () => {
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    assert.equal(/SpeechLayer|ui-bubble|ui-head-ring/.test(app + stage), false);
+    assert.ok(app.includes("portrait={") && app.includes("tail={"));
   });
   it("every speaker has one accent", () => {
     for (const who of ["媽媽", "爸爸", "嫲嫲", "阿傑", "阿姨", "老師"] as const) assert.match(SPEAKER_ACCENT[who], /^#[0-9a-f]{6}$/);

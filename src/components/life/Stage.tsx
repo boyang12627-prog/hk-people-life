@@ -1,12 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { isDone, isTyping, skipReveal, startReveal, stepReveal, type Reveal } from "@/game/reveal";
-import { GAP, placeBubble, type HeadPoint, type Placed, type Rect } from "@/game/bubble";
+import { offscreenStub, panelTail, type HeadPoint, type Point, type Tail } from "@/game/panelTail";
 
 export type { HeadPoint };
 
 /**
  * UI V4 layout pieces: a full-bleed 16:9 stage (scene painting), a round wooden status frame
- * top-left, speech bubbles with bust windows at the stage edge, and an old-paper panel at the
+ * top-left, and an old-paper panel (speaker portrait + pointer tail for dialogue) at the
  * bottom with hanging paper tags for choices. No text is ever baked into an image.
  */
 
@@ -18,7 +18,7 @@ export const StatusContext = createContext<Status>({ label: "", portrait: null, 
 export function Frame({ picture, overlay, stage, panel, onStageClick, label }: { picture: string; overlay?: ReactNode; stage?: ReactNode; panel: ReactNode; onStageClick?: () => void; label?: string }) {
   return (
     <section aria-label={label} className="ui-stage-frame relative flex h-full w-full flex-col md:aspect-video md:h-auto md:w-[min(calc(100vw-3rem),calc((100dvh-3rem)*16/9))] md:rounded-sm">
-      <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-[#2a1d12] md:absolute md:inset-0 md:aspect-auto md:h-full md:rounded-sm" onClick={onStageClick}>
+      <div className="ui-stage relative aspect-video w-full shrink-0 overflow-hidden bg-[#2a1d12] md:absolute md:inset-0 md:aspect-auto md:h-full md:rounded-sm" onClick={onStageClick}>
         <img src={picture} alt="" decoding="async" className="absolute inset-0 h-full w-full object-cover object-center" />
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_40%,transparent_55%,rgb(20_12_6/0.45))]" />
         {overlay}
@@ -48,11 +48,13 @@ function StatusFrame() {
 }
 
 /** The long old-paper panel. `side` holds the hanging tags; on narrow screens they drop below the text. */
-export function PaperPanel({ heading, children, side, live }: { heading?: ReactNode; children: ReactNode; side?: ReactNode; live?: ReactNode }) {
+export function PaperPanel({ heading, children, side, live, portrait, tail }: { heading?: ReactNode; children: ReactNode; side?: ReactNode; live?: ReactNode; portrait?: ReactNode; tail?: ReactNode }) {
   const { afternoons } = useContext(StatusContext);
   return (
     <div className="ui-panel flex h-full min-h-0 rounded-md md:h-auto">
+      {tail}
       <div aria-hidden="true" className="ui-scroll-end relative my-4 ml-1.5 w-3.5 shrink-0 rounded-sm md:ml-2 md:w-5" />
+      {portrait ? <div className="ml-2 md:ml-3">{portrait}</div> : null}
       <div className="flex min-h-0 flex-1 flex-col gap-1 pb-7 pl-2 pr-3 pt-4 md:flex-row md:gap-4 md:pl-3">
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           {heading ? (
@@ -107,102 +109,59 @@ export function Tag({ label, detail, hint, onClick, disabled = false, main = fal
 
 export type Side = "left" | "right";
 
-/** Head-and-shoulders window at the stage edge, with a name plate. The speaker's window takes the speaker's accent; others dim. */
-export function Bust({ src, side, dim, name, accent }: { src: string; side: Side; dim: boolean; name: string; accent: string }) {
-  const place = side === "right" ? "right-[2%]" : "left-[2%]";
+/** Head-and-shoulders portrait at the panel's left edge, name plate under it, framed in the speaker's accent. */
+export function PanelPortrait({ src, height, name, accent }: { src: string; height: number; name: string; accent: string }) {
   return (
-    <div data-avoid="bust" data-person={name} data-dim={dim ? "true" : "false"} className={`ui-bust-wrap pointer-events-none absolute bottom-[12%] ${place} flex aspect-[4/5] h-[40%] flex-col items-center md:bottom-[43%] md:h-[24%]`} style={{ ["--accent" as string]: accent }}>
-      <div className="ui-bust h-full w-full overflow-hidden rounded-t-full" data-dim={dim ? "true" : "false"}>
-        <img src={src} alt="" decoding="async" className="-ml-[10%] mt-[8%] h-auto w-[120%] max-w-none" />
+    <div data-portrait={name} className="ui-portrait flex shrink-0 flex-col items-center self-start pt-4" style={{ ["--accent" as string]: accent }}>
+      <div className="ui-bust relative aspect-[4/5] w-16 overflow-hidden rounded-t-full md:w-[6.5rem]">
+        {/* Sprites are full-length and of different widths; size by height so every head comes out the same size. */}
+        <img src={src} alt="" decoding="async" className="absolute left-1/2 top-[7%] w-auto max-w-none -translate-x-1/2" style={{ height: `${height}%` }} />
       </div>
-      <p className="ui-nameplate -mt-2 rounded-sm px-2 py-0.5 font-serif text-xs tracking-wide md:text-sm" data-dim={dim ? "true" : "false"}>{name}</p>
+      <p className="ui-nameplate relative z-10 -mt-2 rounded-sm px-2 py-0.5 font-serif text-xs tracking-wide md:text-sm">{name}</p>
     </div>
   );
 }
 
-/**
- * The speech layer: a bubble near the speaker's head with an SVG tail that ends at the head, a soft
- * ring around that head, all in the speaker's accent. Offscreen voices come in from the edge with a
- * dashed tail. Measures itself, so it follows any stage size.
- */
-export function SpeechLayer({ name, label, accent, head, faces, edge, children }: { name: string; label?: string; accent: string; head: HeadPoint | null; faces: HeadPoint[]; edge: { side: "left" | "right" | "top"; bustSide?: Side } | null; children: ReactNode }) {
-  const layerRef = useRef<HTMLDivElement>(null);
-  const bubbleRef = useRef<HTMLDivElement>(null);
-  const [placed, setPlaced] = useState<Placed | null>(null);
-  const [size, setSize] = useState({ W: 0, H: 0 });
-  const headKey = head ? `${head.x},${head.y},${head.r}` : edge ? `edge-${edge.side}` : "none";
+const TAIL_FILL = "#efe3c8";
 
+/**
+ * The panel's pointer tail. Lives inside the panel (position: relative) and draws upward into the
+ * painting, from the panel's top edge to just short of the speaker's head. Re-measures on resize.
+ */
+export function PanelTail({ head, offscreen, accent }: { head: HeadPoint | null; offscreen: "left" | "right" | "top" | null; accent: string }) {
+  const ref = useRef<SVGSVGElement>(null);
+  const [tail, setTail] = useState<Tail | null>(null);
+  const key = head ? `${head.x},${head.y},${head.r}` : offscreen ?? "none";
   useLayoutEffect(() => {
-    const layer = layerRef.current;
-    const bubble = bubbleRef.current;
-    if (!layer || !bubble) return;
+    const svg = ref.current;
+    const panel = svg?.parentElement;
+    const stage = panel?.closest("section")?.querySelector(".ui-stage");
+    if (!svg || !panel || !stage) return;
     const measure = () => {
-      const L = layer.getBoundingClientRect();
-      const W = L.width;
-      const H = L.height;
-      if (!W || !H) return;
-      const rel = (el: Element): Rect => {
-        const r = el.getBoundingClientRect();
-        return { x: r.left - L.left, y: r.top - L.top, w: r.width, h: r.height };
-      };
-      const stage = layer.parentElement;
-      const avoid = stage ? Array.from(stage.querySelectorAll("[data-avoid]")).map(rel) : [];
-      const panel = layer.closest("section")?.querySelector(".ui-panel");
-      const panelTop = panel ? rel(panel).y : H;
-      const maxBottom = Math.max(H * 0.3, Math.min(H, panelTop) - GAP);
-      const bustEl = edge?.bustSide && stage ? stage.querySelector(`[data-avoid="bust"][data-dim="false"]`) : null;
-      const target = bustEl ? rel(bustEl) : null;
-      setSize({ W, H });
-      setPlaced(
-        placeBubble({
-          W,
-          H,
-          bw: bubble.offsetWidth,
-          bh: bubble.offsetHeight,
-          maxBottom,
-          head,
-          faces,
-          avoid,
-          edge: edge ? { side: edge.side, target } : null,
-        }),
-      );
+      const p = panel.getBoundingClientRect();
+      const s = stage.getBoundingClientRect();
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const half = rem * 1.1;
+      if (head) setTail(panelTail({ stage: { x: s.left, y: s.top, w: s.width, h: s.height }, panel: { x: p.left, y: p.top, w: p.width, h: p.height }, head, half }));
+      else if (offscreen) setTail(offscreenStub({ panelW: p.width, side: offscreen, half }));
+      else setTail(null);
     };
     measure();
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
-    observer?.observe(layer);
-    observer?.observe(bubble);
+    observer?.observe(panel);
+    observer?.observe(stage);
     return () => observer?.disconnect();
-  }, [headKey, name]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const f = (q: Point) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`;
   return (
-    <div ref={layerRef} className="pointer-events-none absolute inset-0" style={{ ["--accent" as string]: accent }}>
-      {placed && size.W ? (
-        <svg aria-hidden="true" className="absolute inset-0 h-full w-full overflow-visible" viewBox={`0 0 ${size.W} ${size.H}`} preserveAspectRatio="none">
-          {placed.ring ? (
-            <g className="ui-head-ring">
-              <circle cx={placed.ring.x} cy={placed.ring.y} r={placed.ring.r + 2} fill="none" stroke="#f6eedb" strokeOpacity="0.55" strokeWidth="4" />
-              <circle cx={placed.ring.x} cy={placed.ring.y} r={placed.ring.r} fill="none" stroke={accent} strokeOpacity="0.9" strokeWidth="2" />
-            </g>
-          ) : null}
-          {placed.tail ? <path d={placed.tail} fill="#fbf5e6" stroke={accent} strokeWidth="2" strokeLinejoin="round" strokeDasharray={placed.dashed ? "6 4" : undefined} /> : null}
-          {placed.tip && !placed.dashed ? <circle cx={placed.tip.x} cy={placed.tip.y} r="2.5" fill={accent} /> : null}
-        </svg>
+    <svg ref={ref} aria-hidden="true" data-tail={tail ? (tail.dashed ? "offscreen" : "head") : "none"} className="pointer-events-none absolute left-0 top-0 z-10 h-px w-full overflow-visible">
+      {tail ? (
+        <>
+          <path d={`M${f(tail.b1)} L${f(tail.tip)} L${f(tail.b2)} Z`} fill={TAIL_FILL} fillOpacity={tail.dashed ? 0.85 : 1} />
+          <path d={`M${f(tail.b1)} L${f(tail.tip)} L${f(tail.b2)}`} fill="none" stroke={accent} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" strokeDasharray={tail.dashed ? "5 4" : undefined} data-tip={f(tail.tip)} />
+        </>
       ) : null}
-      <div
-        ref={bubbleRef}
-        data-speaker={name}
-        data-edge={edge ? edge.side : undefined}
-        className="ui-bubble absolute w-max max-w-[58%] rounded-2xl px-3 py-1.5 md:max-w-[40%] md:px-4 md:py-2"
-        style={{ left: placed?.left ?? 0, top: placed?.top ?? 0, visibility: placed ? "visible" : "hidden", borderColor: accent, borderStyle: edge ? "dashed" : "solid" }}
-      >
-        <p className="flex items-center gap-1.5 text-[0.7rem] tracking-wide md:text-xs" style={{ color: accent }}>
-          <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full" style={{ background: accent }} />
-          <span className="font-medium">{name}</span>
-          {label ? <span className="text-ink/70">{label}</span> : null}
-        </p>
-        <p className="text-pretty text-sm leading-6 md:text-lg md:leading-8">{children}</p>
-      </div>
-    </div>
+    </svg>
   );
 }
 
