@@ -23,7 +23,7 @@ import {
   yearOf,
   yearSummary,
 } from "@/game/content";
-import { MEMORY_BALL, afternoonPlate, beatPlate, eventPlate, personFromSpeaker, personPortrait, personSrc, scenePlate, slicePlate, yearPlate, type Mood } from "@/game/art";
+import { MEMORY_BALL, afternoonPlate, beatPlate, eventPlate, personFromSpeaker, personPortrait, protagonistPortrait, scenePlate, slicePlate, yearPlate, type Mood } from "@/game/art";
 import { narrate, say, sceneTurns, type SceneLine, type Turn } from "@/game/scene";
 import { chainEcho, knowsKit, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
@@ -234,7 +234,8 @@ function statusOf(state: State): Status {
   const later = state.phase === "fifteen" || state.phase === "ending";
   const year = outside || later ? null : yearOf(state);
   const label = state.phase === "fifteen" ? "1996・15歲" : state.phase === "ending" ? "十年後" : year ? `${year.year}・${year.age}歲` : "1984–1988";
-  const portrait = year && state.gender ? personSrc("child", state.gender, "idle", "stand") : null;
+  const portraitYear = state.phase === "fifteen" ? 1996 : year?.year;
+  const portrait = portraitYear && state.gender ? protagonistPortrait(portraitYear, state.gender) : null;
   const counts = state.phase === "year" || state.phase === "activities" || state.phase === "note" || state.phase === "story" || state.phase === "event" || state.phase === "result";
   return { label, portrait, afternoons: counts ? state.apLeft : null };
 }

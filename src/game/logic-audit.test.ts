@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBattle, initiativeFor, resolveTurn } from "./battleSim.ts";
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
-import { beatPlate, eventPlate, imageManifest, slicePlate, yearPlate } from "./art.ts";
+import { beatPlate, eventPlate, imageManifest, PORTRAIT_AGES, portraitAge, protagonistPortrait, slicePlate, yearPlate } from "./art.ts";
 import { lineText, sceneTurns, SPEAKERS, type SceneLine } from "./scene.ts";
 import { produce1985, produce1986, missed1986, missedLine, chainEcho, CHAIN_85_STAGES, friendFollow, MISS_85_FRIEND, MISS_85_MOM, MISS_85_ORANGE, MISS_85_RAIN, REPLAY_MATRIX } from "./freedom.ts";
 import { runChildhood, simulateLife } from "./lifeSim.ts";
@@ -1187,6 +1187,32 @@ describe("logic audit v3.2", () => {
     for (const file of ["../components/life/LifeApp.tsx", "../components/life/Battle.tsx"]) {
       assert.equal(readFileSync(new URL(file, import.meta.url), "utf8").includes("/art/"), false, `${file} builds an art path outside art.ts`);
     }
+  });
+});
+
+describe("protagonist portrait", () => {
+  it("the status frame shows the protagonist's age, and every portrait file exists", () => {
+    const want: Record<number, number> = { 1984: 3, 1985: 4, 1986: 5, 1987: 5, 1988: 7, 1990: 7, 1995: 7, 1996: 15, 2006: 15 };
+    for (const [year, age] of Object.entries(want)) {
+      assert.equal(protagonistPortrait(Number(year), "boy"), `/art/portrait/boy-${age}.webp`, `boy ${year}`);
+      assert.equal(protagonistPortrait(Number(year), "girl"), `/art/portrait/girl-${age}.webp`, `girl ${year}`);
+    }
+    assert.equal(portraitAge(1), 3);
+    const manifest = imageManifest();
+    for (const gender of ["boy", "girl"] as const) {
+      for (const age of PORTRAIT_AGES) {
+        const path = `/art/portrait/${gender}-${age}.webp`;
+        assert.ok(manifest.includes(path), `${path} missing from the manifest`);
+        const url = new URL(`../../public${path}`, import.meta.url);
+        assert.equal(existsSync(url), true, `${path} does not exist`);
+        const bytes = readFileSync(url);
+        assert.equal(bytes.subarray(0, 4).toString("latin1"), "RIFF", path);
+        assert.equal(bytes.subarray(8, 12).toString("latin1"), "WEBP", path);
+        assert.ok(bytes.length < 40_000, `${path} is ${bytes.length} bytes`);
+      }
+    }
+    const stageSrc = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    assert.match(stageSrc, /object-cover/, "the status frame portrait should cover the circle, not overflow it");
   });
 });
 

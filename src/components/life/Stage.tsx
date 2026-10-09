@@ -35,7 +35,7 @@ function StatusFrame() {
       {portrait ? (
         <div className="ui-wood-ring rounded-full p-1.5 md:p-2">
           <div className="h-12 w-12 overflow-hidden rounded-full bg-[radial-gradient(circle_at_50%_35%,#f6eedb,#d9c7a2)] md:h-20 md:w-20">
-            <img src={portrait} alt="" decoding="async" className="-ml-[10%] mt-[4%] h-auto w-[120%] max-w-none" />
+            <img src={portrait} alt="" decoding="async" className="block h-full w-full object-cover object-[50%_30%]" />
           </div>
         </div>
       ) : null}
