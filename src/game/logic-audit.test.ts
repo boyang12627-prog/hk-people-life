@@ -835,9 +835,14 @@ describe("logic audit v3.2", () => {
     assert.equal(eventPlate("EVT_1985_FRIEND_04", "boy", "estate"), null);
     assert.equal(beatPlate("sun-night", "boy"), "/art/q/bag-boy.webp");
     assert.equal(eventPlate("EVT_1984_FAMILY_02", "girl"), "/art/q/home-girl.webp");
-    assert.equal(yearPlate(1986, "girl"), null, "1986 opening is titled 走廊: it uses the corridor painting, not the TV room");
+    // The 1984 and 1986 openings talk about the TV (the handshake, 「女皇來了。」), so they open on the TV room.
+    assert.equal(yearPlate(1984, "girl"), "/art/q/tv-girl.webp");
+    assert.equal(yearPlate(1986, "boy"), "/art/q/tv-boy.webp");
+    assert.equal(yearPlate(1985, "boy"), null);
+    assert.equal(yearPlate(1988, "girl"), null);
     assert.equal(slicePlate({ year: 1986, scene: "corridor", gender: "girl" }), "/art/q/corridor-girl.webp");
-    assert.equal(eventPlate("EVT_1984_NEWS_01", "boy"), null);
+    // 電視裡講著很遠的事: the 1984 news dinner is the room with the TV.
+    assert.equal(eventPlate("EVT_1984_NEWS_01", "boy"), "/art/q/tv-boy.webp");
     const played = produce1985(["ACT_PLAY", "ACT_DRAW"]);
     assert.deepEqual(played.queue, ["EVT_1985_SCHOOL_01", "MINI_85_GRANDMA", "MINI_85_TV", "MINI_85_DAD"]);
     assert.ok(played.missed.includes(MISS_85_MOM));

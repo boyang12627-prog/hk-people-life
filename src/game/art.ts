@@ -11,6 +11,7 @@ const EVENT_PLATE: Record<string, string> = {
   MINI_85_ORANGE: "orange",
   MINI_86_HELP: "bags",
   EVT_1988_PEN_01: "pen",
+  EVT_1984_NEWS_01: "tv",
   EVT_1984_FAMILY_02: "home",
   EVT_1986_FAMILY_06: "tv",
   EVT_1986_ECHO_08: "corridor",
@@ -54,9 +55,15 @@ export function beatPlate(beat: string, gender: Gender | null) {
   return name ? painted(name, gender) : null;
 }
 
-/** A year opening's own picture. None now: every opening uses its year's scene (1986 is 走廊, so the corridor painting). */
-export function yearPlate(_year: number, _gender: Gender | null): string | null {
-  return null;
+/**
+ * A year opening's own picture when its text is about the TV: 1984 (飯桌那部電視開著, the handshake) and
+ * 1986 (電視裡有個戴帽子的女人下船, 「女皇來了。」). Other years use their scene painting.
+ */
+const YEAR_PLATE: Record<number, string> = { 1984: "tv", 1986: "tv" };
+
+export function yearPlate(year: number, gender: Gender | null): string | null {
+  const name = YEAR_PLATE[year];
+  return name && gender ? painted(name, gender) : null;
 }
 
 export function scenePlate(scene: SceneId, gender: Gender | null) {

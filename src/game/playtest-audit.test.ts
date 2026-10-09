@@ -32,6 +32,9 @@ import { freshState, mergeDeltas, reducer } from "./engine.ts";
 import { lineText, placeLabel } from "./scene.ts";
 import { SPOKEN_IN_NARRATION, expandSpokenNarration, splitSpokenNarration } from "./narrationSpeech.ts";
 import { ACTION_LOCK_MS } from "./reveal.ts";
+import { NEWS_HEADLINE, TV_SCREENS, newsHeadline, paintingName, tvIsOff, tvScreenFor } from "./tvNews.ts";
+import { beatPlate as tvBeatPlate, eventPlate as tvEventPlate, imageManifest as tvManifest, yearPlate as tvYearPlate } from "./art.ts";
+import { existsSync } from "node:fs";
 import { picked, selectSpoken } from "./speak.ts";
 import { KINDY_DOOR, PRIMARY_EXAM, playtestTools } from "./battleSpec.ts";
 import { CANTONESE_TO_WRITTEN, cantoneseHits, dialogueWarnings, quotedSpeaker } from "./wording.ts";
@@ -672,5 +675,74 @@ describe("live playtest fixes (2026-10-09)", () => {
       if (m[0].includes("say(")) continue;
       assert.ok(SPOKEN_IN_NARRATION[m[2]], `unlisted speech in narration: ${m[0]}`);
     }
+  });
+});
+
+describe("TV news headlines (2026-10-09)", () => {
+  const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+  const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+  it("every painting with a TV has its screen measured, for both genders, inside the picture", () => {
+    assert.deepEqual(Object.keys(TV_SCREENS).sort(), ["bag", "draw", "play", "rest", "tv"]);
+    for (const [name, screen] of Object.entries(TV_SCREENS)) {
+      for (const gender of ["boy", "girl"]) assert.ok(existsSync(new URL(`../../public/art/q/${name}-${gender}.webp`, import.meta.url)), `${name}-${gender}.webp exists`);
+      assert.ok(screen.left > 0 && screen.top > 0 && screen.width > 3 && screen.height > 8, `${name} screen has a size`);
+      assert.ok(screen.left + screen.width < 100 && screen.top + screen.height < 100, `${name} screen is inside the picture`);
+    }
+    // Only the TV room is painted with the set on; the others get a lit glass from the overlay.
+    assert.equal(TV_SCREENS.tv.lit, true);
+    for (const name of ["bag", "draw", "play", "rest"]) assert.equal(TV_SCREENS[name].lit, false);
+    // The TV room screen sits low; its strip goes at the top of the glass so the panel never covers it.
+    assert.equal(TV_SCREENS.tv.strip, "top");
+  });
+
+  it("the headline is factual and one per year", () => {
+    assert.deepEqual(NEWS_HEADLINE, { 1984: "中英聯合聲明簽署", 1985: "立法局首次間接選舉", 1986: "英女皇訪港", 1988: "移民潮持續", 1996: "香港回歸倒數" });
+    assert.equal(newsHeadline(1986), "英女皇訪港");
+    assert.equal(newsHeadline(null), null);
+    assert.equal(newsHeadline(1990), null);
+  });
+
+  it("the headline agrees with what the story says is on TV", () => {
+    assert.match(yearOf({ ...freshState(), yearIndex: 0 }).era, /握手/);
+    assert.match(yearOf({ ...freshState(), yearIndex: 2 }).era + yearOf({ ...freshState(), yearIndex: 2 }).open, /女皇/);
+    const events = readFileSync(new URL("./data/events.ts", import.meta.url), "utf8");
+    assert.match(events, /有個同事移民了/);
+    assert.match(fifteenLines({ ...freshState(), gender: "girl", phase: "fifteen" }).join(""), /電視/);
+  });
+
+  it("a page that says the TV is off keeps the screen dark", () => {
+    assert.equal(tvIsOff(["媽媽晚上還是很靜。電視已經關了。她沒有再提街市。"]), true);
+    assert.equal(newsHeadline(1985, ["電視已經關了。"]), null);
+    assert.equal(tvIsOff(["電視又開著。", "家裡的電視還開著。"]), false);
+  });
+
+  it("screens are found from the picture path, whatever the base URL", () => {
+    assert.equal(paintingName("/hk-people-life/art/q/tv-girl.webp"), "tv");
+    assert.equal(tvScreenFor("/art/q/rest-boy.webp"), TV_SCREENS.rest);
+    assert.equal(tvScreenFor("/art/q/home-boy.webp"), null);
+    assert.equal(tvScreenFor("/art/1985/memory.jpg"), null);
+  });
+
+  it("text that talks about the TV is shown on a painting with a TV", () => {
+    for (const gender of ["boy", "girl"] as const) {
+      assert.equal(tvYearPlate(1984, gender), `/art/q/tv-${gender}.webp`, "1984: 飯桌那部電視開著");
+      assert.equal(tvYearPlate(1986, gender), `/art/q/tv-${gender}.webp`, "1986: 電視裡有個戴帽子的女人下船");
+      for (const id of ["EVT_1984_NEWS_01", "MINI_85_TV", "MINI_86_TV"]) assert.ok(tvScreenFor(tvEventPlate(id, gender) ?? ""), `${id} has a TV`);
+      assert.ok(tvScreenFor(tvBeatPlate("sat-night", gender) ?? ""), "the fifteen page (家裡的電視還開著) uses the TV room");
+    }
+    assert.ok(tvManifest().includes("/art/q/tv-boy.webp"));
+  });
+
+  it("the stage draws the headline over the screen; nothing is baked into the art", () => {
+    assert.match(stage, /\{news \? <TvNews picture=\{picture\} headline=\{news\} \/> : null\}/);
+    assert.match(stage, /data-tv-news=\{headline\}/);
+    assert.match(stage, /aria-label=\{`電視新聞：\$\{headline\}`\}/);
+    assert.match(app, /const news = newsHeadline\(storyYear, turns\.map\(\(turn\) => turn\.text\)\)/);
+    assert.match(app, /news=\{news\}/);
+    assert.match(app, /state\.phase === "fifteen" \? 1996 : year\?\.year \?\? null/);
+    assert.match(css, /\.ui-tv-strip \{/);
+    assert.match(css, /\.ui-tv-headline \{[^}]*font-size: clamp\(9px, 15\.5cqw, 1\.2rem\)/, "follows the screen size, capped so a big screen keeps one line");
   });
 });

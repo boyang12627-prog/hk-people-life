@@ -1,6 +1,7 @@
 import { Children, Fragment, createContext, isValidElement, useContext, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { Battle } from "@/components/life/Battle";
 import { playRoom, playTone, unlockAudio } from "@/components/life/audio";
+import { newsHeadline } from "@/game/tvNews";
 import { ConfirmLink, Frame, LocationTag, PanelHeading, PanelPortrait, PaperPanel, ScrollCue, StatusContext, Tag, useAdvanceKeys, useReveal, useScrollCue, type Status } from "@/components/life/Stage";
 import { expandSpokenNarration } from "@/game/narrationSpeech";
 import { ACTION_LOCK_MS } from "@/game/reveal";
@@ -239,7 +240,8 @@ function statusOf(state: State): Status {
   const portraitYear = state.phase === "fifteen" ? 1996 : year?.year;
   const portrait = portraitYear && state.gender ? protagonistPortrait(portraitYear, state.gender) : null;
   const counts = state.phase === "year" || state.phase === "activities" || state.phase === "note" || state.phase === "story" || state.phase === "event" || state.phase === "result";
-  return { label, portrait, afternoons: counts ? state.apLeft : null };
+  const storyYear = state.phase === "fifteen" ? 1996 : year?.year ?? null;
+  return { label, portrait, afternoons: counts ? state.apLeft : null, year: storyYear };
 }
 
 function Title({ onStart }: { onStart: () => void }) {
@@ -570,6 +572,7 @@ function Paper(props: PaperProps) {
 /** Narration, action, and dialogue are all drawn on the paper; none is dropped. A dialogue line brings its speaker's portrait and name plate. */
 function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, children, bodyColumns = false }: PaperProps & { turns: Turn[] }) {
   const gender = useContext(Face);
+  const storyYear = useContext(StatusContext).year;
   const picture = plate ?? scenePlate(scene, gender);
   const reveal = useReveal(turns.map((turn) => turn.text.length));
   const [log, setLog] = useState(false);
@@ -600,11 +603,14 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
   const accent = speaking?.speaker ? SPEAKER_ACCENT[speaking.speaker] : "#6e4524";
   const person = speaking?.speaker ? personFromSpeaker(speaking.speaker) : null;
   const where = anchor && isOffscreen(anchor) ? anchor.label : null;
+  // A painted TV shows the year's headline, unless this page says the TV is off.
+  const news = newsHeadline(storyYear, turns.map((turn) => turn.text));
 
   return (
     <Frame
       label={`${kicker} · ${title}`}
       picture={picture}
+      news={news}
       overlay={overlay}
       onStageClick={reveal.done || log ? undefined : reveal.advance}
       panel={

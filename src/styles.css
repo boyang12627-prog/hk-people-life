@@ -243,3 +243,44 @@ html {
       0 1.2rem 2.5rem rgb(10 6 3 / 0.7);
   }
 }
+
+/* TV news caption drawn over a painted screen (see TvNews in Stage.tsx). Sizes follow the screen width. */
+.ui-tv-screen {
+  container-type: inline-size;
+  border-radius: 9% / 11%;
+}
+.ui-tv-glow {
+  background: radial-gradient(ellipse 80% 75% at 50% 45%, rgb(176 190 192 / 0.92), rgb(92 108 112 / 0.9) 70%, rgb(40 48 50 / 0.92));
+}
+.ui-tv-scan {
+  background: repeating-linear-gradient(to bottom, rgb(255 255 255 / 0.05) 0 1px, transparent 1px 3px);
+  mix-blend-mode: screen;
+}
+.ui-tv-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2cqw;
+  padding: 3cqw 5cqw 4cqw;
+  background: rgb(18 14 10 / 0.86);
+  border-top: max(1px, 1.2cqw) solid #c9a24a;
+  box-shadow: 0 0 4cqw rgb(18 14 10 / 0.5);
+}
+.ui-tv-tab {
+  padding: 0.5cqw 3cqw;
+  background: #9a3b2b;
+  color: #f6efe0;
+  font-size: max(7px, 9cqw);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+.ui-tv-headline {
+  color: #f4dc8a;
+  font-weight: 800;
+  font-size: clamp(9px, 15.5cqw, 1.2rem);
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+  text-shadow: 0 0 2cqw rgb(244 220 138 / 0.45), 0.6cqw 0.6cqw 0 rgb(0 0 0 / 0.8);
+}
