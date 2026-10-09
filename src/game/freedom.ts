@@ -67,12 +67,31 @@ export function produce1986(spent: readonly string[]) {
   return { queue, missed };
 }
 
-export function missed1986(missed: readonly string[], when: "now" | "later") {
+/** Memories that name 阿傑 on screen. Before one of these exists, the child does not know his name. */
+export const KIT_NAMED_MEMORIES = ["MEM_RED_BALL", "MEM_KIT_WAIT", "MEM_FRIEND_AGAIN", "MEM_BALLPOINT"] as const;
+
+export function knowsKit(state: Pick<State, "memories">) {
+  return state.memories.some((item) => (KIT_NAMED_MEMORIES as readonly string[]).includes(item.memoryTypeId ?? item.id));
+}
+
+/**
+ * Missed lines are computed before the afternoon's cards play. A card can still put the player there:
+ * 阿傑 coming up on Sunday, or the extra platform walk at the end of 1986. Drop what the player then did.
+ */
+export function reconcileMissed(state: Pick<State, "missed" | "memories" | "counter" | "yearIndex">): string[] {
+  let missed = [...state.missed];
+  const met = state.memories.some((item) => (item.memoryTypeId ?? item.id) === "MEM_KIT_WAIT" && (item.choiceId === "A" || item.emotion === "meet"));
+  if (met) missed = missed.filter((id) => id !== MISS_85_FRIEND);
+  if (state.memories.some((item) => (item.memoryTypeId ?? item.id) === "MEM_FRIEND_AGAIN")) missed = missed.filter((id) => id !== MISS_86_FRIEND);
+  return missed.length === state.missed.length ? state.missed : missed;
+}
+
+export function missed1986(missed: readonly string[], when: "now" | "later", kitKnown = true) {
   const bits: string[] = [];
-  if (missed.includes(MISS_86_MARKET)) bits.push("沒有去街市");
+  if (missed.includes(MISS_86_MARKET)) bits.push("星期六沒有跟媽媽去街市");
   if (missed.includes(MISS_86_ESTATE)) bits.push("沒有上平台");
   if (missed.includes(MISS_86_TV)) bits.push("沒有留在家看那一次電視");
-  if (missed.includes(MISS_86_FRIEND)) bits.push("沒有再碰到阿傑");
+  if (missed.includes(MISS_86_FRIEND)) bits.push(kitKnown ? "沒有再碰到阿傑" : "沒有碰到平台上那個抱紅球的孩子");
   if (!bits.length) return "";
   if (when === "now") return `今年你${bits.join("，")}。`;
   return `一九八六年你${bits.join("，")}。中間隔了一年，那些事沒有補回來。`;
@@ -93,7 +112,7 @@ export function friendFollow(state: Pick<State, "missed" | "flags" | "npc" | "de
 
 export function missedLine(missed: readonly string[], when: "now" | "later") {
   const bits: string[] = [];
-  if (missed.includes(MISS_85_MOM)) bits.push("沒有陪媽媽去街市");
+  if (missed.includes(MISS_85_MOM)) bits.push("星期六沒有陪媽媽去街市");
   if (missed.includes(MISS_85_GRANDMA)) bits.push("沒有在家陪嫲嫲");
   if (missed.includes(MISS_85_RAIN)) bits.push("沒有淋到那陣雨");
   if (missed.includes(MISS_85_FRIEND)) bits.push("沒有碰到那個紅球");
@@ -102,8 +121,8 @@ export function missedLine(missed: readonly string[], when: "now" | "later") {
   if (missed.includes(MISS_85_AUNT)) bits.push("沒有聽見阿姨叫你");
   if (missed.includes(MISS_85_ORANGE)) bits.push("沒有看見散開的橙");
   if (!bits.length) return "";
-  const lead = when === "now" ? "今年你" : "去年你";
-  return `${lead}${bits.join("，")}。那些事沒有消失，只是晚了一年。`;
+  if (when === "now") return `今年你${bits.join("，")}。`;
+  return `去年你${bits.join("，")}。那些事沒有消失，只是晚了一年。`;
 }
 
 export const CHAIN_85_STAGES = ["afternoons", "door", "someone", "reflect", "echo"] as const;

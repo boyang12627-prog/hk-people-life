@@ -135,12 +135,9 @@ describe("logic audit v3.2", () => {
     state = reducer(state, { type: "ack" });
     assert.equal(state.phase, "explore-offer");
     state = reducer(state, { type: "explore", go: true });
-    assert.equal(state.counter.COUNTER_EXPLORE, 1);
-    assert.equal(state.phase, "result");
-    state = reducer(state, { type: "ack" });
-    assert.equal(state.phase, "explore-offer");
-    state = reducer(state, { type: "explore", go: true });
+    // V3.3: one offer, one walk to the gate. No second offer in a row.
     assert.equal(state.counter.COUNTER_EXPLORE, 2);
+    assert.equal(state.phase, "result");
     state = reducer(state, { type: "ack" });
     assert.equal(state.phase, "event");
     assert.equal(state.eventId, "EVT_1986_ECHO_08");
@@ -174,7 +171,10 @@ describe("logic audit v3.2", () => {
     state = reducer(state, { type: "nextYear" });
     assert.equal(state.counter.WORLD_DAD_WORK_OCCURRENCES, 2);
     const before = cardFor("EVT_1986_FAMILY_06", state).sequence.map(lineText).join("");
-    assert.ok(before.includes("不是第一次"));
+    // V3.3: the count alone does not let the card say you saw it before.
+    assert.equal(before.includes("你見過"), false);
+    const saw = { ...state, memories: [...state.memories, { id: "MEM_DAD_HOME", memoryTypeId: "MEM_DAD_HOME", instanceId: "MEM_DAD_HOME_1985", eventId: "MINI_85_DAD", choiceId: "A", variant: "base", year: 1985, age: 4, npc: "NPC_DAD_01", emotion: "home", weight: 2, echo: "" }] };
+    assert.ok(cardFor("EVT_1986_FAMILY_06", saw).sequence.map(lineText).join("").includes("去年星期日"));
     state = { ...state, phase: "event", eventId: "EVT_1986_FAMILY_06" };
     const left = chooseId(state, "A");
     const stayed = chooseId(state, "C");
@@ -574,7 +574,8 @@ describe("logic audit v3.2", () => {
     assert.equal(pattern.threatFor(8).heavy, false);
     assert.ok(pattern.threatFor(8).hint.includes("門口有光"));
     const ui = readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8");
-    assert.ok(ui.includes("下一聲"));
+    assert.equal(KINDY_DOOR.nextLabel, "下一聲");
+    assert.ok(ui.includes("spec.nextLabel"));
     assert.ok(ui.includes("剛才"));
     assert.ok(ui.includes("hitLabel"));
     assert.ok(KINDY_DOOR.voice.entered.includes("你進去了"));
@@ -787,7 +788,7 @@ describe("logic audit v3.2", () => {
     assert.equal(failed.result?.text.includes("幼稚園"), false);
     assert.equal(battleNarrative("BTL_PRIMARY_EXAM").retryNote.includes("幼稚園"), false);
     assert.ok(battleNarrative("BTL_KINDY_DOOR").retryNote.includes("幼稚園明天仍然開"));
-    assert.ok(choicesFor("EVT_1988_PEN_01", freshState()).find((item) => item.id === "A")?.result.includes("你問他是不是他的"));
+    assert.ok(choicesFor("EVT_1988_PEN_01", freshState()).find((item) => item.id === "A")?.result.includes("你問阿傑是不是他的"));
     const ui = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
     assert.equal(ui.includes("小時候那三年"), false);
     assert.equal(ui.includes("yearIndex >= 2"), false);
@@ -884,7 +885,7 @@ describe("logic audit v3.2", () => {
     assert.equal(friendFollow(grabbed), "wary");
     assert.ok(cardFor("EVT_1986_FRIEND_09", grabbed).sequence.map(lineText).join("").includes("抱緊"));
     const podium = cardFor("EVT_1985_FRIEND_04", { ...freshState(), spent: ["ACT_ESTATE", "ACT_PLAY"] });
-    assert.equal(podium.title, "平台上的紅波");
+    assert.equal(podium.title, "平台上的紅球");
     assert.equal(podium.scene, "estate");
     const sundayPodium = produce1986(["ACT_PLAY", "ACT_ESTATE"]);
     assert.equal(sundayPodium.missed.includes("MISS_86_ESTATE"), false);
@@ -951,7 +952,7 @@ describe("logic audit v3.2", () => {
     assert.ok(shared.includes("鞋底有泥"));
     assert.ok(held.includes("不肯放"));
     assert.equal(held.includes("鞋底有泥"), false);
-    assert.ok(stayed.includes("自己玩了很久"));
+    assert.ok(stayed.includes("一個人在平台"));
     assert.equal(stayed.includes("自己玩了一整天"), false);
     assert.equal(beat1985("sat-night", { ...freshState(), spent: ["ACT_REST"] }).sequence.filter((line) => line.type === "dialogue" && line.speaker === "媽媽").length, 2);
     const sharedBall = { id: "MEM_RED_BALL", eventId: "EVT_1985_FRIEND_04", choiceId: "B", variant: "podium", year: 1985, age: 4, npc: "NPC_FRIEND_01", emotion: "share", weight: 2, echo: "" };
@@ -967,7 +968,7 @@ describe("logic audit v3.2", () => {
     assert.equal(atPodium.npc.NPC_FRIEND_01.relation, 0);
     assert.equal(withMom.npcDays.NPC_FRIEND_01?.nextPlan, "return");
     assert.equal(withMom.npcDays.NPC_FRIEND_01?.missedPlayer, true);
-    assert.ok(beat1985("sat-night", withMom).sequence.map(lineText).join("").includes("踢波"));
+    assert.ok(beat1985("sat-night", withMom).sequence.map(lineText).join("").includes("踢球"));
     assert.equal(atHome.npcDays.NPC_FRIEND_01?.nextPlan, "withdraw");
     assert.equal(atHome.npcDays.NPC_FRIEND_01?.mood, "disappointed");
     assert.ok(beat1985("sat-night", atHome).sequence.map(lineText).join("").includes("石凳"));
@@ -988,9 +989,9 @@ describe("logic audit v3.2", () => {
     const later = cardFor("EVT_1986_FRIEND_09", { ...withMom, yearIndex: 2 }).sequence.map(lineText).join("");
     const bench = cardFor("EVT_1986_FRIEND_09", { ...atHome, yearIndex: 2 }).sequence.map(lineText).join("");
     assert.ok(later.includes("去年你沒有下來"));
-    assert.ok(later.includes("踢波"));
+    assert.ok(later.includes("踢球"));
     assert.ok(bench.includes("石凳"));
-    assert.equal(bench.includes("踢波"), false);
+    assert.equal(bench.includes("踢球"), false);
     assert.equal(echoOpen(ARC_AH_KIT, "next-day"), true);
     assert.equal(echoOpen(ARC_AH_KIT, "1y"), true);
     assert.ok(beat1985("open", freshState()).sequence.map(lineText).join("").includes("袋子"));
@@ -1051,7 +1052,7 @@ describe("logic audit v3.2", () => {
     const late = worldTick({ ...freshState(lateSeed), spent: ["ACT_ESTATE"] }, { year: 1985, day: "sat" });
     assert.equal(late.npcDays.NPC_DAD_01?.todayOutcome, "overtime");
     assert.ok(resolveWorldAt(1985, "sun", "ACT_REST", alone).includes("MINI_85_MOM_ALONE"));
-    assert.ok(cardFor("MINI_85_GRANDMA", alone).sequence.map(lineText).join("").includes("湯已經涼了"));
+    assert.ok(cardFor("MINI_85_GRANDMA", alone).sequence.map(lineText).join("").includes("湯放涼了"));
     assert.ok(lineText(cardFor("MINI_85_DAD", late).sequence[0]).includes("晚"));
     const withHer = worldTick(
       {

@@ -1,5 +1,5 @@
-import { ACTIVITIES, battleStory, buildQueue, examStory, fifteenAct, knownEventIds, knownMemoryChoice, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
-import { MISSED_IDS, produce1985, produce1986, advanceChain, afternoonTags, freshChain } from "./freedom";
+import { ACTIVITIES, activityBlurb, battleStory, buildQueue, examStory, fifteenAct, knownEventIds, knownMemoryChoice, marketWithMom, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
+import { MISSED_IDS, MISS_86_ESTATE, produce1985, produce1986, advanceChain, afternoonTags, freshChain, knowsKit, reconcileMissed } from "./freedom";
 import { beat1985, isBeat } from "./story";
 import { resolveWorldAt, worldTick } from "./world";
 import { BATTLE_SPECS, battleSpecById, battleSpecFor } from "./battleSpec";
@@ -262,6 +262,7 @@ function openYear(state: State): State {
     battleTries: 0,
     battle: null,
     offeredExplore: false,
+    yearStart: { dream: state.derived.VALUE_DREAM, reality: state.derived.VALUE_REALITY, think: state.derived.INDEPENDENT_THOUGHT },
   };
 }
 
@@ -269,18 +270,12 @@ function pickActivity(state: State, id: string): State {
   const activity = ACTIVITIES[id];
   if (!activity || state.apLeft <= 0 || state.spent.includes(id)) return state;
   const year = yearOf(state).year;
-  const saturday = state.spent.length === 0;
-  const momThere = id === "ACT_MARKET" && ((year !== 1985 && year !== 1986) || saturday);
+  const momThere = id === "ACT_MARKET" && marketWithMom(year, state.spent.length);
   const base = applyEffect(state, activity.effect);
   const applied = momThere
     ? applyEffect(base.state, { counter: { REL_LOCAL_MARKET: 5, NPC_MOM_STRESS: -3 }, npc: { NPC_MOM_01: { trust: 1 } } })
     : base;
-  const blurb =
-    id === "ACT_MARKET" && momThere
-      ? "你拉著媽媽。那天地面很濕，魚檔的水滲進鞋子。"
-      : id === "ACT_MARKET"
-        ? "你去了街市。地面很濕，魚檔的水滲進鞋子。媽媽不在。"
-        : activity.blurb;
+  const blurb = activityBlurb(id, state);
   return {
     ...applied.state,
     phase: "note",
@@ -290,6 +285,14 @@ function pickActivity(state: State, id: string): State {
     noteScene: activity.scene,
     result: { text: blurb, deltas: applied.deltas, skills: applied.skills },
   };
+}
+
+/** Before the player has met 阿傑, the folded numbers must not name him either. */
+export function nameKitDeltas(deltas: Delta[], state: Pick<State, "memories">): Delta[] {
+  if (knowsKit(state)) return deltas;
+  return deltas.map((item) =>
+    item.label === NPC_RELATION.NPC_FRIEND_01 ? { ...item, label: "和那個孩子" } : item.label === NPC_TRUST.NPC_FRIEND_01 ? { ...item, label: "那個孩子信任你" } : item,
+  );
 }
 
 function choose(state: State, choice: Choice): State {
@@ -309,11 +312,13 @@ function choose(state: State, choice: Choice): State {
       snapshot: snapshotOf(next),
     };
     next = { ...next, memories: upsertMemory(next.memories, record) };
+    next = { ...next, missed: reconcileMissed(next) };
   }
   if (choice.memory?.id === "MEM_DAD_WORK") {
     const response = choice.id === "A" ? 1 : choice.id === "B" ? 2 : 3;
     next = { ...next, counter: { ...next.counter, PLAYER_DAD_CHOICE_RESPONSE: response } };
   }
+  applied.deltas = nameKitDeltas(applied.deltas, next);
   if (choice.battle) {
     if (!choice.specId) console.error(`[battle] ${state.eventId ?? "event"} choice ${choice.id} has no specId; using kindergarten door`);
     return {
@@ -371,7 +376,7 @@ function settleBattle(state: State): State {
     battleSpecId: null,
     result: {
       text: story.text,
-      deltas: [...(prior?.deltas ?? []), ...applied.deltas],
+      deltas: mergeDeltas(prior?.deltas ?? [], applied.deltas),
       skills: [...(prior?.skills ?? []), ...applied.skills],
     },
   };
@@ -406,7 +411,7 @@ function settleExam(state: State): State {
     battleSpecId: null,
     result: {
       text: story.text,
-      deltas: [...(prior?.deltas ?? []), ...applied.deltas],
+      deltas: mergeDeltas(prior?.deltas ?? [], applied.deltas),
       skills: [...(prior?.skills ?? []), ...applied.skills],
     },
   };
@@ -429,7 +434,7 @@ function repair(state: State, talk: boolean): State {
     battleSpecId: null,
     result: {
       text,
-      deltas: [...(prior?.deltas ?? []), ...applied.deltas],
+      deltas: mergeDeltas(prior?.deltas ?? [], applied.deltas),
       skills: prior?.skills ?? [],
     },
   };
@@ -463,18 +468,20 @@ function exploreOffer(state: State, go: boolean): State {
       result: { text: "你留在家裡。走到走廊盡頭才會發生的事，你自己選了不去。", deltas: applied.deltas, skills: [] },
     };
   }
+  const before = state.counter.COUNTER_EXPLORE;
   const applied = applyEffect(state, {
-    counter: { COUNTER_EXPLORE: 1 },
+    counter: { COUNTER_EXPLORE: Math.max(1, 2 - before) },
     derived: { STATE_MOOD: 2, STATE_STRESS: 1 },
   });
-  const enough = applied.state.counter.COUNTER_EXPLORE >= 2;
+  // One offer, one walk. The walk goes all the way to the estate gate, so the year no longer says you never went down.
   return {
     ...applied.state,
-    offeredExplore: false,
+    missed: applied.state.missed.filter((id) => id !== MISS_86_ESTATE),
+    offeredExplore: true,
     phase: "result",
     battleSpecId: null,
     result: {
-      text: enough ? "你再下了一次平台。走到屋邨門口，接著那件事才發生。" : "你下了一次平台。還差一次，才走到屋邨門口。沒有人逼你再去。",
+      text: before === 0 ? "你下了平台，一直走到屋邨門口。媽媽跟在後面。" : "你又下了一次平台。這次你一直走到屋邨門口。",
       deltas: applied.deltas,
       skills: [],
     },
@@ -722,6 +729,17 @@ function pushDelta(deltas: Delta[], label: string, value: number) {
   if (value !== 0) deltas.push({ label, value });
 }
 
+/** A choice and the fight or talk after it can touch the same number. Show one total per label. */
+export function mergeDeltas(first: readonly Delta[], second: readonly Delta[]): Delta[] {
+  const out: Delta[] = [];
+  for (const delta of [...first, ...second]) {
+    const same = out.find((item) => item.label === delta.label);
+    if (same) same.value += delta.value;
+    else out.push({ ...delta });
+  }
+  return out.filter((item) => item.value !== 0);
+}
+
 /** Own and wear stay separate. The child still auto-wears a free slot. These are for later. */
 export function equipItem(state: State, id: string): State {
   const item = catalogGear(id);
@@ -902,9 +920,20 @@ export function validateState(raw: Record<string, unknown>): State | null {
         : null,
     offeredExplore: raw.offeredExplore === true,
     name: typeof raw.name === "string" ? raw.name.slice(0, 8) : "",
+    yearStart: savedYearStart(raw.yearStart),
     schemaVersion: 3,
   };
   return reconcile(drafted);
+}
+
+function savedYearStart(raw: unknown): State["yearStart"] {
+  if (!isRecord(raw)) return undefined;
+  const num = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? clamp(value, DERIVED_RANGE.min, DERIVED_RANGE.max) : null);
+  const dream = num(raw.dream);
+  const reality = num(raw.reality);
+  const think = num(raw.think);
+  if (dream === null || reality === null || think === null) return undefined;
+  return { dream, reality, think };
 }
 
 function savedNpcDays(raw: unknown): State["npcDays"] {

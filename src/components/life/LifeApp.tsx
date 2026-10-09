@@ -2,26 +2,30 @@ import { createContext, useContext, useEffect, useReducer, useState, type ReactN
 import { Battle } from "@/components/life/Battle";
 import { playRoom, playTone, unlockAudio } from "@/components/life/audio";
 import {
-  ACTIVITIES,
+  activityDetail,
+  activityLabel,
   cardFor,
   choicesFor,
   fifteenLines,
   fifteenAct,
   isLastYear,
   lifeVoice,
-  orientationLine,
+  exploreOfferCopy,
+  exploreOfferGo,
+  exploreOfferTitle,
+  orientationSummary,
   PRIMARY_LABEL,
   recallLine,
   SKILL_NAME,
-  yearLean,
   yearOf,
+  yearSummary,
 } from "@/game/content";
 import { MEMORY_BALL, afternoonPlate, beatPlate, eventPlate, personFromSpeaker, personSrc, scenePlate, slicePlate, yearPlate, type Mood, type PersonId, type Pose } from "@/game/art";
 import { narrate, say, sceneTurns, type SceneLine, type Turn } from "@/game/scene";
-import { chainEcho, missed1986, missedLine } from "@/game/freedom";
+import { chainEcho, knowsKit, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
 import { battleNarrative } from "@/game/battleNarrative";
-import { battleSpecById } from "@/game/battleSpec";
+import { battleSpecById, PLAYTEST_KEY, playtestTools } from "@/game/battleSpec";
 import { gearAttack, gearSpeed, gearStressResist } from "@/game/catalog";
 import { canRetry, freshState, loadState, reducer, saveState } from "@/game/engine";
 import { driveSp, spiritHp, type Gender, type SceneId, type State } from "@/game/types";
@@ -34,6 +38,17 @@ function heldLine(state: State) {
 }
 
 const Face = createContext<Gender | null>(null);
+
+function testerTools() {
+  if (typeof window === "undefined") return false;
+  let stored: string | null = null;
+  try {
+    stored = window.localStorage.getItem(PLAYTEST_KEY);
+  } catch {
+    stored = null;
+  }
+  return playtestTools(window.location.search, stored);
+}
 
 export function LifeApp() {
   const [state, dispatch] = useReducer(reducer, undefined, freshState);
@@ -116,6 +131,7 @@ export function LifeApp() {
           attack={gearAttack(state.equipped)}
           held={heldLine(state)}
           gender={state.gender}
+          tools={testerTools()}
           onEnd={(outcome) => {
             playTone(outcome.kind === "fail" || outcome.kind === "bad" ? "hit" : "good");
             dispatch({ type: "battleEnd", outcome });
@@ -136,8 +152,8 @@ export function LifeApp() {
         />
       ) : null}
       {state.phase === "result" && state.result ? (
-        <Paper scene={sceneOf(state)} plate={eventPlate(state.eventId, state.gender, sceneOf(state))} kicker="之後" title="你選了">
-          <ResultBody result={state.result} />
+        <Paper scene={sceneOf(state)} plate={eventPlate(state.eventId, state.gender, sceneOf(state))} kicker="之後" title="你選了" dialogue={[narrate(state.result.text)]}>
+          <ResultBody result={state.result} hideText />
           <Primary onClick={() => { tap(); dispatch({ type: "ack" }); }}>繼續</Primary>
         </Paper>
       ) : null}
@@ -149,14 +165,14 @@ export function LifeApp() {
               ? "你懂得自己走。今晚她仍然問你為什麼走到門口，但你不必解釋那麼多。"
               : "今晚她問你為什麼走到門口。你可以說，也可以不說。"}
           </p>
-          <ChoiceButton label="告訴媽媽" hint="說了會近一些，心裡會緊" onClick={() => { tap(); dispatch({ type: "repair", talk: true }); }} />
-          <ChoiceButton label="不說，自己睡" hint="少一句責罵，自己收著" onClick={() => { tap("soft"); dispatch({ type: "repair", talk: false }); }} />
+          <ChoiceButton label="告訴媽媽" onClick={() => { tap(); dispatch({ type: "repair", talk: true }); }} />
+          <ChoiceButton label="不說，自己睡" onClick={() => { tap("soft"); dispatch({ type: "repair", talk: false }); }} />
         </Paper>
       ) : null}
       {state.phase === "explore-offer" ? (
-        <Paper scene="estate" kicker="1986 · 年尾" title="要不要再下一次平台" mood="think">
-          <p className="text-pretty text-base leading-7">你下平台的次數還不夠。再下一次，才走到屋邨門口。你也可以留在家裡，不去也行。</p>
-          <ChoiceButton label="下一次平台" hint="這次不計入那兩個下午" onClick={() => { tap(); dispatch({ type: "explore", go: true }); }} />
+        <Paper scene="estate" kicker="1986 · 年尾" title={exploreOfferTitle(state)} mood="think">
+          <p className="text-pretty text-base leading-7">{exploreOfferCopy(state)}</p>
+          <ChoiceButton label={exploreOfferGo(state)} hint="不用那兩個下午" onClick={() => { tap(); dispatch({ type: "explore", go: true }); }} />
           <ChoiceButton label="留在家裡" hint="不去也行" onClick={() => { tap("soft"); dispatch({ type: "explore", go: false }); }} />
         </Paper>
       ) : null}
@@ -254,7 +270,7 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
       {year.year === 1986 && state.personalityTags.includes("TAG_ON_YOUR_OWN") ? <p className="mt-3 text-pretty text-base leading-7">去年那兩個下午，你都是自己過的。</p> : null}
       {year.year === 1986 && state.personalityTags.includes("TAG_WITH_FAMILY") ? <p className="mt-3 text-pretty text-base leading-7">去年那兩個下午，你都在家裡人旁邊。</p> : null}
       {year.year === 1986 && missedLine(state.missed, "later") ? <p className="mt-3 text-pretty text-base leading-7">{missedLine(state.missed, "later")}</p> : null}
-      {year.year === 1988 && missed1986(state.missed, "later") ? <p className="mt-3 text-pretty text-base leading-7">{missed1986(state.missed, "later")}</p> : null}
+      {year.year === 1988 && missed1986(state.missed, "later", knowsKit(state)) ? <p className="mt-3 text-pretty text-base leading-7">{missed1986(state.missed, "later", knowsKit(state))}</p> : null}
       <LifeNow state={state} />
       <Primary onClick={onNext}>{year.year === 1985 ? "早上" : "用這兩個下午"}</Primary>
       <button type="button" onClick={onRestart} className="mt-2 min-h-11 w-full text-sm text-ink/70">
@@ -290,11 +306,10 @@ function Activities({ state, onPick }: { state: State; onPick: (id: string) => v
       <div className="mt-3 grid grid-cols-2 gap-2">
         {(timed ? ["星期六下午", "星期日下午"] : ["第一個下午", "第二個下午"]).map((label, slot) => {
           const id = state.spent[slot];
-          const activity = id ? ACTIVITIES[id] : null;
           return (
             <p key={label} className="rounded-xl bg-line/40 px-3 py-2 text-sm text-ink">
               {label}
-              <span className="mt-1 block">{activity ? activity.label : "還沒過"}</span>
+              <span className="mt-1 block">{id ? activityLabel(id, year.year, slot) : "還沒過"}</span>
             </p>
           );
         })}
@@ -302,8 +317,8 @@ function Activities({ state, onPick }: { state: State; onPick: (id: string) => v
       {timed ? <p className="mt-3 text-sm text-pretty text-ink/70">人已經在某個地方。你去了，才碰得上。自己玩、塗鴉、休息，都是留在家。</p> : null}
       <div className="mt-3 flex flex-col gap-2">
         {year.activities.map((id) => {
-          const activity = ACTIVITIES[id];
           const used = state.spent.includes(id);
+          const slot = state.spent.length;
           return (
             <button
               key={id}
@@ -312,8 +327,8 @@ function Activities({ state, onPick }: { state: State; onPick: (id: string) => v
               onClick={() => onPick(id)}
               className="mt-2 flex min-h-14 flex-col items-start justify-center rounded-md border border-[#c4a574] bg-[#fff8ea] px-3 py-2 text-left text-ink disabled:opacity-40"
             >
-              <span className="text-base font-medium">{activity.label}</span>
-              <span className="text-sm text-pretty text-ink/60">{used ? "今年去過" : activity.detail}</span>
+              <span className="text-base font-medium">{used ? activityLabel(id, year.year, state.spent.indexOf(id)) : activityLabel(id, year.year, slot)}</span>
+              <span className="text-sm text-pretty text-ink/60">{used ? "今年去過" : activityDetail(id, year.year, slot)}</span>
             </button>
           );
         })}
@@ -380,10 +395,10 @@ function YearEnd({ state, onNext }: { state: State; onNext: () => void }) {
         ))}
       </ul>
       {memories.length > 0 ? <p className="mt-3 text-sm text-pretty text-ink/70">這幾句會留下。明年可能會再出現。</p> : null}
-      <p className="mt-3 text-pretty text-base leading-7">{yearLean(state.derived.VALUE_DREAM, state.derived.VALUE_REALITY)}</p>
+      <p className="mt-3 text-pretty text-base leading-7">{yearSummary(state)}</p>
       {state.personalityTags.includes("TAG_EMPATHY") ? <p className="mt-3 text-pretty text-base leading-7">這一年，你有時會坐過去，不必人叫。</p> : null}
       {year.year === 1985 && missedLine(state.missed, "now") ? <p className="mt-3 text-pretty text-base leading-7">{missedLine(state.missed, "now")}</p> : null}
-      {year.year === 1986 && missed1986(state.missed, "now") ? <p className="mt-3 text-pretty text-base leading-7">{missed1986(state.missed, "now")}</p> : null}
+      {year.year === 1986 && missed1986(state.missed, "now", knowsKit(state)) ? <p className="mt-3 text-pretty text-base leading-7">{missed1986(state.missed, "now", knowsKit(state))}</p> : null}
       {missedGate ? <p className="mt-3 text-sm text-pretty text-ink/70">你還沒走到走廊盡頭。沒有人逼你去。</p> : null}
       <Primary onClick={onNext}>{last ? "看看十年後" : "下一年"}</Primary>
     </Paper>
@@ -392,7 +407,8 @@ function YearEnd({ state, onNext }: { state: State; onNext: () => void }) {
 
 function Fifteen({ state, onAct }: { state: State; onAct: () => void }) {
   const act = fifteenAct(state);
-  const echo = state.memories.some((item) => item.id === "MEM_FIRST_SCHOOL");
+  // The overlay is a small hand and the red ball. Only a child who was near that ball gets it.
+  const echo = state.memories.some((item) => item.id === "MEM_RED_BALL" || item.id === "MEM_KIT_WAIT" || item.id === "MEM_FRIEND_AGAIN");
   return (
     <Paper scene="home" plate={beatPlate("sat-night", state.gender)} kicker="1996 · 十五歲" title="自己回家">
       <div className="relative">
@@ -413,7 +429,7 @@ function Ending({ state, onRestart }: { state: State; onRestart: () => void }) {
   return (
     <Paper scene="estate" kicker="十年後" title="同一個屋邨">
       <p className="font-serif text-pretty text-xl leading-9">{lifeVoice(state.memories, state.name)}</p>
-      <p className="mt-3 text-pretty text-base leading-7">{orientationLine(state.derived.VALUE_DREAM, state.derived.VALUE_REALITY)}</p>
+      <p className="mt-3 text-pretty text-base leading-7">{orientationSummary(state)}</p>
       {state.flags.includes("FLAG_REPAIR_TALK") ? <p className="mt-3 text-pretty text-base leading-7">你跟媽媽談過屋邨門口。家裡近了，但心裡緊過。</p> : null}
       {state.flags.includes("FLAG_REPAIR_SILENT") ? <p className="mt-3 text-pretty text-base leading-7">你沒有說。少了一場責罵，家裡少了一句。</p> : null}
       <details className="mt-4">
@@ -467,7 +483,7 @@ function LifeNow({ state }: { state: State }) {
 }
 
 const SENSE: Record<SceneId, string> = {
-  home: "廳裡的風扇轉著，電視還沒關，碗碟都還沒收。",
+  home: "廳裡的電視還沒關，碗碟都還沒收。",
   kindy: "有人拖著塑膠凳。紅球放在角落。",
   corridor: "走廊晾滿衣服，燈有些黃。媽媽的袋子放在地上。",
   market: "街市。那天地面很濕，魚檔的水滲進鞋子。",

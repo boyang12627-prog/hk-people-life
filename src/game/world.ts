@@ -66,7 +66,7 @@ export const LIFE_1985 = {
   },
   NPC_DAD_01: {
     sat: { place: "work", doing: "在上班", missed: "爸爸今天在上班。門口沒有他的鞋。" },
-    sun: { place: "home", doing: "下班回來，還沒有沖涼", missed: "爸爸回來過。你不在家。" },
+    sun: { place: "home", doing: "下班回來，還沒有洗澡", missed: "爸爸回來過。你不在家。" },
   },
 } as const;
 
@@ -259,7 +259,7 @@ export function quietCopy(spent: readonly string[], year: number): { scene: Plac
   if (!places.length) return null;
   const lines =
     places.length >= 2
-      ? ["這兩個下午，你去了的地方都沒有人。", "你坐了一陣。一隻雀飛過。然後你回家。"]
-      : ["這個下午，你去了的地方沒有人。", "你坐了一陣。一隻雀飛過。然後你回家。"];
+      ? ["這兩個下午，你去了的地方都沒有人。", "你坐了一陣。一隻麻雀飛過。然後你回家。"]
+      : ["這個下午，你去了的地方沒有人。", "你坐了一陣。一隻麻雀飛過。然後你回家。"];
   return { scene: places[0], lines };
 }
