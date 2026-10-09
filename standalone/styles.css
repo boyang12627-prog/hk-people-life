@@ -1,0 +1,3 @@
+/* Standalone only: the app's real stylesheet, plus telling Tailwind to scan src/ (Vite's root here is standalone/). */
+@import "../src/styles.css";
+@source "../src";

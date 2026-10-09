@@ -27,12 +27,19 @@ const BEAT_PLATE: Record<string, string> = {
   aftermath: "tv",
 };
 
+/**
+ * Where public/ is served from. Vite sets BASE_URL ("/" on the original platform, "/hk-people-life/" on GitHub Pages).
+ * Node (the audits) has no import.meta.env, so paths stay "/art/...".
+ */
+const BASE = ((import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? "/").replace(/\/?$/, "/");
+const ART = `${BASE}art`;
+
 /** Q scene paintings are WebP, 1280x720: the plate is at most ~640 CSS px wide in the max-w-lg column, so 1280 covers 2x screens. */
 export const SCENE_EXT = "webp";
 
 function painted(name: string, gender: Gender | null) {
   const who = gender === "girl" ? "girl" : "boy";
-  return `/art/q/${name}-${who}.${SCENE_EXT}`;
+  return `${ART}/q/${name}-${who}.${SCENE_EXT}`;
 }
 
 export function eventPlate(eventId: string | null, gender: Gender | null, scene?: string | null) {
@@ -69,7 +76,7 @@ export function dinnerPlate(gender: Gender | null) {
   return scenePlate("home", gender);
 }
 
-export const MEMORY_BALL = "/art/1985/memory.jpg";
+export const MEMORY_BALL = `${ART}/1985/memory.jpg`;
 
 export type PersonId = "mom" | "dad" | "grandma" | "kit" | "teacher" | "auntie" | "child";
 
@@ -94,11 +101,11 @@ const SIT: Partial<Record<Exclude<PersonId, "child">, string>> = {
 export function personSrc(id: PersonId, gender: Gender | null, mood: Mood = "idle", pose: Pose = "stand") {
   if (id === "child") {
     const who = gender === "boy" ? "boy" : "girl";
-    if (pose === "sit") return `/art/1985/people/${who}-sit${mood === "think" ? "-think" : ""}.png`;
-    return mood === "think" ? `/art/1985/people/${who}-think.png` : `/art/1985/people/${who}.png`;
+    if (pose === "sit") return `${ART}/1985/people/${who}-sit${mood === "think" ? "-think" : ""}.png`;
+    return mood === "think" ? `${ART}/1985/people/${who}-think.png` : `${ART}/1985/people/${who}.png`;
   }
-  if (pose === "sit" && SIT[id]) return `/art/1985/people/${SIT[id]}.png`;
-  return `/art/1985/people/${FILE[id]}.png`;
+  if (pose === "sit" && SIT[id]) return `${ART}/1985/people/${SIT[id]}.png`;
+  return `${ART}/1985/people/${FILE[id]}.png`;
 }
 
 export function personName(id: PersonId) {
