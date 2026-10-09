@@ -26,3 +26,11 @@
 - **外框**：舞台四周是木桌紋底，加一圈紙邊和木框，不再用純黑邊。
 - **面板高度**：面板最多佔舞台高度的 38%。半身窗放在面板上方，不會擋住面板。戰鬥時四條數值排成一行。
 - **圖片解析度**：場景圖是 1280×720 的 WebP。原圖（assets）也只有 1280×720，沒有更大的版本。所以在 1920 寬會放大約 1.4 倍，在 2560 寬約 1.9 倍，會略為柔和。要更清晰，就要重新生成更高解析度的原圖。
+
+## V4.2 — speech bubbles point at the speaker
+
+- `src/game/sceneAnchors.ts` records the head of every person in each Q painting (`x`, `y` as fractions of the 16:9 image, `r` head radius as a fraction of its height), measured by eye on a 10% grid; boy and girl versions share a layout. A speaker who talks on a page but is not painted gets `{ offscreen, label }` (e.g. Dad in EVT_1986_SKILL_05 on the kindergarten plate: 「（旁邊）」).
+- `src/game/bubble.ts` (pure, tested) places the bubble above or beside the head, clamped inside the stage and above the panel, scoring away from the speaker's face, other faces, the status frame and the bust windows. The SVG tail ends on a ring round the head and points at its centre.
+- The speaker shares one accent (`SPEAKER_ACCENT`) across the head ring, bubble border, tail, bust frame and name plate. Other busts dim. Busts sit on the side away from the speaker's head so they never cover them.
+- Offscreen voices: dashed bubble border and dashed tail toward the bust/edge, with the label after the name.
+- Audits: every dialogue speaker on a painted page across the playtest lives must have an anchor or offscreen entry; tips land on the ring; bubbles stay on stage without covering the face; accents pass the amber chroma check.

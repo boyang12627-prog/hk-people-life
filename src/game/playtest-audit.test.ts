@@ -36,6 +36,10 @@ import { CANTONESE_TO_WRITTEN, cantoneseHits, dialogueWarnings, quotedSpeaker } 
 import { scanSources } from "../../scripts/voice-scan.ts";
 import type { Gender, State } from "./types.ts";
 import { isDone, skipReveal, startReveal, stepReveal } from "./reveal.ts";
+import { SCENE_ANCHORS, SPEAKER_ACCENT, isOffscreen, plateName } from "./sceneAnchors.ts";
+import { placeBubble } from "./bubble.ts";
+import { beatPlate, eventPlate, scenePlate } from "./art.ts";
+import { say, type SceneLine } from "./scene.ts";
 
 type Page = { year: number; phase: string; known: boolean; text: string; state: State };
 
@@ -507,6 +511,7 @@ describe("ui v4 — stage, paper panel, line-by-line reveal", () => {
     const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
     const battle = readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8");
     const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+    const anchors = readFileSync(new URL("./sceneAnchors.ts", import.meta.url), "utf8");
     assert.ok(app.includes('aria-live="polite"'));
     assert.ok(app.includes("reveal.done ? ("), "actions only after every line");
     assert.ok(app.includes("useAdvanceKeys"));
@@ -520,8 +525,86 @@ describe("ui v4 — stage, paper panel, line-by-line reveal", () => {
       return Math.max(...n) - Math.min(...n);
     };
     const limit = chroma("#c9843a");
-    for (const [name, src] of Object.entries({ app, stage, battle, css })) {
+    for (const [name, src] of Object.entries({ app, stage, battle, css, anchors })) {
       for (const hex of src.match(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g) ?? []) assert.ok(chroma(hex) <= limit, `${name} ${hex} is brighter than amber`);
     }
+  });
+});
+
+describe("ui v4.2 — speech bubbles point at the person who speaks", () => {
+  it("every dialogue speaker on a painted page has a head anchor in that painting, or an explicit offscreen entry", () => {
+    const missing = new Set<string>();
+    const seen = new Set<string>();
+    for (const life of LIVES) {
+      for (const page of life.pages) {
+        const s = page.state;
+        let plate: string | null = null;
+        let sequence: SceneLine[] = [];
+        if (page.phase === "story") {
+          const beat = s.note as Parameters<typeof beat1985>[0];
+          const story = beat1985(beat, s);
+          plate = beatPlate(beat, s.gender) ?? scenePlate(story.scene, s.gender);
+          sequence = story.sequence;
+        } else if (page.phase === "event") {
+          const card = cardFor(s.eventId ?? "", s);
+          plate = eventPlate(s.eventId, s.gender, card.scene) ?? scenePlate(card.scene, s.gender);
+          sequence = card.sequence;
+        } else if (page.phase === "repair") {
+          plate = beatPlate("sat-night", s.gender);
+          sequence = [say("媽媽", "為什麼走到門口？")];
+        }
+        for (const line of sequence) {
+          if (line.type !== "dialogue") continue;
+          const name = plateName(plate);
+          seen.add(`${name}:${line.speaker}`);
+          if (!name || !SCENE_ANCHORS[name]?.[line.speaker]) missing.add(`${name}:${line.speaker} (${s.eventId ?? s.note})`);
+        }
+      }
+    }
+    console.log(`bubble anchors used ${[...seen].sort().join(" ")}`);
+    assert.deepEqual([...missing].sort(), []);
+    for (const [name, anchors] of Object.entries(SCENE_ANCHORS)) {
+      for (const [who, anchor] of Object.entries(anchors)) {
+        if (!anchor || isOffscreen(anchor)) continue;
+        assert.ok(anchor.x > 0 && anchor.x < 1 && anchor.y > 0 && anchor.y < 1 && anchor.r > 0 && anchor.r < 0.2, `${name}:${who}`);
+      }
+    }
+    assert.equal(plateName("/hk-people-life/art/q/market-girl.webp"), "market");
+    assert.equal(plateName("/art/1985/memory.jpg"), null);
+  });
+});
+
+describe("ui v4.2 — bubble geometry", () => {
+  const W = 1280;
+  const H = 720;
+  const overlaps = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  it("the tail ends on the ring round the speaker's head, pointing at its centre, and the bubble stays on stage without covering the face", () => {
+    for (const [name, anchors] of Object.entries(SCENE_ANCHORS)) {
+      for (const [who, head] of Object.entries(anchors)) {
+        if (!head || isOffscreen(head)) continue;
+        const placed = placeBubble({ W, H, bw: 360, bh: 72, maxBottom: H * 0.58, head, faces: [], avoid: [], edge: null });
+        assert.ok(placed.tip && placed.ring, `${name}:${who}`);
+        const A = { x: head.x * W, y: head.y * H };
+        const d = Math.hypot(placed.tip.x - A.x, placed.tip.y - A.y);
+        assert.ok(Math.abs(d - head.r * H * 1.12) < 0.5, `${name}:${who} tip on the ring`);
+        assert.ok(placed.left >= 8 && placed.left + 360 <= W - 8 && placed.top >= 8 && placed.top + 72 <= H * 0.58, `${name}:${who} on stage`);
+        const R = head.r * H;
+        const face = { x: A.x - R * 0.7, y: A.y - R * 0.5, w: R * 1.4, h: R * 1.2 };
+        assert.equal(overlaps({ x: placed.left, y: placed.top, w: 360, h: 72 }, face), false, `${name}:${who} bubble covers the face`);
+        assert.ok(placed.tail.startsWith("M") && !placed.dashed);
+      }
+    }
+  });
+  it("an offscreen voice gets a dashed tail from the stage edge and no ring", () => {
+    const placed = placeBubble({ W, H, bw: 300, bh: 70, maxBottom: H * 0.58, head: null, faces: [], avoid: [], edge: { side: "left", target: { x: 20, y: 200, w: 140, h: 175 } } });
+    assert.equal(placed.dashed, true);
+    assert.equal(placed.ring, null);
+    assert.ok(placed.left >= 160, "beside the bust, not over it");
+    assert.ok(placed.tip && placed.tip.x < placed.left, "tail points back toward the edge");
+  });
+  it("every speaker has one accent", () => {
+    for (const who of ["媽媽", "爸爸", "嫲嫲", "阿傑", "阿姨", "老師"] as const) assert.match(SPEAKER_ACCENT[who], /^#[0-9a-f]{6}$/);
+    assert.equal(new Set(Object.values(SPEAKER_ACCENT)).size, 6);
   });
 });

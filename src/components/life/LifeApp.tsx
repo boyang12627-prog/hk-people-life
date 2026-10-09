@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { Battle } from "@/components/life/Battle";
 import { playRoom, playTone, unlockAudio } from "@/components/life/audio";
-import { Bubble, Bust, Frame, PanelHeading, PaperPanel, StatusContext, Tag, useAdvanceKeys, useReveal, type Side, type Status } from "@/components/life/Stage";
+import { Bust, Frame, PanelHeading, PaperPanel, SpeechLayer, StatusContext, Tag, useAdvanceKeys, useReveal, type HeadPoint, type Side, type Status } from "@/components/life/Stage";
+import { SCENE_ANCHORS, SPEAKER_ACCENT, anchorFor, isOffscreen, plateName } from "@/game/sceneAnchors";
 import {
   activityDetail,
   activityLabel,
@@ -546,14 +547,14 @@ function Paper(props: PaperProps) {
   return <PaperPage key={signature} {...props} turns={turns} />;
 }
 
-/** Speakers keep one side for the whole page: the first on the right, the next on the left. */
-function sidesOf(turns: Turn[]) {
-  const sides = new Map<string, Side>();
-  for (const turn of turns) {
-    if (turn.kind !== "dialogue" || sides.has(turn.name)) continue;
-    sides.set(turn.name, sides.size % 2 === 0 ? "right" : "left");
-  }
-  return sides;
+/**
+ * Each speaker's bust sits on the side away from their head in the painting, so it never covers them.
+ * Offscreen voices keep the side they come from. Without an anchor: right.
+ */
+function bustSide(anchor: ReturnType<typeof anchorFor>): Side {
+  if (!anchor) return "right";
+  if (isOffscreen(anchor)) return anchor.offscreen === "left" ? "left" : "right";
+  return anchor.x < 0.5 ? "right" : "left";
 }
 
 /** Narration, action, and dialogue are all drawn; none is dropped. Dialogue goes in a bubble, the rest on the paper. */
@@ -574,20 +575,21 @@ function PaperPage({ scene, plate, kicker, title, mood = "idle", turns, overlay,
   const index = reveal.shown - 1;
   const current = turns[index];
   const textOf = (at: number) => (at === index ? turns[at].text.slice(0, reveal.chars) : turns[at].text);
-  const sides = sidesOf(turns);
+  const anchorOf = (turn: Turn) => (turn.speaker ? anchorFor(picture, turn.speaker) : undefined);
   const latest: Partial<Record<Side, Turn>> = {};
   turns.slice(0, reveal.shown).forEach((turn) => {
-    const side = sides.get(turn.name);
-    if (turn.kind === "dialogue" && side) latest[side] = turn;
+    if (turn.kind === "dialogue") latest[bustSide(anchorOf(turn))] = turn;
   });
   const speaking = current.kind === "dialogue" ? current : null;
-  const speakingSide = speaking ? (sides.get(speaking.name) ?? "right") : null;
   const busts = (["left", "right"] as const).flatMap((side) => {
     const turn = latest[side];
     const person = turn?.speaker ? personFromSpeaker(turn.speaker) : null;
     return turn && person ? [{ side, turn, person }] : [];
   });
-  const speakingBust = speaking ? busts.some((bust) => bust.turn.name === speaking.name) : false;
+  const anchor = speaking ? anchorOf(speaking) : undefined;
+  const head = anchor && !isOffscreen(anchor) ? anchor : null;
+  const sceneName = plateName(picture);
+  const faces = Object.values(sceneName ? (SCENE_ANCHORS[sceneName] ?? {}) : {}).filter((item): item is HeadPoint => !!item && !isOffscreen(item));
 
   return (
     <Frame
@@ -598,13 +600,28 @@ function PaperPage({ scene, plate, kicker, title, mood = "idle", turns, overlay,
       stage={
         <>
           {busts.map((bust) => (
-            <Bust key={bust.side} side={bust.side} name={bust.turn.name} src={face(bust.person)} dim={!speaking || speaking.name !== bust.turn.name} />
+            <Bust
+              key={bust.side}
+              side={bust.side}
+              name={bust.turn.name}
+              src={face(bust.person)}
+              accent={bust.turn.speaker ? SPEAKER_ACCENT[bust.turn.speaker] : "#6e4524"}
+              dim={!speaking || speaking.name !== bust.turn.name}
+            />
           ))}
-          {speaking && speakingSide ? (
-            <Bubble name={speaking.name} side={speakingSide} hasBust={speakingBust}>
-              {textOf(index)}
-              {reveal.typing ? <span aria-hidden="true" className="ui-caret">▍</span> : null}
-            </Bubble>
+          {speaking?.speaker ? (
+            <SpeechLayer
+              key={`${index}-${speaking.name}`}
+              name={speaking.name}
+              label={anchor && isOffscreen(anchor) ? anchor.label : undefined}
+              accent={SPEAKER_ACCENT[speaking.speaker]}
+              head={head}
+              faces={faces.filter((item) => item !== head)}
+              edge={anchor && isOffscreen(anchor) ? { side: anchor.offscreen, bustSide: bustSide(anchor) } : null}
+            >
+              <span>{textOf(index)}</span>
+              {reveal.typing ? <span className="invisible">{speaking.text.slice(textOf(index).length)}</span> : null}
+            </SpeechLayer>
           ) : null}
         </>
       }
