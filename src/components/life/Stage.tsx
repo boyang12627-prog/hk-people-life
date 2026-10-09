@@ -104,9 +104,8 @@ export function PaperPanel({ heading, children, side, next, live, portrait, log,
   return (
     <div className="ui-panel flex h-full min-h-0 rounded-md md:h-auto">
       {log}
-      <div aria-hidden="true" className="ui-scroll-end relative my-4 ml-1.5 w-3.5 shrink-0 rounded-sm md:ml-2 md:w-5" />
-      {portrait ? <div className="ml-2 md:ml-4">{portrait}</div> : null}
-      <div className={`flex min-h-0 flex-1 flex-col gap-1 pl-2 pr-3 pt-4 md:flex-row md:gap-5 md:pb-7 md:pl-4 md:pr-4 ${afternoons !== null ? "pb-8" : "pb-3"}`}>
+      {portrait ? <div data-portrait-slot="true" className="shrink-0 self-start py-3 pl-3 md:py-4 md:pl-5">{portrait}</div> : null}
+      <div className={`flex min-h-0 flex-1 flex-col gap-1 pl-3 pr-3 pt-4 md:flex-row md:gap-5 md:pb-7 md:pl-4 md:pr-4 ${afternoons !== null ? "pb-8" : "pb-3"}`}>
         <div className="relative flex min-h-0 flex-1 flex-col">
           <div ref={cue.ref} data-panel-text="true" className="min-h-0 flex-1 overflow-y-auto pr-1">
             {heading ? <div className="mb-1.5 flex items-center gap-2">{heading}</div> : null}
@@ -209,8 +208,8 @@ export type Side = "left" | "right";
 /** Head-and-shoulders portrait at the panel's left edge, framed in the speaker's accent. The name shows above the line (● 爸爸), so no plate here; the bust carries it for screen readers. */
 export function PanelPortrait({ src, height, name, accent }: { src: string; height: number; name: string; accent: string }) {
   return (
-    <div data-portrait={name} className="ui-portrait flex shrink-0 flex-col items-center self-start pt-4" style={{ ["--accent" as string]: accent }}>
-      <div role="img" aria-label={name} className="ui-bust relative aspect-[4/5] w-[4.5rem] overflow-hidden rounded-t-full md:w-[8rem]">
+    <div data-portrait={name} className="ui-portrait flex shrink-0 flex-col items-center" style={{ ["--accent" as string]: accent }}>
+      <div role="img" aria-label={name} className="ui-bust relative aspect-[4/5] w-16 overflow-hidden rounded-t-full md:w-[6.75rem]">
         {/* Sprites are full-length and of different widths; size by height so every head comes out the same size. */}
         <img src={src} alt="" decoding="async" className="absolute left-1/2 top-[7%] w-auto max-w-none -translate-x-1/2" style={{ height: `${height}%` }} />
       </div>

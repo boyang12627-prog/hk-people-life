@@ -683,7 +683,15 @@ describe("panel portrait without a name plate (2026-10-09)", () => {
     assert.equal(/ui-nameplate/.test(stage + css), false, "no name plate under the portrait");
     const portrait = stage.slice(stage.indexOf("export function PanelPortrait"), stage.indexOf("const TYPE_MS"));
     assert.match(portrait, /role="img" aria-label=\{name\}/);
-    assert.match(portrait, /md:w-\[8rem\]/, "the portrait grows into the freed space");
+    assert.match(portrait, /md:w-\[6\.75rem\]/, "the bust is sized to fit inside the panel");
+    // The portrait sits in its own padded slot (counted in the panel's height), never hanging below it.
+    assert.match(stage, /data-portrait-slot="true" className="shrink-0 self-start py-3 pl-3 md:py-4 md:pl-5"/);
+    assert.equal(/ui-portrait[^"]*\bpt-4|-mb-|translate-y/.test(portrait), false, "no offset pushes the bust out");
+  });
+  it("the purple scroll-rod on the panel's left edge is gone", () => {
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+    assert.equal(/ui-scroll-end|#5b3a57|#4a2e47/.test(stage + css), false);
   });
 });
 
