@@ -104,9 +104,27 @@ Gate 1 要求量度「寫一個事件要幾耐」。人類坐下來寫對白的�
 
 程式真正用到的圖由 `src/game/art.ts` 的 `imageManifest()` 列出，`public/art/` 裡沒有清單以外的檔。舊的 `public/art/1984/dinner-*.jpg` 和 `public/art/1985/` 的 `cast`、`door-*`、`pressure-*`、`inside-*`、`later-*` 已刪，只留在 git 歷史。頭像 PNG 已縮到長邊 320px（畫面只用 32px）。場景圖是 1280×720 WebP（quality 80），整套由約 30 MB 減到約 5.5 MB。
 
+## 本機和 GitHub Pages
+
+不用原本的託管平台也可以玩。需要 Node 22.12 或以上（Vite 8 要求）。
+
+```bash
+npm install
+npm run dev      # http://localhost:5173/
+npm run build    # 輸出到 dist/，base 是 /hk-people-life/
+npm run preview  # 以 /hk-people-life/ 預覽 dist/
+```
+
+- 獨立版的入口和設定都在 `standalone/`：`index.html`、`main.tsx`、`vite.config.ts`、`styles.css`、`tsconfig.json`。原本平台仍然用 `src/routes/`，這裡沒有改。
+- 只有一個畫面（`/` → `LifeApp`），所以獨立版不裝 router，直接渲染 `LifeApp`。
+- `@/lib/auth/provider`、`@/components/preview-host-bridge` 只在獨立版的 Vite alias 和 `standalone/tsconfig.json` 指去 `src/shims/`：訪客用戶、不渲染任何東西。原本平台照用自己的模組。
+- 圖片路徑由 `src/game/art.ts` 按 `import.meta.env.BASE_URL` 組合。Node 跑審計時沒有這個值，所以仍然是 `/art/...`。
+- 部署 workflow 在 `docs/deploy/pages.yml`。放到 `.github/workflows/pages.yml` 之後，每次推到 `main` 都會建置並部署到 GitHub Pages。倉庫設定裡的 Pages source 要是「GitHub Actions」。（推送這個 workflow 檔需要有 `workflow` scope 的 token，或者直接在 GitHub 網頁上新增。）
+- 型別檢查：`npm run typecheck`（用 `standalone/tsconfig.json`，不包括 `src/routes/`，那部分只在原本平台編譯）。
+
 ## 檢查
 
-倉庫根目錄的 `package.json` 只登記下面兩條。遊戲邏輯審計只用 Node 內建模組，不必先安裝其他套件。需要 Node 22 或以上（用到 `--experimental-strip-types`；Node 20 會直接報錯）。
+審計是 `package.json` 裡下面兩條。遊戲邏輯審計只用 Node 內建模組，不必先 `npm install`。需要 Node 22 或以上（用到 `--experimental-strip-types`；Node 20 會直接報錯）。
 
 ```bash
 npm run audit:content

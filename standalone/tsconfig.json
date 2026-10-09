@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "target": "ES2022",
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "types": [
+      "node",
+      "vite/client"
+    ],
+    "baseUrl": "..",
+    "paths": {
+      "@/lib/auth/provider": [
+        "src/shims/lib/auth/provider.tsx"
+      ],
+      "@/components/preview-host-bridge": [
+        "src/shims/components/preview-host-bridge.tsx"
+      ],
+      "@/*": [
+        "src/*"
+      ]
+    }
+  },
+  "include": [
+    "../src/game/**/*.ts",
+    "../src/components/**/*.tsx",
+    "../src/components/**/*.ts",
+    "../src/shims/**/*.tsx",
+    "../standalone/**/*.ts",
+    "../standalone/**/*.tsx",
+    "../scripts/*.ts"
+  ],
+  "exclude": [
+    "../src/routes"
+  ]
+}
