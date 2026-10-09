@@ -21,6 +21,7 @@ export const SCENE_ANCHORS: Record<string, SceneAnchors> = {
   bags: { 媽媽: a(0.65, 0.15, 0.08), child: a(0.42, 0.52, 0.07) },
   corridor: { 媽媽: a(0.78, 0.18, 0.09), 阿傑: a(0.6, 0.35, 0.05), child: a(0.48, 0.48, 0.07) },
   draw: { child: a(0.5, 0.37, 0.13) },
+  ending: { child: a(0.3, 0.47, 0.05) },
   estate: { 阿傑: a(0.61, 0.25, 0.09), child: a(0.41, 0.33, 0.09) },
   home1996: { child: a(0.57, 0.13, 0.09) },
   home: { 爸爸: a(0.29, 0.33, 0.09), 媽媽: a(0.71, 0.35, 0.09), child: a(0.53, 0.47, 0.07) },

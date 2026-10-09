@@ -25,7 +25,7 @@ import {
   yearOf,
   yearSummary,
 } from "@/game/content";
-import { MEMORY_BALL, afternoonPlate, beatPlate, eraPlate, eventPlate, fifteenPlate, homePlate, PLAIN_TV_EVENTS, personFromSpeaker, personPortrait, protagonistPortrait, scenePlate, slicePlate, yearPlate, type Mood } from "@/game/art";
+import { MEMORY_BALL, afternoonPlate, beatPlate, eraPlate, eventPlate, fifteenPlate, endingPlate, homePlate, PLAIN_TV_EVENTS, personFromSpeaker, personPortrait, protagonistPortrait, scenePlate, slicePlate, yearPlate, type Mood } from "@/game/art";
 import { narrate, say, sceneTurns, type SceneLine, type Turn } from "@/game/scene";
 import { chainEcho, knowsKit, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
@@ -477,7 +477,7 @@ function Fifteen({ state, onAct }: { state: State; onAct: () => void }) {
 function Ending({ state, onRestart }: { state: State; onRestart: () => void }) {
   const skills = state.skills.map((id) => SKILL_NAME[id] ?? id);
   return (
-    <Paper scene="estate" kicker="十年後" title="同一個屋邨" dialogue={[narrate(lifeVoice(state.memories, state.name)), narrate(orientationSummary(state))]} actions={<Primary onClick={onRestart}>再來一次</Primary>}>
+    <Paper scene="estate" plate={endingPlate(state.gender)} kicker="十年後" title="同一個屋邨" dialogue={[narrate(lifeVoice(state.memories, state.name)), narrate(orientationSummary(state))]} actions={<Primary onClick={onRestart}>再來一次</Primary>}>
       {state.flags.includes("FLAG_REPAIR_TALK") ? <p className="mt-2 text-pretty text-base leading-7">你跟媽媽談過屋邨門口。家裡近了，但心裡緊過。</p> : null}
       {state.flags.includes("FLAG_REPAIR_SILENT") ? <p className="mt-2 text-pretty text-base leading-7">你沒有說。少了一場責罵，家裡少了一句。</p> : null}
       <details className="mt-3">

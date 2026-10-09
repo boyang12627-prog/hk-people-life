@@ -767,3 +767,23 @@ describe("full review batch 1: art follows the text (no new art)", async () => {
     assert.ok(readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8").includes("splitSpokenNarration(lead)"));
   });
 });
+
+describe("ending art: the grown-up protagonist at the same estate", async () => {
+  const art = await import("./art.ts");
+  const { anchorFor } = await import("./sceneAnchors.ts");
+  const { existsSync } = await import("node:fs");
+  it("the 十年後 page uses ending-boy/girl.webp, in the manifest, with a child anchor", () => {
+    for (const g of ["boy", "girl"] as const) {
+      assert.equal(art.endingPlate(g), `/art/q/ending-${g}.webp`);
+      assert.ok(existsSync(new URL(`../../public/art/q/ending-${g}.webp`, import.meta.url)));
+      assert.ok(art.imageManifest().includes(`/art/q/ending-${g}.webp`));
+      assert.ok(anchorFor(`/art/q/ending-${g}.webp`, "child"));
+    }
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    assert.ok(app.includes('plate={endingPlate(state.gender)} kicker="十年後"'));
+  });
+  it("the art bible fixes the girl standard as bob + grey tee", () => {
+    const bible = readFileSync(new URL("../../docs/ART_BIBLE.md", import.meta.url), "utf8");
+    assert.match(bible, /冬菇頭（bob，齊瀏海）＋灰色 T 恤/);
+  });
+});

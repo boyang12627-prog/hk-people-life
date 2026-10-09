@@ -116,6 +116,11 @@ export function homePlate(year: number, gender: Gender | null) {
   return painted(HOME_BY_YEAR[year] ?? "home", gender);
 }
 
+/** The ending 十年後 · 同一個屋邨: the grown-up protagonist alone on the same estate podium. */
+export function endingPlate(gender: Gender | null) {
+  return painted("ending", gender);
+}
+
 /** One painted dinner. People are already in the picture, so do not paste sprites on it. */
 export function dinnerPlate(gender: Gender | null) {
   return scenePlate("home", gender);
@@ -257,6 +262,7 @@ export function imageManifest(): string[] {
     for (const year of [1984, 1985, 1986, 1988]) add(yearPlate(year, gender));
     for (const id of ["ACT_DRAW", "ACT_PLAY", "ACT_REST"]) add(afternoonPlate(id, gender));
     add(dinnerPlate(gender));
+    add(endingPlate(gender));
     for (const year of [1984, 1985, 1986, 1988]) add(homePlate(year, gender));
     for (const age of PORTRAIT_AGES) add(protagonistPortrait(BIRTH_YEAR + age, gender));
     for (const id of PEOPLE) {
