@@ -14,15 +14,15 @@ export const StatusContext = createContext<Status>({ label: "", portrait: null, 
 /** Stage on top, panel below on narrow screens; panel laid over the painting's foot on wide ones. */
 export function Frame({ picture, overlay, stage, panel, onStageClick, label }: { picture: string; overlay?: ReactNode; stage?: ReactNode; panel: ReactNode; onStageClick?: () => void; label?: string }) {
   return (
-    <section aria-label={label} className="relative flex h-full w-full flex-col md:aspect-video md:h-auto md:max-h-dvh md:w-[min(100vw,calc(100dvh*16/9))]">
-      <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-[#2a1d12] md:absolute md:inset-0 md:aspect-auto md:h-full" onClick={onStageClick}>
+    <section aria-label={label} className="ui-stage-frame relative flex h-full w-full flex-col md:aspect-video md:h-auto md:w-[min(calc(100vw-3rem),calc((100dvh-3rem)*16/9))] md:rounded-sm">
+      <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-[#2a1d12] md:absolute md:inset-0 md:aspect-auto md:h-full md:rounded-sm" onClick={onStageClick}>
         <img src={picture} alt="" decoding="async" className="absolute inset-0 h-full w-full object-cover object-center" />
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_40%,transparent_55%,rgb(20_12_6/0.45))]" />
         {overlay}
         <StatusFrame />
         {stage}
       </div>
-      <div className="relative flex min-h-0 flex-1 flex-col px-1.5 pb-1.5 pt-2 md:absolute md:inset-x-[2%] md:bottom-[2.5%] md:max-h-[46%] md:flex-none md:p-0">{panel}</div>
+      <div className="relative flex min-h-0 flex-1 flex-col px-1.5 pb-1.5 pt-2 md:absolute md:inset-x-[2%] md:bottom-[2.5%] md:max-h-[38%] md:flex-none md:p-0">{panel}</div>
     </section>
   );
 }
@@ -108,7 +108,7 @@ export type Side = "left" | "right";
 export function Bust({ src, side, dim, name }: { src: string; side: Side; dim: boolean; name: string }) {
   const place = side === "right" ? "right-[2%]" : "left-[2%]";
   return (
-    <div className={`ui-bust pointer-events-none absolute bottom-2 ${place} aspect-[4/5] h-[46%] overflow-hidden rounded-t-full md:bottom-[49%] md:h-[30%]`} data-dim={dim ? "true" : "false"} data-person={name}>
+    <div className={`ui-bust pointer-events-none absolute bottom-2 ${place} aspect-[4/5] h-[46%] overflow-hidden rounded-t-full md:bottom-[42%] md:h-[30%]`} data-dim={dim ? "true" : "false"} data-person={name}>
       <img src={src} alt="" decoding="async" className="-ml-[10%] mt-[8%] h-auto w-[120%] max-w-none" />
     </div>
   );
@@ -117,8 +117,8 @@ export function Bust({ src, side, dim, name }: { src: string; side: Side; dim: b
 export function Bubble({ name, side, hasBust, children }: { name: string; side: Side; hasBust: boolean; children: ReactNode }) {
   const place = !hasBust ? "left-1/2 -translate-x-1/2" : side === "right" ? "right-[22%] md:right-[17%]" : "left-[22%] md:left-[17%]";
   return (
-    <div className={`ui-bubble pointer-events-none absolute bottom-[14%] ${place} w-max max-w-[58%] rounded-2xl px-3 py-1.5 md:bottom-[58%] md:max-w-[42%] md:px-4 md:py-2`} data-side={side}>
-      <p className="text-[11px] tracking-wide text-[#5c3a1e] md:text-xs">{name}</p>
+    <div className={`ui-bubble pointer-events-none absolute bottom-[14%] ${place} w-max max-w-[58%] rounded-2xl px-3 py-1.5 md:bottom-[56%] md:max-w-[40%] md:px-4 md:py-2`} data-side={side}>
+      <p className="text-[0.7rem] tracking-wide text-[#5c3a1e] md:text-xs">{name}</p>
       <p className="text-pretty text-sm leading-6 md:text-lg md:leading-8">{children}</p>
     </div>
   );

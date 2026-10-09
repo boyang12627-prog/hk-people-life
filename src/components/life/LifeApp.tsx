@@ -89,7 +89,7 @@ export function LifeApp() {
   return (
     <Face.Provider value={state.gender}>
     <StatusContext.Provider value={statusOf(state)}>
-    <main className="flex h-dvh w-full items-start justify-center overflow-hidden bg-[#1c1916] md:items-center">
+    <main className="ui-letterbox flex h-dvh w-full items-start justify-center overflow-hidden md:items-center">
       {state.phase === "title" ? <Title onStart={() => { tap(); dispatch({ type: "begin" }); }} /> : null}
       {state.phase === "gender" ? (
         <GenderPick

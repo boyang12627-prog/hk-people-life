@@ -34,7 +34,7 @@ const BEAT_PLATE: Record<string, string> = {
 const BASE = ((import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? "/").replace(/\/?$/, "/");
 const ART = `${BASE}art`;
 
-/** Q scene paintings are WebP, 1280x720: the plate is at most ~640 CSS px wide in the max-w-lg column, so 1280 covers 2x screens. */
+/** Q scene paintings are WebP, 1280x720 (the source art is no larger). The UI V4 stage fills a desktop browser, so above 1280 CSS px they upscale. */
 export const SCENE_EXT = "webp";
 
 function painted(name: string, gender: Gender | null) {
