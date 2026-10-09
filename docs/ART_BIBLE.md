@@ -1,10 +1,10 @@
-# 人生・香港 Art Bible V2.0
+# 人生・香港 Art Bible V2.1
 
 狀態：**現行規格只有一套：Q 版全圖。** 人畫在場景裡面，不再貼上去。男女各一套，場景圖在 `public/art/q/`，對話框頭像在 `public/art/1985/people/`。
 
 這是玩家定下來的方向，用來改掉上一版的「禁止 chibi」。舊的頭身比、舊生成句子已移到文末〈已廢棄（Legacy）〉，只作歷史紀錄，**不得**再拿來生成或審圖。
 
-標記「**待定（TBD）**」的項目，現行文件沒有寫明，由玩家決定後再補，不要自行定一個數字當事實。
+V2.1：玩家決定**以現有 Q 版圖為準**。下面的頭身比、線、眼睛都是看現有圖檔寫下的實際樣子（目測，不是量度規格）。新圖要跟現有圖一致，不跟舊版 1:4.5 規格。
 
 ## 一句
 
@@ -20,7 +20,20 @@
 
 - Q 版（chibi）全圖：人物和場景畫在同一張圖裡，不是把人物貼在空房間上。
 - 每個地方一張 Q 版畫，男、女主角各一張，五官相同。
-- 頭身比：**待定（TBD）**。現行畫面不跟舊版 1:4.5 / 1:5 / 1:5.5 / 1:6.5 / 1:7。新比例未寫入文件，由玩家定。
+- 頭身比（看現有圖目測，約數）：
+  - 場景圖 `public/art/q/` 的孩子：大頭，頭約佔身高三分之一，約 1:2.5 到 1:3。
+  - 頭像 `public/art/1985/people/`：孩子（主角、阿傑）約 1:2.7 到 1:3；媽媽約 1:3；嫲嫲約 1:2.5；爸爸頭特別大，約 1:2.2。
+  - 舊版 1:4.5 / 1:5 / 1:5.5 / 1:6.5 / 1:7 已廢棄。
+
+現有圖其實有兩種畫法，新圖要跟它要放的那一種：
+
+| | 場景圖 `public/art/q/` | 頭像 `public/art/1985/people/` |
+|---|---|---|
+| 用途 | 每頁上方的整張畫 | 對話框 32px 圓形頭像（只露出頭和肩） |
+| 線 | 有勾線：深棕近黑、幼、均勻，把人物和物件圈出來 | 幾乎沒有勾線，形體靠彩色鉛筆的明暗分開 |
+| 眼睛 | 大，簡化成深色實心橢圓，帶一點白色高光，沒有眼白 | 大，有眼白、啡色虹膜、高光；眼寬約臉寬四分之一到五分之一 |
+| 嘴和臉 | 簡單一筆的微笑或合嘴，淡淡腮紅 | 寫實一點的小嘴，多半合著，淡腮紅 |
+| 質感 | 平塗加細鉛筆顆粒，背景細節多（舊屋邨、電視、風扇、膠凳） | 彩色鉛筆畫，白底透明 PNG，全身站或坐 |
 
 鏡頭：
 
@@ -38,9 +51,11 @@
 - 大面積是紙 `#f3ead7`、墨 `#241c14`、雨灰和屋邨綠 `#35665d`。
 - 全圖一層細鉛筆顆粒。看得到，但不能數點。不是厚油畫，不是照片。
 
-線：**待確認（TBD）**。舊規格是「沒有純黑勾邊；若有線只用暖棕 `#5c4a3a`，透明度不超過三成」。Q 版定稿後是否沿用，文件未寫明。
+線：跟上表。場景圖有深色幼勾線；頭像用彩色鉛筆明暗，不加粗勾線。舊規格「沒有純黑勾邊」已廢棄。
 
-臉：**待確認（TBD）**。舊規格是「眼睛約佔臉寬五分之一、不畫圓腮紅、不畫星星高光」，是為 1:4.5 寫的。Q 版眼睛比例是否沿用，由玩家定。以下仍然有效：嘴多半合著；手指短，五根分開；重心在兩腳；不插腰，不飛髮，不對鏡頭露齒笑。
+臉：跟上表。眼睛大是現行樣子；淡腮紅可以有。以下仍然有效：嘴多半合著；手指短，五根分開；重心在兩腳；不插腰，不飛髮，不對鏡頭露齒笑。
+
+每張場景圖只能有**一個**主角孩子，除非這一頁本來就寫了別的孩子（例如阿傑、平台上那個沒有名字的孩子）。
 
 材質隨年紀換，不是同一張圖換濾鏡：
 
@@ -56,7 +71,7 @@
 
 ## 人物
 
-臉的基準圖：**待定（TBD）**。舊規格以 `public/art/1985/cast.jpg` 為準，那張是 1:4.5 版本。現行 Q 版頭像在 `public/art/1985/people/`，是否以它們取代 `cast.jpg` 作基準，文件未寫明。
+臉的基準圖：頭像以 `public/art/1985/people/` 的 `boy.png`、`girl.png`、`mom.png`、`dad.png`、`grandma.png`、`kit.png` 為準；場景圖以 `public/art/q/` 同一個地方的現有圖為準。舊的 `cast.jpg`（1:4.5 版本）是 Legacy，檔案已刪，只留在 git 歷史。
 
 四歲主角，男女同一張臉、同一種膚色（暖米褐）、同一雙眼睛。女孩是剛過耳的短髮，男孩是耳上的短髮。衣服是洗舊的棉衫、深色短褲、白襪、膠拖鞋。
 
@@ -66,7 +81,7 @@
 
 阿傑和主角同年，稍高一點。短髮，舊橫間衫。站在一顆有蹭痕的暗紅色塑膠球旁邊。
 
-大人在畫面裡是全身還是從腰裁掉：**待定（TBD）**。舊規格是「1985 的畫面裡，大人從胸口或腰裁掉」。
+大人在現有場景圖裡是全身畫出（例如幼稚園門口的媽媽）。舊規格「大人從胸口或腰裁掉」已廢棄。
 
 ## 戰鬥畫面
 
@@ -94,7 +109,8 @@
 
 ```
 Q-version (chibi) Hong Kong everyday illustration, people painted inside the scene, not pasted on.
-Head-to-body ratio: TBD (to be set by the art owner; do not use 1:4.5).
+Big-head chibi proportions, children about 1:2.5 to 1:3 head-to-body. Large simple dark eyes with a small highlight, light blush, thin even dark-brown outlines.
+Exactly one child protagonist unless the scene names another child.
 Child's eye height about 95cm, 40mm lens. One soft main light. Fine pencil grain.
 Nothing more saturated than amber #c9843a. Large areas of paper #f3ead7, ink #241c14, rain grey, estate green #35665d.
 No neon, no tram, no harbour, no skyline, no photo, no pixel art, no monster.
@@ -103,8 +119,18 @@ No neon, no tram, no harbour, no skyline, no photo, no pixel art, no monster.
 負面：
 
 ```
-photoreal, pixel art, monster, health bar, treasure icon, postcard skyline, readable sign, sexualized child
+photoreal, pixel art, monster, health bar, treasure icon, postcard skyline, readable sign, sexualized child, extra children
 ```
+
+頭像（`public/art/1985/people/`）另用：
+
+```
+Coloured-pencil chibi portrait, full body, plain transparent background, big head about 1:2.5 to 1:3,
+large eyes with whites and brown irises, soft shading, no heavy outline, mouth closed, standing weight on both feet.
+Match the existing boy.png / mom.png set.
+```
+
+頭像檔存成透明 PNG，長邊 320px（畫面只用 32px，320px 足夠 3 倍以上）。
 
 ---
 
@@ -118,11 +144,11 @@ photoreal, pixel art, monster, health bar, treasure icon, postcard skyline, read
 - 五歲 1:5。七歲 1:5.5。十五歲 1:6.5。
 - 大人若必須全身，1:7。1985 的畫面裡，大人從胸口或腰裁掉。
 
-### 舊線和臉（Q 版是否沿用待定）
+### 舊線和臉（已廢棄）
 
 - 沒有純黑勾邊。形體靠顏色和陰影分開。若有線，只用暖棕 `#5c4a3a`，透明度不超過三成，只在頭髮和衣褶，不把整個人圈起來。
 - 眼睛約佔臉寬五分之一。有眼白，瞳孔小。不畫圓腮紅，不畫星星高光。
-- 臉以 `public/art/1985/cast.jpg` 為準。後續圖不得另起一張臉。
+- 臉以 `public/art/1985/cast.jpg` 為準。後續圖不得另起一張臉。（`cast.jpg` 已刪，只留在 git 歷史。）
 
 ### 舊 1985 直切要證明的十一項（歷史）
 
@@ -140,7 +166,7 @@ photoreal, pixel art, monster, health bar, treasure icon, postcard skyline, read
 
 舊計劃是「做完才畫 1984 飯桌、1986 走廊、1988 試卷、1996 街」。現在 1984–1988 的地方都已有 Q 版圖；1996 街仍未畫。
 
-這一批的舊檔（`public/art/1985/` 的 `cast.jpg`、`door-*`、`pressure-*`、`inside-*`、`later-*`，以及 `public/art/1984/dinner-*`）已不在程式清單上，也不再是審計關卡。檔案暫時保留，未刪。
+這一批的舊檔（`public/art/1985/` 的 `cast.jpg`、`door-*`、`pressure-*`、`inside-*`、`later-*`，以及 `public/art/1984/dinner-*`）已不在程式清單上，V3.2 已刪除，只留在 git 歷史。
 
 ### 舊生成句子（已廢棄）
 
