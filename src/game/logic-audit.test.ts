@@ -1172,7 +1172,7 @@ describe("logic audit v3.2", () => {
       assert.equal(existsSync(new URL(`../../public${path}`, import.meta.url)), true, path);
     }
     for (const path of manifest.filter((item) => item.startsWith("/art/q/"))) {
-      assert.match(path, /^\/art\/q\/[a-z]+(\d{4})?-(boy|girl)\.webp$/, `${path} should be a WebP scene painting`);
+      assert.match(path, /^\/art\/q\/[a-z]+(\d{4}|off)?-(boy|girl)\.webp$/, `${path} should be a WebP scene painting`);
       const bytes = readFileSync(new URL(`../../public${path}`, import.meta.url));
       assert.equal(bytes.subarray(0, 4).toString("latin1"), "RIFF", path);
       assert.equal(bytes.subarray(8, 12).toString("latin1"), "WEBP", path);

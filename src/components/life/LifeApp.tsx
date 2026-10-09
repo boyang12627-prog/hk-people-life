@@ -25,7 +25,7 @@ import {
   yearOf,
   yearSummary,
 } from "@/game/content";
-import { MEMORY_BALL, afternoonPlate, beatPlate, eraPlate, eventPlate, personFromSpeaker, personPortrait, protagonistPortrait, scenePlate, slicePlate, yearPlate, type Mood } from "@/game/art";
+import { MEMORY_BALL, afternoonPlate, beatPlate, eraPlate, eventPlate, fifteenPlate, personFromSpeaker, personPortrait, protagonistPortrait, scenePlate, slicePlate, yearPlate, type Mood } from "@/game/art";
 import { narrate, say, sceneTurns, type SceneLine, type Turn } from "@/game/scene";
 import { chainEcho, knowsKit, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
@@ -462,7 +462,7 @@ function Fifteen({ state, onAct }: { state: State; onAct: () => void }) {
   return (
     <Paper
       scene="home"
-      plate={beatPlate("sat-night", state.gender)}
+      plate={fifteenPlate(state.gender)}
       kicker="1996 · 十五歲"
       title="自己回家"
       dialogue={fifteenLines(state).map((line) => narrate(line))}

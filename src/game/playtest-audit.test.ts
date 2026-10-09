@@ -40,7 +40,7 @@ import { scanSources } from "../../scripts/voice-scan.ts";
 import type { Gender, State } from "./types.ts";
 import { isDone, lineAt, skipReveal, startReveal, stepReveal } from "./reveal.ts";
 import { SCENE_ANCHORS, SPEAKER_ACCENT, isOffscreen, plateName } from "./sceneAnchors.ts";
-import { beatPlate, eraPlate, eventPlate, imageManifest, scenePlate, yearPlate } from "./art.ts";
+import { beatPlate, eraPlate, eventPlate, fifteenPlate, imageManifest, scenePlate, yearPlate } from "./art.ts";
 import { say, type SceneLine } from "./scene.ts";
 
 type Page = { year: number; phase: string; known: boolean; text: string; state: State };
@@ -677,17 +677,31 @@ describe("live playtest fixes (2026-10-09)", () => {
 });
 
 describe("TV pictures painted into the art, no text on screens (2026-10-09)", () => {
-  it("1986 TV room pages show the Queen's visit composited into the glass; other years keep the plain set", () => {
+  it("each year's TV pages show that year's news picture composited into the glass; Saturday night 1985 is switched off", () => {
     for (const gender of ["boy", "girl"] as const) {
-      assert.equal(eraPlate(`/art/q/tv-${gender}.webp`, 1986), `/art/q/tv1986-${gender}.webp`);
-      assert.ok(existsSync(new URL(`../../public/art/q/tv1986-${gender}.webp`, import.meta.url)));
-      assert.ok(imageManifest().includes(`/art/q/tv1986-${gender}.webp`));
+      for (const year of [1984, 1985, 1986]) assert.equal(eraPlate(`/art/q/tv-${gender}.webp`, year), `/art/q/tv${year}-${gender}.webp`);
+      assert.equal(eraPlate(`/art/q/tv-${gender}.webp`, 1988), `/art/q/tv-${gender}.webp`);
+      assert.equal(eraPlate(`/art/q/rest-${gender}.webp`, 1988), `/art/q/rest1988-${gender}.webp`);
+      assert.equal(eraPlate(`/art/q/rest-${gender}.webp`, 1985), `/art/q/rest-${gender}.webp`, "1985 nap keeps the painted static");
+      assert.equal(eraPlate(`/art/q/draw-${gender}.webp`, 1988), `/art/q/draw-${gender}.webp`, "draw keeps its painted picture");
+      assert.equal(beatPlate("sat-night", gender), `/art/q/tvoff-${gender}.webp`);
+      assert.equal(eraPlate(`/art/q/tvoff-${gender}.webp`, 1985), `/art/q/tvoff-${gender}.webp`);
+      assert.equal(fifteenPlate(gender), `/art/q/home1996-${gender}.webp`);
+      for (const name of ["tv1984", "tv1985", "tv1986", "tvoff", "rest1988", "home1996"]) {
+        const path = `/art/q/${name}-${gender}.webp`;
+        assert.ok(existsSync(new URL(`../../public${path}`, import.meta.url)), path);
+        assert.ok(imageManifest().includes(path), `${path} in the manifest`);
+      }
+      assert.equal(yearPlate(1984, gender), `/art/q/tv-${gender}.webp`);
+      assert.equal(eventPlate("EVT_1984_NEWS_01", gender), `/art/q/tv-${gender}.webp`);
+      assert.equal(eventPlate("MINI_85_TV", gender), `/art/q/tv-${gender}.webp`);
     }
-    for (const year of [1984, 1985, 1988, 1996]) assert.equal(eraPlate("/art/q/tv-boy.webp", year), "/art/q/tv-boy.webp");
     assert.equal(eraPlate("/art/q/home-girl.webp", 1986), "/art/q/home-girl.webp", "only TV paintings swap");
     assert.equal(plateName("/art/q/tv1986-boy.webp"), "tv", "speaker anchors still apply");
-    for (const id of ["MINI_86_TV", "EVT_1986_FAMILY_06"]) assert.equal(eventPlate(id, "girl"), "/art/q/tv-girl.webp");
-    assert.equal(yearPlate(1986, "boy"), "/art/q/tv-boy.webp");
+    assert.equal(plateName("/art/q/tvoff-girl.webp"), "tv");
+    assert.equal(plateName("/art/q/home1996-boy.webp"), "home1996", "the new 1996 painting does not borrow the 1984 dinner's people");
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    assert.ok(app.includes("plate={fifteenPlate(state.gender)}"));
   });
   it("the code headline overlay is gone", () => {
     const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");

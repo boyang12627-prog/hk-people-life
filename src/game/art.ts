@@ -24,7 +24,8 @@ const BEAT_PLATE: Record<string, string> = {
   open: "bag",
   downstairs: "stair",
   "sun-night": "bag",
-  "sat-night": "tv",
+  // 1985 Saturday night: 電視已經關了. The TV room with the set switched off (dark glass).
+  "sat-night": "tvoff",
   aftermath: "tv",
 };
 
@@ -69,9 +70,16 @@ export function yearPlate(year: number, gender: Gender | null): string | null {
 /**
  * TV pictures are painted into the scene (no text on screens): a year whose news has a picture gets its
  * own copy of a TV painting with that picture composited onto the glass (scripts/tv-composite.py).
- * 1986: the Queen's visit (「女皇來了。」) on the TV room set.
+ * 1984 the Joint Declaration handshake, 1985 the first Legislative Council vote, 1986 the Queen's visit
+ * (「女皇來了。」) on the TV room set; 1988 an airport farewell (emigration) on the nap set. 1996 has its
+ * own home painting with the handover countdown (fifteenPlate).
  */
-export const ERA_TV: Record<number, readonly string[]> = { 1986: ["tv"] };
+export const ERA_TV: Record<number, readonly string[]> = { 1984: ["tv"], 1985: ["tv"], 1986: ["tv"], 1988: ["rest"] };
+
+/** The 1996 fifteen page: the new home painting, the TV showing the handover countdown (no readable numbers). */
+export function fifteenPlate(gender: Gender | null) {
+  return painted("home1996", gender);
+}
 
 /** "/art/q/tv-boy.webp" in 1986 -> "/art/q/tv1986-boy.webp". Any other picture or year is unchanged. */
 export function eraPlate(src: string, year: number | null | undefined): string {
@@ -224,6 +232,7 @@ export function imageManifest(): string[] {
     }
     for (const battle of ["door", "pressure", "inside"] as const) add(slicePlate({ year: 1985, scene: "kindy", gender, battle }));
     for (const id of Object.keys(EVENT_PLATE)) add(eventPlate(id, gender));
+    add(fifteenPlate(gender));
     for (const [year, names] of Object.entries(ERA_TV)) for (const name of names) add(eraPlate(painted(name, gender), +year));
     add(eventPlate("EVT_1985_FRIEND_04", gender, "kindy"));
     add(eventPlate("MINI_QUIET", gender, "estate"));

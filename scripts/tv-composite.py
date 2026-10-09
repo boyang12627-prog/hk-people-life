@@ -10,13 +10,18 @@ Measured glass quads (1280x720 sources, boy = girl):
   rest 1051,153,1191,150,1191,289,1051,285
   draw 860,82,1049,82,1049,220,860,218
   play 633,155,776,151,774,255,635,257
+  home1996 933,321,1103,319,1103,490,933,478   (new 1996 home art; replaces its painted newsreader)
+Made with: tv1984/tv1985/tvoff on the tv quad grown 1.5px (1016.5,312.5,1101.5,308.5,1101.5,445.5,1016.5,435.5) so no lit rim shows; tv1984/tv1985 HL=0.2 cx 0.5; tvoff = a dark glass gradient with a soft diagonal reflection,
+HL=0.12 BLUR=0.5; rest1988 HL=0 cx 0.42; home1996 HL=0 cx 0.48 (countdown board digits painted out first).
 """
+import os
 import sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 scene_p, pic_p, out_p, q = sys.argv[1:5]
 cx = float(sys.argv[5]) if len(sys.argv) > 5 else 0.5
+BLUR = float(os.environ.get("BLUR", "1.6"))  # env HL scales the original glass highlight (0 = none)
 Q = [tuple(map(float, q.split(",")[i:i + 2])) for i in range(0, 8, 2)]
 scene = Image.open(scene_p).convert("RGB")
 pic = Image.open(pic_p).convert("RGB")
@@ -30,7 +35,7 @@ if pw > pic.width: pw = pic.width; ph = round(pw * gh / gw)
 left = min(max(0, round(cx * pic.width - pw / 2)), pic.width - pw)
 tex = pic.crop((left, (pic.height - ph) // 2, left + pw, (pic.height - ph) // 2 + ph))
 TW, TH = 600, round(600 * gh / gw)
-tex = tex.resize((TW, TH), Image.LANCZOS).filter(ImageFilter.GaussianBlur(1.6))
+tex = tex.resize((TW, TH), Image.LANCZOS).filter(ImageFilter.GaussianBlur(BLUR))
 a = np.asarray(tex).astype(float) / 255
 # CRT: slight bloom, faint scanlines, vignette, a little cool tint
 a = a * 0.9 + np.asarray(tex.filter(ImageFilter.GaussianBlur(8))).astype(float) / 255 * 0.15
@@ -62,7 +67,7 @@ m = np.asarray(wm).astype(float)[..., None] / 255
 # glass highlight from the original painting: its brightness above the glass's median, screened on
 lum = o.mean(2)
 inside = m[..., 0] > 0.5
-hl = np.clip((lum - np.median(lum[inside])) * 1.6, 0, 1)[..., None] * 0.55
+hl = np.clip((lum - np.median(lum[inside])) * 1.6, 0, 1)[..., None] * float(os.environ.get("HL", "0.55"))
 t = 1 - (1 - t) * (1 - hl)
 res = o * (1 - m * 0.97) + t * m * 0.97
 Image.fromarray((np.clip(res, 0, 1) * 255).astype("uint8")).save(out_p, "WEBP", quality=80, method=6)

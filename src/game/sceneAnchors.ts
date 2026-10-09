@@ -22,6 +22,7 @@ export const SCENE_ANCHORS: Record<string, SceneAnchors> = {
   corridor: { 媽媽: a(0.78, 0.18, 0.09), 阿傑: a(0.6, 0.35, 0.05), child: a(0.48, 0.48, 0.07) },
   draw: { child: a(0.5, 0.37, 0.13) },
   estate: { 阿傑: a(0.61, 0.25, 0.09), child: a(0.41, 0.33, 0.09) },
+  home1996: { child: a(0.57, 0.13, 0.09) },
   home: { 爸爸: a(0.29, 0.33, 0.09), 媽媽: a(0.71, 0.35, 0.09), child: a(0.53, 0.47, 0.07) },
   inside: { 阿傑: a(0.6, 0.3, 0.1), 老師: a(0.74, 0.18, 0.06), child: a(0.4, 0.38, 0.1) },
   kindy: {
@@ -49,8 +50,11 @@ export const SCENE_ANCHORS: Record<string, SceneAnchors> = {
 
 /** "/hk-people-life/art/q/market-girl.webp" -> "market". Null for anything that is not a Q scene painting. */
 export function plateName(src: string | null | undefined): string | null {
-  const match = src ? /\/q\/([a-z]+)(?:\d{4})?-(?:boy|girl)\.[a-z]+$/.exec(src) : null;
-  return match ? match[1] : null;
+  const match = src ? /\/q\/([a-z]+?)(\d{4}|off)?-(?:boy|girl)\.[a-z]+$/.exec(src) : null;
+  if (!match) return null;
+  // A year/off copy of a painting (tv1986, tvoff, rest1988) keeps its people; a new painting (home1996) has its own entry.
+  const full = match[1] + (match[2] ?? "");
+  return SCENE_ANCHORS[full] ? full : match[1];
 }
 
 export function isOffscreen(anchor: HeadAnchor | Offscreen | undefined): anchor is Offscreen {
