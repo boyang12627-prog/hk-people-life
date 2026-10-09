@@ -547,7 +547,7 @@ describe("ui v4 — stage, paper panel, line-by-line reveal", () => {
   });
 });
 
-describe("ui v4.5 — the portrait and name plate identify the speaker; nothing points into the painting", () => {
+describe("ui v4.5 — the portrait and speaker name identify the speaker; nothing points into the painting", () => {
   it("no speech bubble, head ring or pointer tail; portrait only for a dialogue line", () => {
     const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
     const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
@@ -673,6 +673,17 @@ describe("live playtest fixes (2026-10-09)", () => {
       if (m[0].includes("say(")) continue;
       assert.ok(SPOKEN_IN_NARRATION[m[2]], `unlisted speech in narration: ${m[0]}`);
     }
+  });
+});
+
+describe("panel portrait without a name plate (2026-10-09)", () => {
+  it("the speaker's name shows once, above the line; the bust keeps it as its accessible name", () => {
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+    assert.equal(/ui-nameplate/.test(stage + css), false, "no name plate under the portrait");
+    const portrait = stage.slice(stage.indexOf("export function PanelPortrait"), stage.indexOf("const TYPE_MS"));
+    assert.match(portrait, /role="img" aria-label=\{name\}/);
+    assert.match(portrait, /md:w-\[8rem\]/, "the portrait grows into the freed space");
   });
 });
 

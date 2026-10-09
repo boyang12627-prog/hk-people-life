@@ -568,7 +568,7 @@ function Paper(props: PaperProps) {
   return <PaperPage key={signature} {...props} turns={turns} />;
 }
 
-/** Narration, action, and dialogue are all drawn on the paper; none is dropped. A dialogue line brings its speaker's portrait and name plate. */
+/** Narration, action, and dialogue are all drawn on the paper; none is dropped. A dialogue line brings its speaker's portrait (its name shows above the line). */
 function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, children, bodyColumns = false }: PaperProps & { turns: Turn[] }) {
   const gender = useContext(Face);
   const storyYear = useContext(StatusContext).year;

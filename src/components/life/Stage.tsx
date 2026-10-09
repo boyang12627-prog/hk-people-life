@@ -206,15 +206,14 @@ export function Tag({ label, detail, hint, onClick, disabled = false, main = fal
 
 export type Side = "left" | "right";
 
-/** Head-and-shoulders portrait at the panel's left edge, name plate under it, framed in the speaker's accent. */
+/** Head-and-shoulders portrait at the panel's left edge, framed in the speaker's accent. The name shows above the line (● 爸爸), so no plate here; the bust carries it for screen readers. */
 export function PanelPortrait({ src, height, name, accent }: { src: string; height: number; name: string; accent: string }) {
   return (
     <div data-portrait={name} className="ui-portrait flex shrink-0 flex-col items-center self-start pt-4" style={{ ["--accent" as string]: accent }}>
-      <div className="ui-bust relative aspect-[4/5] w-16 overflow-hidden rounded-t-full md:w-[7.25rem]">
+      <div role="img" aria-label={name} className="ui-bust relative aspect-[4/5] w-[4.5rem] overflow-hidden rounded-t-full md:w-[8rem]">
         {/* Sprites are full-length and of different widths; size by height so every head comes out the same size. */}
         <img src={src} alt="" decoding="async" className="absolute left-1/2 top-[7%] w-auto max-w-none -translate-x-1/2" style={{ height: `${height}%` }} />
       </div>
-      <p className="ui-nameplate relative z-10 -mt-2 rounded-sm px-2.5 py-0.5 font-serif text-sm tracking-wide md:text-base">{name}</p>
     </div>
   );
 }

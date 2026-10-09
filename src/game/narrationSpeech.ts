@@ -3,7 +3,7 @@ import { quotedSpeech } from "./wording";
 
 /**
  * Speech that the data writes inside a narration string (result texts, a year opening). On the page
- * it becomes a real dialogue line with its speaker's portrait and name plate. The quoted words are
+ * it becomes a real dialogue line with its speaker's portrait and name. The quoted words are
  * kept EXACTLY; only the narration around them is split. A lead-in such as 「阿姨說：」 becomes the
  * speaker tag; any other lead-in (嫲嫲笑：, 爸爸答得很短：) stays as narration, ending in 。.
  *
@@ -42,7 +42,7 @@ export function splitSpokenNarration(text: string): SceneLine[] {
       const lead = before.slice(0, -1);
       const cut = Math.max(lead.lastIndexOf("。"), lead.lastIndexOf("！"), lead.lastIndexOf("？"), lead.lastIndexOf("，"));
       const clause = lead.slice(cut + 1);
-      // 「爸爸說：」 is just who speaks: the name plate says it. Any other lead-in stays as narration.
+      // 「爸爸說：」 is just who speaks: the speaker name says it. Any other lead-in stays as narration.
       before = clause === `${speaker}說` ? lead.slice(0, cut + 1) : `${lead}。`;
     }
     if (before.trim()) out.push(narrate(before));

@@ -66,7 +66,7 @@ export function anchorFor(src: string | null | undefined, who: Who): HeadAnchor 
   return name ? SCENE_ANCHORS[name]?.[who] : undefined;
 }
 
-/** One accent per speaker: the panel portrait frame, name plate and name share it. All at or below amber. */
+/** One accent per speaker: the panel portrait frame and the name above the line share it. All at or below amber. */
 export const SPEAKER_ACCENT: Record<Speaker, string> = {
   媽媽: "#35665d",
   爸爸: "#3e4e6c",
