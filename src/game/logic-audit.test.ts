@@ -772,7 +772,7 @@ describe("logic audit v3.2", () => {
   it("a failed exam does not talk about kindergarten, and 1986 is not the last year", () => {
     assert.equal(isLastYear(2), false);
     assert.equal(isLastYear(YEARS.length - 1), true);
-    assert.equal(yearOf({ yearIndex: 2 }).title, "走廊");
+    assert.equal(yearOf({ yearIndex: 2 }).title, "電視");
     assert.equal(yearOf({ yearIndex: 3 }).title, "書桌");
     const examChoice = choicesFor("EVT_1988_EXAM_01", freshState()).find((item) => item.id === "A");
     assert.equal(examChoice?.specId, "BTL_PRIMARY_EXAM");

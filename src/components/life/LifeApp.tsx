@@ -25,7 +25,7 @@ import {
   yearOf,
   yearSummary,
 } from "@/game/content";
-import { MEMORY_BALL, afternoonPlate, beatPlate, eraPlate, eventPlate, fifteenPlate, personFromSpeaker, personPortrait, protagonistPortrait, scenePlate, slicePlate, yearPlate, type Mood } from "@/game/art";
+import { MEMORY_BALL, afternoonPlate, beatPlate, eraPlate, eventPlate, fifteenPlate, homePlate, PLAIN_TV_EVENTS, personFromSpeaker, personPortrait, protagonistPortrait, scenePlate, slicePlate, yearPlate, type Mood } from "@/game/art";
 import { narrate, say, sceneTurns, type SceneLine, type Turn } from "@/game/scene";
 import { chainEcho, knowsKit, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
@@ -162,7 +162,7 @@ export function LifeApp() {
         />
       ) : null}
       {state.phase === "result" && state.result ? (
-        <Paper scene={sceneOf(state)} plate={eventPlate(state.eventId, state.gender, sceneOf(state))} kicker="之後" title="你選了" dialogue={[narrate(state.result.text)]} actions={<Primary onClick={() => { tap(); dispatch({ type: "ack" }); }}>繼續</Primary>}>
+        <Paper scene={sceneOf(state)} plate={eventPlate(state.eventId, state.gender, sceneOf(state), cardFor(state.eventId ?? "", state).title)} plainTv={PLAIN_TV_EVENTS.has(state.eventId ?? "")} kicker="之後" title="你選了" dialogue={[narrate(state.result.text)]} actions={<Primary onClick={() => { tap(); dispatch({ type: "ack" }); }}>繼續</Primary>}>
           <ResultBody result={state.result} hideText />
         </Paper>
       ) : null}
@@ -339,7 +339,7 @@ function StoryBeat({ state, beat, onNext }: { state: State; beat: Parameters<typ
 function Activities({ state, onPick }: { state: State; onPick: (id: string) => void }) {
   const year = yearOf(state);
   const timed = year.year === 1985 || year.year === 1986;
-  const choosing = year.year === 1985 && state.spent.length === 0 ? beatPlate("downstairs", state.gender) : scenePlate("home", state.gender);
+  const choosing = year.year === 1985 && state.spent.length === 0 ? beatPlate("downstairs", state.gender) : homePlate(year.year, state.gender);
   return (
     <Paper
       scene="home"
@@ -390,11 +390,12 @@ function EventCard({ state, onChoose }: { state: State; onChoose: (choice: Retur
   const card = cardFor(state.eventId ?? "", state);
   const choices = choicesFor(state.eventId ?? "", state);
   const year = yearOf(state);
-  const plate = eventPlate(state.eventId, state.gender, card.scene) ?? slicePlate({ year: year.year, scene: card.scene, gender: state.gender });
+  const plate = eventPlate(state.eventId, state.gender, card.scene, card.title) ?? slicePlate({ year: year.year, scene: card.scene, gender: state.gender });
   return (
     <Paper
       scene={card.scene}
       plate={plate}
+      plainTv={PLAIN_TV_EVENTS.has(state.eventId ?? "")}
       kicker={card.kicker}
       title={card.title}
       mood="think"
@@ -440,6 +441,7 @@ function YearEnd({ state, onNext }: { state: State; onNext: () => void }) {
   return (
     <Paper
       scene="home"
+      plate={homePlate(year.year, state.gender)}
       kicker={`${year.year} 完`}
       title="你記住了"
       bodyColumns
@@ -539,6 +541,8 @@ const SENSE: Record<SceneId, string> = {
 type PaperProps = {
   scene: SceneId;
   plate?: string | null;
+  /** Keep the plate as painted (no year news picture on the TV). */
+  plainTv?: boolean;
   kicker: string;
   title: string;
   mood?: Mood;
@@ -569,7 +573,7 @@ function Paper(props: PaperProps) {
 }
 
 /** Narration, action, and dialogue are all drawn on the paper; none is dropped. A dialogue line brings its speaker's portrait (its name shows above the line). */
-function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, children, bodyColumns = false }: PaperProps & { turns: Turn[] }) {
+function PaperPage({ scene, plate, plainTv = false, kicker, title, turns, overlay, actions, children, bodyColumns = false }: PaperProps & { turns: Turn[] }) {
   const gender = useContext(Face);
   const storyYear = useContext(StatusContext).year;
   const picture = plate ?? scenePlate(scene, gender);
@@ -606,7 +610,7 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
   return (
     <Frame
       label={`${kicker} · ${title}`}
-      picture={eraPlate(picture, storyYear)}
+      picture={plainTv ? picture : eraPlate(picture, storyYear)}
       overlay={overlay}
       onStageClick={reveal.done || log ? undefined : reveal.advance}
       panel={

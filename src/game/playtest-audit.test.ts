@@ -649,7 +649,7 @@ describe("live playtest fixes (2026-10-09)", () => {
   });
 
   it("P2-8 speech inside narration becomes dialogue with its speaker; the quoted words are unchanged", () => {
-    const sources = ["./data/events.ts", "./content.ts"].map((file) => readFileSync(new URL(file, import.meta.url), "utf8")).join("\n");
+    const sources = ["./data/events.ts", "./content.ts", "./battleSpec.ts"].map((file) => readFileSync(new URL(file, import.meta.url), "utf8")).join("\n");
     for (const [quote, speaker] of Object.entries(SPOKEN_IN_NARRATION)) {
       assert.ok(sources.includes(quote), `${quote} is in the data`);
       const literal = [...sources.matchAll(/"([^"\n]*)"/g)].map((m) => m[1]).find((text) => text.includes(quote) && text !== quote);
@@ -713,7 +713,7 @@ describe("TV pictures painted into the art, no text on screens (2026-10-09)", ()
       }
       assert.equal(yearPlate(1984, gender), `/art/q/tv-${gender}.webp`);
       assert.equal(eventPlate("EVT_1984_NEWS_01", gender), `/art/q/tv-${gender}.webp`);
-      assert.equal(eventPlate("MINI_85_TV", gender), `/art/q/tv-${gender}.webp`);
+      assert.equal(eventPlate("MINI_85_TV", gender), `/art/q/draw-${gender}.webp`);
     }
     assert.equal(eraPlate("/art/q/home-girl.webp", 1986), "/art/q/home-girl.webp", "only TV paintings swap");
     assert.equal(plateName("/art/q/tv1986-boy.webp"), "tv", "speaker anchors still apply");
@@ -728,6 +728,42 @@ describe("TV pictures painted into the art, no text on screens (2026-10-09)", ()
     const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
     assert.equal(/TvNews|data-tv-news|newsHeadline|ui-tv-/.test(stage + app + css), false);
     assert.equal(existsSync(new URL("./tvNews.ts", import.meta.url)), false);
-    assert.ok(app.includes("picture={eraPlate(picture, storyYear)}"));
+    assert.ok(app.includes("picture={plainTv ? picture : eraPlate(picture, storyYear)}"));
+  });
+});
+
+describe("full review batch 1: art follows the text (no new art)", async () => {
+  const art = await import("./art.ts");
+  const { YEARS } = await import("./content.ts");
+  const { splitSpokenNarration } = await import("./narrationSpeech.ts");
+  const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+  it("activity and year-end pages never reuse the 1984 dinner after 1984", () => {
+    assert.equal(art.homePlate(1984, "boy"), "/art/q/home-boy.webp");
+    assert.equal(art.homePlate(1985, "girl"), "/art/q/bag-girl.webp");
+    assert.equal(art.homePlate(1986, "boy"), "/art/q/tv-boy.webp");
+    assert.equal(art.homePlate(1988, "girl"), "/art/q/study-girl.webp");
+    assert.ok(!app.includes('scenePlate("home", state.gender)'));
+    assert.ok(app.includes("plate={homePlate(year.year, state.gender)}"));
+  });
+  it("MINI_85_TV shows the child alone with the set on; MINI_QUIET 沒有人在 shows the empty podium", () => {
+    assert.equal(art.eventPlate("MINI_85_TV", "boy"), "/art/q/draw-boy.webp");
+    assert.equal(art.eventPlate("MINI_QUIET", "girl", "market", "沒有人在"), "/art/q/rain-girl.webp");
+    assert.equal(art.eventPlate("MINI_QUIET", "girl", "home", "沒有人在"), "/art/q/rain-girl.webp");
+    assert.equal(art.eventPlate("MINI_QUIET", "boy", "market", "走了一圈"), null);
+  });
+  it("MINI_86_TV keeps the TV room's own painted screen (singing), not the Queen picture", () => {
+    assert.ok(art.PLAIN_TV_EVENTS.has("MINI_86_TV"));
+    assert.equal(art.eventPlate("MINI_86_TV", "boy"), "/art/q/tv-boy.webp");
+    assert.ok(app.includes('plainTv={PLAIN_TV_EVENTS.has(state.eventId ?? "")}'));
+  });
+  it("1986 opening is titled 電視; Monday walk is tagged 幼稚園門口", () => {
+    assert.equal(YEARS.find((y: { year: number }) => y.year === 1986)?.title, "電視");
+    const story = readFileSync(new URL("./story.ts", import.meta.url), "utf8");
+    assert.ok(!story.includes('"屋邨路"'));
+  });
+  it("the exam's 老師說：「還有五分鐘。」 is the teacher's line; the 1996 memory quote stays narration", () => {
+    assert.deepEqual(splitSpokenNarration("老師說：「還有五分鐘。」"), [{ type: "dialogue", speaker: "老師", text: "還有五分鐘。" }]);
+    assert.equal(splitSpokenNarration("「最要緊是一家人安穩。」他只說過一次，之後就一直做。")[0].type, "narration");
+    assert.ok(readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8").includes("splitSpokenNarration(lead)"));
   });
 });

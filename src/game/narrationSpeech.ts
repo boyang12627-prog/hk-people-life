@@ -25,6 +25,7 @@ export const SPOKEN_IN_NARRATION: Readonly<Record<string, Speaker>> = {
   "「街坊嚟㗎，唔使即刻還。」": "阿姨",
   "「不准走出那條街。」": "媽媽",
   "「女皇來了。」": "爸爸",
+  "「還有五分鐘。」": "老師",
 };
 
 /** Split one narration string at its listed quotes. Returns the same line when nothing is listed. */

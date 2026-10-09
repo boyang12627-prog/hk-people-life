@@ -6,7 +6,9 @@ const EVENT_PLATE: Record<string, string> = {
   MINI_85_RAIN: "rain",
   MINI_85_GRANDMA: "soup",
   MINI_85_DAD: "shoes",
-  MINI_85_TV: "tv",
+  // 你留在家。電視開著，沒有人在看: the child alone in the room with the set on (no adults watching).
+  MINI_85_TV: "draw",
+  // 電視裡有人唱歌: the TV room with its own painted screen (a singer), not the 1986 Queen picture (see PLAIN_TV_EVENTS).
   MINI_86_TV: "tv",
   MINI_85_ORANGE: "orange",
   MINI_86_HELP: "bags",
@@ -44,9 +46,10 @@ function painted(name: string, gender: Gender | null) {
   return `${ART}/q/${name}-${who}.${SCENE_EXT}`;
 }
 
-export function eventPlate(eventId: string | null, gender: Gender | null, scene?: string | null) {
+export function eventPlate(eventId: string | null, gender: Gender | null, scene?: string | null, title?: string | null) {
   if (eventId === "EVT_1985_FRIEND_04" && scene === "kindy") return painted("inside", gender);
-  if (eventId === "MINI_QUIET" && scene === "estate") return painted("rain", gender);
+  // 沒有人在 (你去了的地方沒有人): the empty wet podium, whichever place was empty. 走了一圈 (with mum at the market) keeps the market.
+  if (eventId === "MINI_QUIET" && (scene === "estate" || title === "沒有人在")) return painted("rain", gender);
   const name = eventId ? EVENT_PLATE[eventId] : null;
   return name ? painted(name, gender) : null;
 }
@@ -97,6 +100,20 @@ export function slicePlate(input: { year: number; scene: SceneId; gender: Gender
   if (input.battle === "pressure" || input.battle === "inside") return painted(input.battle, input.gender);
   if (input.battle === "door") return scenePlate("kindy", input.gender);
   return scenePlate(input.scene, input.gender);
+}
+
+/** Events whose TV shows its own painted programme, not the year's news picture. */
+export const PLAIN_TV_EVENTS: ReadonlySet<string> = new Set(["MINI_86_TV"]);
+
+/**
+ * The home picture behind a year's activity list and year-end page, matched to the child's age:
+ * 1984 the dinner (calendar 1984, age 3); 1985 the doorway at home (age 4); 1986 the TV room (age 5);
+ * 1988 the classroom desk (age 7, school uniform). Never the 1984 dinner after 1984.
+ */
+const HOME_BY_YEAR: Record<number, string> = { 1984: "home", 1985: "bag", 1986: "tv", 1988: "study" };
+
+export function homePlate(year: number, gender: Gender | null) {
+  return painted(HOME_BY_YEAR[year] ?? "home", gender);
 }
 
 /** One painted dinner. People are already in the picture, so do not paste sprites on it. */
@@ -240,6 +257,7 @@ export function imageManifest(): string[] {
     for (const year of [1984, 1985, 1986, 1988]) add(yearPlate(year, gender));
     for (const id of ["ACT_DRAW", "ACT_PLAY", "ACT_REST"]) add(afternoonPlate(id, gender));
     add(dinnerPlate(gender));
+    for (const year of [1984, 1985, 1986, 1988]) add(homePlate(year, gender));
     for (const age of PORTRAIT_AGES) add(protagonistPortrait(BIRTH_YEAR + age, gender));
     for (const id of PEOPLE) {
       for (const mood of ["idle", "think"] as const) {

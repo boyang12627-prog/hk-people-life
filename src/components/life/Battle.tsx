@@ -5,6 +5,8 @@ import { actionCost, createBattle, resolveTurn, techniqueReady, type BattleActio
 import { battlePlate, personSrc } from "@/game/art";
 import type { Approach, BattleKind, BattleOutcome, Gender } from "@/game/types";
 import { Frame, PaperPanel, Tag } from "@/components/life/Stage";
+import { splitSpokenNarration } from "@/game/narrationSpeech";
+import { SPEAKER_ACCENT } from "@/game/sceneAnchors";
 
 type Props = {
   spec: BattleSpec;
@@ -132,7 +134,18 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
             )
           }
         >
-          <p className="text-pretty text-base leading-7 md:text-lg md:leading-7" aria-live="polite">{lead}</p>
+          <div aria-live="polite" data-battle-lead>
+            {/* 老師說：「還有五分鐘。」 shows as the teacher's line (name once, wording unchanged). */}
+            {splitSpokenNarration(lead).map((line, index) =>
+              line.type === "dialogue" ? (
+                <p key={index} className="text-pretty text-base leading-7 md:text-lg md:leading-7" data-kind="dialogue" data-speaker={line.speaker}>
+                  <span className="mr-1.5 font-medium" style={{ color: SPEAKER_ACCENT[line.speaker] }}>{line.speaker}</span>「{line.text}」
+                </p>
+              ) : (
+                <p key={index} className="text-pretty text-base leading-7 md:text-lg md:leading-7">{line.text}</p>
+              ),
+            )}
+          </div>
           {sim.stableFirst ? <p className="text-xs text-ink/70">你先。</p> : null}
           {sim.pressureFirst ? <p className="text-xs text-ink/70">對方先。</p> : null}
           <div className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-1.5 md:grid-cols-4">

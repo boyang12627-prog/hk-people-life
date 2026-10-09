@@ -148,7 +148,7 @@ export function beat1985(id: BeatId, state: State): StoryPage {
       kicker: "1985 · 星期一早上",
       title: "門開著",
       sequence: [
-        act("媽媽牽著你。袋子在你手上，有一點重。", "屋邨路"),
+        act("媽媽牽著你。袋子在你手上，有一點重。", "幼稚園門口"),
         say("媽媽", "到了就進去。"),
         act("幼稚園的門開著。裡面有聲音。", "幼稚園門口"),
         narrate(door),

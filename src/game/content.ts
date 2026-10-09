@@ -97,7 +97,7 @@ export const YEARS: YearDef[] = [
     year: 1986,
     age: 5,
     scene: "corridor",
-    title: "走廊",
+    title: "電視",
     calendar: "childhood-afternoon",
     era: "屋邨還是那樣。十月，電視裡有個戴帽子的女人下船。",
     open: "你五歲。爸爸說：「女皇來了。」你不知道女皇是誰。你也開始明白，大人不是不想陪你，是他們也有必須做的事。",
