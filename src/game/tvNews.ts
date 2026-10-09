@@ -14,6 +14,11 @@ export type TvScreen = {
   lit: boolean;
   /** Where the news strip sits on the glass. "top" keeps it clear of the panel when the screen is low in the picture. */
   strip: "top" | "bottom";
+  /**
+   * Headline size in canvas px (default 62, from styles.css). A wide, short glass with a painted picture
+   * uses a smaller line so the strip keeps to the lower part and the picture still shows above it.
+   */
+  headlinePx?: number;
 };
 
 /** The paintings are 1280x720 and the stage is always 16:9, so one scale maps source pixels onto the stage. */
@@ -26,19 +31,19 @@ export const CANVAS_W = 400;
 /**
  * Every Q painting (public/art/q/{name}-{boy,girl}.webp) that has a TV in it. Corners were read off 4-5x
  * zoomed crops of the glass (inside the bezel, at the tangent of each rounded corner). Boy and girl
- * versions share the same room and set.
+ * versions share the same room and set (checked side by side for each pair).
  */
 export const TV_SCREENS: Record<string, TvScreen> = {
   /** Evening TV room: the set is seen from the left, so the glass's right side is taller. Painted lit. */
   tv: { quad: [[1019, 314], [1100, 310], [1100, 444], [1018, 433]], lit: true, strip: "top" },
-  /** Morning by the door: Dad ties his shoes in front of the set (nearly face-on). */
-  bag: { quad: [[1087, 160], [1202, 159], [1201, 289], [1088, 288]], lit: false, strip: "bottom" },
-  /** Afternoon drawing in the living room: the set is turned a little, top edge drops to the left. */
-  draw: { quad: [[633, 155], [776, 151], [774, 255], [635, 257]], lit: false, strip: "bottom" },
-  /** Afternoon blocks with Grandma (same room and set as draw). */
+  /** Morning by the door (redrawn 2026-10-09): the set stands on the right, seen a little from the left, so the right side of the glass is taller. Dark. */
+  bag: { quad: [[1069, 171], [1171, 173], [1170, 313], [1071, 306]], lit: false, strip: "bottom" },
+  /** Afternoon drawing in the living room (redrawn 2026-10-09): the set is on and shows a painted picture (a cartoon for the boy, hills for the girl). */
+  draw: { quad: [[860, 82], [1049, 82], [1049, 220], [860, 218]], lit: true, strip: "bottom", headlinePx: 38 },
+  /** Afternoon blocks with Grandma (the older living room painting): the set is turned a little, top edge drops to the left. */
   play: { quad: [[633, 155], [776, 151], [774, 255], [635, 257]], lit: false, strip: "bottom" },
-  /** Afternoon nap, Grandma with the fan. */
-  rest: { quad: [[975, 145], [1092, 143], [1091, 234], [976, 236]], lit: false, strip: "bottom" },
+  /** Afternoon nap, Grandma with the fan (redrawn 2026-10-09): the set on the right shows painted static, glass right side a touch taller. */
+  rest: { quad: [[1051, 153], [1191, 150], [1191, 289], [1051, 285]], lit: true, strip: "bottom" },
 };
 
 const dist = (a: Point, b: Point) => Math.hypot(a[0] - b[0], a[1] - b[1]);

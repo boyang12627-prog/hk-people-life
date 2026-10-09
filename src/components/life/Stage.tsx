@@ -72,7 +72,7 @@ export function TvNews({ picture, headline }: { picture: string; headline: strin
         {screen.lit ? null : <div className="ui-tv-glow absolute inset-0" />}
         <div className={`ui-tv-strip absolute inset-x-0 ${screen.strip === "top" ? "top-[8%]" : "bottom-[7%]"}`}>
           <span className="ui-tv-tab">新聞</span>
-          <span className="ui-tv-headline">{headline}</span>
+          <span className="ui-tv-headline" style={screen.headlinePx ? { fontSize: screen.headlinePx } : undefined}>{headline}</span>
         </div>
         <div className="ui-tv-scan absolute inset-0" />
         <div className="ui-tv-sheen absolute inset-0" />

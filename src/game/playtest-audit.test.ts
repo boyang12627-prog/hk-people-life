@@ -692,9 +692,20 @@ describe("TV news headlines (2026-10-09)", () => {
       assert.ok(tl[0] < tr[0] && bl[0] < br[0] && tl[1] < bl[1] && tr[1] < br[1], `${name} corners run TL, TR, BR, BL`);
       assert.ok(tr[0] - tl[0] > 50 && bl[1] - tl[1] > 50, `${name} screen has a size`);
     }
-    // Only the TV room is painted with the set on; the others get a lit glass from the overlay.
-    assert.equal(TV_SCREENS.tv.lit, true);
-    for (const name of ["bag", "draw", "play", "rest"]) assert.equal(TV_SCREENS[name].lit, false);
+    // The TV room, the redrawn drawing afternoon (a picture) and nap (static) are painted with the set on;
+    // the morning door and the blocks afternoon get a lit glass from the overlay.
+    for (const name of ["tv", "draw", "rest"]) assert.equal(TV_SCREENS[name].lit, true, `${name} is painted on`);
+    for (const name of ["bag", "play"]) assert.equal(TV_SCREENS[name].lit, false, `${name} is painted dark`);
+    // Redrawn 2026-10-09: bag, rest and draw have their own sets now; draw no longer shares play's glass.
+    assert.notDeepEqual(TV_SCREENS.draw.quad, TV_SCREENS.play.quad);
+    // The drawing afternoon's wide, painted-on glass gets a one-line headline so the picture still shows.
+    assert.ok(TV_SCREENS.draw.headlinePx && TV_SCREENS.draw.headlinePx * 9 * 1.02 <= CANVAS_W - 40, "longest headline fits one line on the draw set");
+    assert.ok(stage.includes("screen.headlinePx ? { fontSize: screen.headlinePx }"), "the per-set size reaches the headline");
+    assert.ok(TV_SCREENS.bag.quad[0][0] > 1060 && TV_SCREENS.rest.quad[0][0] > 1040 && TV_SCREENS.draw.quad[0][0] > 850, "screens moved to the new sets");
+    for (const name of ["bag", "rest"]) {
+      const [a, b, c, d] = TV_SCREENS[name].quad;
+      assert.ok(c[1] - b[1] > d[1] - a[1], `${name} glass is a little taller on the right (seen from the left)`);
+    }
     // The TV room set is seen at an angle: its glass is taller on the right than the left.
     const [tl, tr, br, bl] = TV_SCREENS.tv.quad;
     assert.ok(br[1] - tr[1] - (bl[1] - tl[1]) >= 10, "TV room glass narrows to the left");

@@ -17,10 +17,10 @@ export type SceneAnchors = Partial<Record<Who, HeadAnchor | Offscreen>>;
 const a = (x: number, y: number, r: number): HeadAnchor => ({ x, y, r });
 
 export const SCENE_ANCHORS: Record<string, SceneAnchors> = {
-  bag: { 媽媽: a(0.29, 0.25, 0.09), 爸爸: a(0.65, 0.15, 0.09), child: a(0.45, 0.3, 0.08) },
+  bag: { 媽媽: a(0.24, 0.27, 0.09), 爸爸: a(0.73, 0.14, 0.09), child: a(0.43, 0.35, 0.08) },
   bags: { 媽媽: a(0.65, 0.15, 0.08), child: a(0.42, 0.52, 0.07) },
   corridor: { 媽媽: a(0.78, 0.18, 0.09), 阿傑: a(0.6, 0.35, 0.05), child: a(0.48, 0.48, 0.07) },
-  draw: { child: a(0.37, 0.45, 0.11) },
+  draw: { child: a(0.5, 0.37, 0.13) },
   estate: { 阿傑: a(0.61, 0.25, 0.09), child: a(0.41, 0.33, 0.09) },
   home: { 爸爸: a(0.29, 0.33, 0.09), 媽媽: a(0.71, 0.35, 0.09), child: a(0.53, 0.47, 0.07) },
   inside: { 阿傑: a(0.6, 0.3, 0.1), 老師: a(0.74, 0.18, 0.06), child: a(0.4, 0.38, 0.1) },
@@ -38,7 +38,7 @@ export const SCENE_ANCHORS: Record<string, SceneAnchors> = {
   play: { 嫲嫲: a(0.78, 0.18, 0.08), child: a(0.37, 0.43, 0.1) },
   pressure: { 媽媽: a(0.33, 0.21, 0.09), 老師: a(0.61, 0.14, 0.08), child: a(0.34, 0.53, 0.08) },
   rain: { child: a(0.42, 0.3, 0.09) },
-  rest: { 嫲嫲: a(0.68, 0.13, 0.08), child: a(0.33, 0.6, 0.09) },
+  rest: { 嫲嫲: a(0.63, 0.18, 0.1), child: a(0.33, 0.64, 0.1) },
   shoes: { 爸爸: a(0.41, 0.16, 0.1), child: a(0.67, 0.54, 0.08) },
   soup: { 嫲嫲: a(0.69, 0.17, 0.1), child: a(0.25, 0.38, 0.1) },
   stair: { 媽媽: a(0.69, 0.17, 0.09), 阿傑: a(0.53, 0.25, 0.04), child: a(0.45, 0.47, 0.09) },
