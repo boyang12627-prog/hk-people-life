@@ -813,10 +813,10 @@ describe("logic audit v3.2", () => {
     const engineSrc = readFileSync(new URL("./engine.ts", import.meta.url), "utf8");
     assert.equal(engineSrc.includes('id === "BTL_PRIMARY_EXAM"'), false);
     assert.match(engineSrc, /settlement === "exam"/);
-    assert.equal(slicePlate({ year: 1985, scene: "kindy", gender: "girl" }), "/art/q/kindy-girl.jpg");
-    assert.equal(slicePlate({ year: 1986, scene: "estate", gender: "boy" }), "/art/q/estate-boy.jpg");
-    assert.equal(slicePlate({ year: 1984, scene: "home", gender: "girl" }), "/art/q/home-girl.jpg");
-    assert.equal(slicePlate({ year: 1988, scene: "study", gender: "girl" }), "/art/q/study-girl.jpg");
+    assert.equal(slicePlate({ year: 1985, scene: "kindy", gender: "girl" }), "/art/q/kindy-girl.webp");
+    assert.equal(slicePlate({ year: 1986, scene: "estate", gender: "boy" }), "/art/q/estate-boy.webp");
+    assert.equal(slicePlate({ year: 1984, scene: "home", gender: "girl" }), "/art/q/home-girl.webp");
+    assert.equal(slicePlate({ year: 1988, scene: "study", gender: "girl" }), "/art/q/study-girl.webp");
     const news = cardFor("EVT_1984_NEWS_01", freshState());
     const turns = sceneTurns(news.sequence);
     assert.deepEqual(
@@ -826,14 +826,15 @@ describe("logic audit v3.2", () => {
     assert.equal(turns[2].text.startsWith("先吃飯"), true);
     assert.equal(turns[3].text, "爸爸低聲說。");
     assert.equal(turns[4].text.includes("一家人安穩"), true);
-    assert.equal(eventPlate("MINI_84_TOY", "boy"), "/art/q/toy-boy.jpg");
-    assert.equal(eventPlate("MINI_85_RAIN", "girl"), "/art/q/rain-girl.jpg");
-    assert.equal(eventPlate("EVT_1988_PEN_01", "boy"), "/art/q/pen-boy.jpg");
-    assert.equal(eventPlate("MINI_85_ALONE_PODIUM", "boy", "estate"), "/art/q/rain-boy.jpg");
-    assert.equal(eventPlate("EVT_1985_FRIEND_04", "girl", "kindy"), "/art/q/inside-girl.jpg");
+    assert.equal(eventPlate("MINI_84_TOY", "boy"), "/art/q/toy-boy.webp");
+    assert.equal(eventPlate("MINI_85_RAIN", "girl"), "/art/q/rain-girl.webp");
+    assert.equal(eventPlate("EVT_1988_PEN_01", "boy"), "/art/q/pen-boy.webp");
+    assert.equal(eventPlate("MINI_85_ALONE_PODIUM", "boy", "estate"), "/art/q/rain-boy.webp");
+    assert.equal(eventPlate("EVT_1985_FRIEND_04", "girl", "kindy"), "/art/q/inside-girl.webp");
     assert.equal(eventPlate("EVT_1985_FRIEND_04", "boy", "estate"), null);
-    assert.equal(beatPlate("sun-night", "boy"), "/art/q/bag-boy.jpg");
-    assert.equal(yearPlate(1986, "girl"), "/art/q/tv-girl.jpg");
+    assert.equal(beatPlate("sun-night", "boy"), "/art/q/bag-boy.webp");
+    assert.equal(eventPlate("EVT_1984_FAMILY_02", "girl"), "/art/q/home-girl.webp");
+    assert.equal(yearPlate(1986, "girl"), "/art/q/tv-girl.webp");
     assert.equal(eventPlate("EVT_1984_NEWS_01", "boy"), null);
     const played = produce1985(["ACT_PLAY", "ACT_DRAW"]);
     assert.deepEqual(played.queue, ["EVT_1985_SCHOOL_01", "MINI_85_GRANDMA", "MINI_85_TV", "MINI_85_DAD"]);
@@ -1163,7 +1164,14 @@ describe("logic audit v3.2", () => {
       assert.ok(path.startsWith("/art/"), path);
       assert.equal(existsSync(new URL(`../../public${path}`, import.meta.url)), true, path);
     }
-    for (const want of ["/art/q/pressure-boy.jpg", "/art/q/inside-girl.jpg", "/art/q/draw-girl.jpg", "/art/1985/memory.jpg", "/art/1985/people/mom-sit.png", "/art/1985/people/teacher.png", "/art/1985/people/auntie.png"]) {
+    for (const path of manifest.filter((item) => item.startsWith("/art/q/"))) {
+      assert.match(path, /^\/art\/q\/[a-z]+-(boy|girl)\.webp$/, `${path} should be a WebP scene painting`);
+      const bytes = readFileSync(new URL(`../../public${path}`, import.meta.url));
+      assert.equal(bytes.subarray(0, 4).toString("latin1"), "RIFF", path);
+      assert.equal(bytes.subarray(8, 12).toString("latin1"), "WEBP", path);
+      assert.ok(bytes.length < 400_000, `${path} is ${bytes.length} bytes`);
+    }
+    for (const want of ["/art/q/pressure-boy.webp", "/art/q/inside-girl.webp", "/art/q/draw-girl.webp", "/art/1985/memory.jpg", "/art/1985/people/mom-sit.png", "/art/1985/people/teacher.png", "/art/1985/people/auntie.png"]) {
       assert.ok(manifest.includes(want), want);
     }
     const onDisk: string[] = [];

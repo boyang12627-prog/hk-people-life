@@ -11,7 +11,7 @@ const EVENT_PLATE: Record<string, string> = {
   MINI_85_ORANGE: "orange",
   MINI_86_HELP: "bags",
   EVT_1988_PEN_01: "pen",
-  EVT_1984_FAMILY_02: "play",
+  EVT_1984_FAMILY_02: "home",
   EVT_1986_FAMILY_06: "tv",
   EVT_1986_ECHO_08: "corridor",
   MINI_85_ALONE_PODIUM: "rain",
@@ -25,9 +25,12 @@ const BEAT_PLATE: Record<string, string> = {
   aftermath: "tv",
 };
 
+/** Q scene paintings are WebP, 1280x720: the plate is at most ~640 CSS px wide in the max-w-lg column, so 1280 covers 2x screens. */
+export const SCENE_EXT = "webp";
+
 function painted(name: string, gender: Gender | null) {
   const who = gender === "girl" ? "girl" : "boy";
-  return `/art/q/${name}-${who}.jpg`;
+  return `/art/q/${name}-${who}.${SCENE_EXT}`;
 }
 
 export function eventPlate(eventId: string | null, gender: Gender | null, scene?: string | null) {
@@ -48,15 +51,13 @@ export function yearPlate(year: number, gender: Gender | null) {
 }
 
 export function scenePlate(scene: SceneId, gender: Gender | null) {
-  const who = gender === "girl" ? "girl" : "boy";
-  return `/art/q/${scene}-${who}.jpg`;
+  return painted(scene, gender);
 }
 
 /** Scene picture for a year card or a kindergarten battle step. Every year now uses the Q-version set in /art/q. */
 export function slicePlate(input: { year: number; scene: SceneId; gender: Gender | null; battle?: "door" | "pressure" | "inside" }): string | null {
   if (!input.gender) return null;
-  const who = input.gender === "boy" ? "boy" : "girl";
-  if (input.battle === "pressure" || input.battle === "inside") return `/art/q/${input.battle}-${who}.jpg`;
+  if (input.battle === "pressure" || input.battle === "inside") return painted(input.battle, input.gender);
   if (input.battle === "door") return scenePlate("kindy", input.gender);
   return scenePlate(input.scene, input.gender);
 }
