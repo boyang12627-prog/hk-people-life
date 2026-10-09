@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { isDone, isTyping, startReveal, stepReveal, type Reveal } from "@/game/reveal";
 import { placeLabel } from "@/game/scene";
-import { tvScreenFor } from "@/game/tvNews";
+import { CANVAS_W, SOURCE_H, SOURCE_W, canvasHeight, quadMatrix, tvScreenFor } from "@/game/tvNews";
 
 /**
  * UI V4 layout pieces: a full-bleed 16:9 stage (scene painting), a round wooden status frame
@@ -33,26 +33,49 @@ export function Frame({ picture, overlay, stage, panel, onStageClick, label, new
 
 /**
  * The year's headline on a painted TV, in the style of a period news caption: a dark strip, a small
- * red 新聞 tab, bold pale-yellow text. The stage is always 16:9 like the paintings, so the screen's
- * % coordinates map straight onto it. A dark (off) screen gets a faint glow so it reads as switched on.
+ * red 新聞 tab, bold pale-yellow text. The caption is laid out flat on a CANVAS_W-wide canvas, then warped
+ * onto the glass's four measured corners with a matrix3d homography, so it follows the set's angle.
+ * The 1280x720 source space is scaled to the stage (always 16:9, like the paintings), so it holds at
+ * any window size. A dark (off) screen gets a faint glow so it reads as switched on.
  */
 export function TvNews({ picture, headline }: { picture: string; headline: string }) {
   const screen = tvScreenFor(picture);
+  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0);
+  useEffect(() => {
+    const stage = ref.current?.parentElement;
+    if (!stage) return;
+    const update = () => setScale(stage.clientWidth / SOURCE_W);
+    update();
+    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    resize?.observe(stage);
+    return () => resize?.disconnect();
+  }, []);
   if (!screen) return null;
+  const height = canvasHeight(screen.quad);
+  const matrix = quadMatrix(screen.quad, CANVAS_W, height);
   return (
     <div
+      ref={ref}
       role="img"
       aria-label={`電視新聞：${headline}`}
       data-tv-news={headline}
       data-tv-lit={screen.lit ? "painted" : "overlay"}
-      className="ui-tv-screen pointer-events-none absolute overflow-hidden"
-      style={{ left: `${screen.left}%`, top: `${screen.top}%`, width: `${screen.width}%`, height: `${screen.height}%` }}
+      className="pointer-events-none absolute left-0 top-0 origin-top-left"
+      style={{ width: SOURCE_W, height: SOURCE_H, transform: `scale(${scale})`, visibility: scale ? undefined : "hidden" }}
     >
-      {screen.lit ? null : <div className="ui-tv-glow absolute inset-0" />}
-      <div className="ui-tv-scan absolute inset-0" />
-      <div className={`ui-tv-strip absolute inset-x-0 ${screen.strip === "top" ? "top-[9%]" : "bottom-[7%]"}`}>
-        <span className="ui-tv-tab">新聞</span>
-        <span className="ui-tv-headline">{headline}</span>
+      <div
+        data-tv-glass="true"
+        className="ui-tv-screen absolute left-0 top-0 origin-top-left overflow-hidden"
+        style={{ width: CANVAS_W, height, transform: `matrix3d(${matrix.map((n) => +n.toFixed(8)).join(",")})` }}
+      >
+        {screen.lit ? null : <div className="ui-tv-glow absolute inset-0" />}
+        <div className={`ui-tv-strip absolute inset-x-0 ${screen.strip === "top" ? "top-[8%]" : "bottom-[7%]"}`}>
+          <span className="ui-tv-tab">新聞</span>
+          <span className="ui-tv-headline">{headline}</span>
+        </div>
+        <div className="ui-tv-scan absolute inset-0" />
+        <div className="ui-tv-sheen absolute inset-0" />
       </div>
     </div>
   );

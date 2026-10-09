@@ -32,7 +32,7 @@ import { freshState, mergeDeltas, reducer } from "./engine.ts";
 import { lineText, placeLabel } from "./scene.ts";
 import { SPOKEN_IN_NARRATION, expandSpokenNarration, splitSpokenNarration } from "./narrationSpeech.ts";
 import { ACTION_LOCK_MS } from "./reveal.ts";
-import { NEWS_HEADLINE, TV_SCREENS, newsHeadline, paintingName, tvIsOff, tvScreenFor } from "./tvNews.ts";
+import { CANVAS_W, NEWS_HEADLINE, SOURCE_H, SOURCE_W, TV_SCREENS, applyMatrix, canvasHeight, newsHeadline, paintingName, quadMatrix, tvIsOff, tvScreenFor } from "./tvNews.ts";
 import { beatPlate as tvBeatPlate, eventPlate as tvEventPlate, imageManifest as tvManifest, yearPlate as tvYearPlate } from "./art.ts";
 import { existsSync } from "node:fs";
 import { picked, selectSpoken } from "./speak.ts";
@@ -687,14 +687,37 @@ describe("TV news headlines (2026-10-09)", () => {
     assert.deepEqual(Object.keys(TV_SCREENS).sort(), ["bag", "draw", "play", "rest", "tv"]);
     for (const [name, screen] of Object.entries(TV_SCREENS)) {
       for (const gender of ["boy", "girl"]) assert.ok(existsSync(new URL(`../../public/art/q/${name}-${gender}.webp`, import.meta.url)), `${name}-${gender}.webp exists`);
-      assert.ok(screen.left > 0 && screen.top > 0 && screen.width > 3 && screen.height > 8, `${name} screen has a size`);
-      assert.ok(screen.left + screen.width < 100 && screen.top + screen.height < 100, `${name} screen is inside the picture`);
+      const [tl, tr, br, bl] = screen.quad;
+      for (const [x, y] of screen.quad) assert.ok(x > 0 && x < SOURCE_W && y > 0 && y < SOURCE_H, `${name} corner is inside the picture`);
+      assert.ok(tl[0] < tr[0] && bl[0] < br[0] && tl[1] < bl[1] && tr[1] < br[1], `${name} corners run TL, TR, BR, BL`);
+      assert.ok(tr[0] - tl[0] > 50 && bl[1] - tl[1] > 50, `${name} screen has a size`);
     }
     // Only the TV room is painted with the set on; the others get a lit glass from the overlay.
     assert.equal(TV_SCREENS.tv.lit, true);
     for (const name of ["bag", "draw", "play", "rest"]) assert.equal(TV_SCREENS[name].lit, false);
+    // The TV room set is seen at an angle: its glass is taller on the right than the left.
+    const [tl, tr, br, bl] = TV_SCREENS.tv.quad;
+    assert.ok(br[1] - tr[1] - (bl[1] - tl[1]) >= 10, "TV room glass narrows to the left");
     // The TV room screen sits low; its strip goes at the top of the glass so the panel never covers it.
     assert.equal(TV_SCREENS.tv.strip, "top");
+  });
+
+  it("the caption is warped onto the four corners of the glass (homography), not pasted flat", () => {
+    for (const [name, screen] of Object.entries(TV_SCREENS)) {
+      const h = canvasHeight(screen.quad);
+      const m = quadMatrix(screen.quad, CANVAS_W, h);
+      const corners = [[0, 0], [CANVAS_W, 0], [CANVAS_W, h], [0, h]].map(([x, y]) => applyMatrix(m, x, y));
+      corners.forEach(([x, y], i) => {
+        assert.ok(Math.abs(x - screen.quad[i][0]) < 1e-6 && Math.abs(y - screen.quad[i][1]) < 1e-6, `${name} corner ${i} lands on the glass`);
+      });
+      assert.ok(h > 100 && h < 1000, `${name} canvas keeps the glass's shape`);
+    }
+    // A true perspective term on the angled set; a flat paste would have none.
+    const tv = quadMatrix(TV_SCREENS.tv.quad, CANVAS_W, canvasHeight(TV_SCREENS.tv.quad));
+    assert.ok(Math.abs(tv[3]) > 1e-7 || Math.abs(tv[7]) > 1e-7);
+    // An exact rectangle maps with no perspective term.
+    const flat = quadMatrix([[10, 10], [110, 10], [110, 60], [10, 60]], 100, 50);
+    assert.deepEqual(flat.map((n) => +n.toFixed(9)), [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 10, 0, 1]);
   });
 
   it("the headline is factual and one per year", () => {
@@ -742,7 +765,12 @@ describe("TV news headlines (2026-10-09)", () => {
     assert.match(app, /const news = newsHeadline\(storyYear, turns\.map\(\(turn\) => turn\.text\)\)/);
     assert.match(app, /news=\{news\}/);
     assert.match(app, /state\.phase === "fifteen" \? 1996 : year\?\.year \?\? null/);
+    assert.match(stage, /transform: `matrix3d\(\$\{matrix/);
+    assert.match(stage, /transform: `scale\(\$\{scale\}\)`/);
+    assert.match(stage, /setScale\(stage\.clientWidth \/ SOURCE_W\)/, "source pixels follow the stage width");
     assert.match(css, /\.ui-tv-strip \{/);
-    assert.match(css, /\.ui-tv-headline \{[^}]*font-size: clamp\(9px, 15\.5cqw, 1\.2rem\)/, "follows the screen size, capped so a big screen keeps one line");
+    assert.match(css, /\.ui-tv-scan \{[^}]*mix-blend-mode: multiply/);
+    assert.match(css, /\.ui-tv-sheen \{[^}]*mix-blend-mode: screen/);
+    assert.match(css, /\.ui-tv-screen \{[^}]*border-radius/, "rounded CRT corners");
   });
 });
