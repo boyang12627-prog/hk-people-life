@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode, type Ref } from "react";
-import { isDone, isTyping, skipReveal, startReveal, stepReveal, type Reveal } from "@/game/reveal";
+import { isDone, isTyping, startReveal, stepReveal, type Reveal } from "@/game/reveal";
 
 /**
  * UI V4 layout pieces: a full-bleed 16:9 stage (scene painting), a round wooden status frame
@@ -44,26 +44,31 @@ function StatusFrame() {
   );
 }
 
-/** The long old-paper panel. `side` holds the hanging tags; on narrow screens they drop below the text. */
-export function PaperPanel({ heading, children, side, live, portrait, log }: { heading?: ReactNode; children: ReactNode; side?: ReactNode; live?: ReactNode; portrait?: ReactNode; log?: ReactNode }) {
+/**
+ * The long old-paper panel. `side` holds the hanging tags; on narrow screens they drop below the text.
+ * `next` is the single 下一句 tag while lines are still being read: a narrow column at the panel's
+ * right edge, vertically centred, so the text keeps most of the width.
+ */
+export function PaperPanel({ heading, children, side, next, live, portrait, log }: { heading?: ReactNode; children: ReactNode; side?: ReactNode; next?: ReactNode; live?: ReactNode; portrait?: ReactNode; log?: ReactNode }) {
   const { afternoons } = useContext(StatusContext);
   return (
     <div className="ui-panel flex h-full min-h-0 rounded-md md:h-auto">
       {log}
       <div aria-hidden="true" className="ui-scroll-end relative my-4 ml-1.5 w-3.5 shrink-0 rounded-sm md:ml-2 md:w-5" />
-      {portrait ? <div className="ml-2 md:ml-3">{portrait}</div> : null}
-      <div className="flex min-h-0 flex-1 flex-col gap-1 pb-7 pl-2 pr-3 pt-4 md:flex-row md:gap-4 md:pl-3">
+      {portrait ? <div className="ml-2 md:ml-4">{portrait}</div> : null}
+      <div className="flex min-h-0 flex-1 flex-col gap-1 pb-7 pl-2 pr-3 pt-4 md:flex-row md:gap-5 md:pl-4 md:pr-4">
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          {heading ? (
-            <div className="mb-1 flex items-center gap-2">
-              <Mug />
-              {heading}
-            </div>
-          ) : null}
+          {heading ? <div className="mb-1.5 flex items-center gap-2">{heading}</div> : null}
           {live}
           {children}
         </div>
-        {side ? <div className="ui-tags max-h-[48%] shrink-0 overflow-y-auto px-1 pb-1 md:max-h-none md:w-[42%] md:max-w-xl">{side}</div> : null}
+        {next ? (
+          <div data-next="true" className="flex shrink-0 justify-end px-1 pb-1 md:w-48 md:self-center md:pb-3">
+            <div className="w-full max-w-60 md:max-w-none">{next}</div>
+          </div>
+        ) : side ? (
+          <div className="ui-tags max-h-[48%] shrink-0 overflow-y-auto px-1 pb-1 md:max-h-none md:w-[42%] md:max-w-xl">{side}</div>
+        ) : null}
       </div>
       {afternoons !== null ? (
         <p className="pointer-events-none absolute bottom-1.5 right-3 flex items-center gap-1 font-serif text-sm text-[#5c3a1e]" aria-label={`今年還有 ${afternoons} 個下午`}>
@@ -78,8 +83,8 @@ export function PaperPanel({ heading, children, side, live, portrait, log }: { h
 export function PanelHeading({ kicker, title }: { kicker: string; title: string }) {
   return (
     <div className="min-w-0">
-      <p className="text-xs tracking-wide text-ink/60">{kicker}</p>
-      <h1 className="font-serif text-lg leading-snug text-pretty text-ink md:text-xl">{title}</h1>
+      <p className="text-xs tracking-wide text-ink/60 md:text-sm">{kicker}</p>
+      <h1 className="font-serif text-lg leading-snug text-pretty text-ink md:text-[1.375rem]">{title}</h1>
     </div>
   );
 }
@@ -110,11 +115,11 @@ export type Side = "left" | "right";
 export function PanelPortrait({ src, height, name, accent }: { src: string; height: number; name: string; accent: string }) {
   return (
     <div data-portrait={name} className="ui-portrait flex shrink-0 flex-col items-center self-start pt-4" style={{ ["--accent" as string]: accent }}>
-      <div className="ui-bust relative aspect-[4/5] w-16 overflow-hidden rounded-t-full md:w-[6.5rem]">
+      <div className="ui-bust relative aspect-[4/5] w-16 overflow-hidden rounded-t-full md:w-[7.25rem]">
         {/* Sprites are full-length and of different widths; size by height so every head comes out the same size. */}
         <img src={src} alt="" decoding="async" className="absolute left-1/2 top-[7%] w-auto max-w-none -translate-x-1/2" style={{ height: `${height}%` }} />
       </div>
-      <p className="ui-nameplate relative z-10 -mt-2 rounded-sm px-2 py-0.5 font-serif text-xs tracking-wide md:text-sm">{name}</p>
+      <p className="ui-nameplate relative z-10 -mt-2 rounded-sm px-2.5 py-0.5 font-serif text-sm tracking-wide md:text-base">{name}</p>
     </div>
   );
 }
@@ -134,7 +139,7 @@ function prefersStill() {
 /**
  * Line-by-line reveal with an optional typewriter (off under prefers-reduced-motion, or with
  * localStorage hk-life-typewriter=0). advance() first finishes the line being typed, then shows
- * the next one. skip() shows everything. The rules live in game/reveal.ts.
+ * the next one. There is no skip-all: every line is read. The rules live in game/reveal.ts.
  */
 export function useReveal(lengths: readonly number[]) {
   const still = useRef(prefersStill());
@@ -150,9 +155,8 @@ export function useReveal(lengths: readonly number[]) {
 
   const key = lengths.join(",");
   const advance = useCallback(() => setR((prev) => stepReveal(prev, lengths, still.current)), [key]); // eslint-disable-line react-hooks/exhaustive-deps
-  const skip = useCallback(() => setR(skipReveal(lengths)), [key]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { shown: Math.min(r.shown, lengths.length), chars: r.chars, typing, done, advance, skip };
+  return { shown: Math.min(r.shown, lengths.length), chars: r.chars, typing, done, advance };
 }
 
 /** Space or Enter advances when focus is not on a control that already uses those keys. */
@@ -169,18 +173,6 @@ export function useAdvanceKeys(active: boolean, advance: () => void) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [active, advance]);
-}
-
-/** Small enamel mug: white enamel, dark rim, a chip. */
-export function Mug() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 28 28" className="h-6 w-6 shrink-0 md:h-7 md:w-7">
-      <path d="M5 8h14v12a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3z" fill="#efe8d8" stroke="#35665d" strokeWidth="1.6" />
-      <path d="M19 11h2.5a3 3 0 0 1 0 6H19" fill="none" stroke="#35665d" strokeWidth="1.6" />
-      <ellipse cx="12" cy="8" rx="7" ry="1.6" fill="#35665d" />
-      <circle cx="9" cy="17" r="1" fill="#5c3a1e" opacity="0.7" />
-    </svg>
-  );
 }
 
 /** Small striped plastic bag. */

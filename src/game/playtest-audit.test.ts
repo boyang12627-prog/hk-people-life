@@ -526,7 +526,7 @@ describe("ui v4 — stage, paper panel, line-by-line reveal", () => {
     const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
     const anchors = readFileSync(new URL("./sceneAnchors.ts", import.meta.url), "utf8");
     assert.ok(app.includes('aria-live="polite"'));
-    assert.ok(app.includes("reveal.done ? ("), "actions only after every line");
+    assert.ok(app.includes("side={reveal.done ? <div ref={sideRef} className=\"contents\">{actions}</div> : null}"), "actions only after every line");
     assert.ok(app.includes("useAdvanceKeys"));
     assert.ok(stage.includes("下午 {afternoons}/2"));
     assert.ok(stage.includes("prefers-reduced-motion"));
@@ -550,6 +550,15 @@ describe("ui v4.5 — the portrait and name plate identify the speaker; nothing 
     const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
     assert.equal(/SpeechLayer|ui-bubble|ui-head-ring|PanelTail|panelTail|\btail=/.test(app + stage), false);
     assert.ok(/portrait=\{speaking &&/.test(app));
+  });
+  it("panel v2: no enamel mug, no skip-all, 下一句 sits in its own right-hand column, larger line text", () => {
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    assert.equal(/\bMug\b|enamel/.test(app + stage), false, "the enamel cup is gone from the panel");
+    assert.equal(/跳到最後|reveal\.skip|skipReveal/.test(app + stage), false, "no skip-to-end on the paper");
+    assert.match(app, /next=\{\s*reveal\.done \? null : \(\s*<Tag main label="下一句"/, "下一句 goes in the panel's next slot");
+    assert.match(stage, /data-next="true"[^>]*md:self-center/, "the next column is vertically centred on desktop");
+    assert.ok(app.includes("md:text-[1.4375rem]"), "line text is a step above text-xl on desktop");
   });
   it("every speaker has one accent", () => {
     for (const who of ["媽媽", "爸爸", "嫲嫲", "阿傑", "阿姨", "老師"] as const) assert.match(SPEAKER_ACCENT[who], /^#[0-9a-f]{6}$/);

@@ -596,42 +596,34 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
               {current.kind === "dialogue" ? `${current.name}：「${current.text}」` : current.text}
             </p>
           }
-          side={
-            <div ref={sideRef} className="contents">
-              {reveal.done ? (
-                actions
-              ) : (
-                <>
-                  <Tag main label="下一句" hint="空白鍵" onClick={reveal.advance} tagRef={(node) => {
-                    if (node) {
-                      node.onfocus = () => { nextFocused.current = true; };
-                      node.onblur = () => { nextFocused.current = false; };
-                    }
-                  }} />
-                  <button type="button" onClick={reveal.skip} className="col-span-full mt-2 min-h-11 w-full rounded-sm text-sm text-ink/70 underline decoration-dotted underline-offset-4">
-                    跳到最後
-                  </button>
-                </>
-              )}
-            </div>
+          side={reveal.done ? <div ref={sideRef} className="contents">{actions}</div> : null}
+          next={
+            reveal.done ? null : (
+              <Tag main label="下一句" hint="空白鍵" onClick={reveal.advance} tagRef={(node) => {
+                if (node) {
+                  node.onfocus = () => { nextFocused.current = true; };
+                  node.onblur = () => { nextFocused.current = false; };
+                }
+              }} />
+            )
           }
         >
           {/* Only the current line is on the paper; earlier lines are in 回看. */}
           <div className="flex flex-col gap-1.5" onClick={reveal.done ? undefined : reveal.advance} data-lines={turns.length} data-shown={reveal.shown}>
             {current.kind === "dialogue" ? (
               <div key={index} className="mt-0.5" data-kind="dialogue" data-current="true" data-speaker={current.name}>
-                <p className="flex items-center gap-1.5 text-sm tracking-wide md:text-base" style={{ color: accent }}>
-                  <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full" style={{ background: accent }} />
+                <p className="flex items-center gap-1.5 text-sm tracking-wide md:text-lg" style={{ color: accent }}>
+                  <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full md:h-2.5 md:w-2.5" style={{ background: accent }} />
                   <span className="font-medium">{current.name}</span>
                   {where ? <span className="text-ink/70">{where}</span> : null}
                 </p>
-                <p className="text-pretty text-base leading-7 text-ink md:text-xl md:leading-9">
+                <p className="text-pretty text-[1.0625rem] leading-7 text-ink md:text-[1.4375rem] md:leading-[1.75]">
                   「{textOf(index)}
                   {reveal.typing ? <span aria-hidden="true" className="ui-caret">▍</span> : "」"}
                 </p>
               </div>
             ) : (
-              <p key={index} className={`mt-0.5 text-pretty text-base leading-7 md:text-xl md:leading-9 ${current.kind === "action" ? "text-ink/85" : "text-ink"}`} data-kind={current.kind} data-current="true">
+              <p key={index} className={`mt-0.5 text-pretty text-[1.0625rem] leading-7 md:text-[1.4375rem] md:leading-[1.75] ${current.kind === "action" ? "text-ink/85" : "text-ink"}`} data-kind={current.kind} data-current="true">
                 {current.kind === "action" && current.where ? <span className="mr-1.5 text-xs tracking-wide text-[#5c3a1e] md:text-sm">{current.where}</span> : null}
                 {textOf(index)}
                 {reveal.typing ? <span aria-hidden="true" className="ui-caret">▍</span> : null}
