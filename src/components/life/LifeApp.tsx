@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { Battle } from "@/components/life/Battle";
 import { playRoom, playTone, unlockAudio } from "@/components/life/audio";
-import { Frame, PanelHeading, PanelPortrait, PanelTail, PaperPanel, StatusContext, Tag, useAdvanceKeys, useReveal, type Status } from "@/components/life/Stage";
+import { Frame, PanelHeading, PanelPortrait, PaperPanel, StatusContext, Tag, useAdvanceKeys, useReveal, type Status } from "@/components/life/Stage";
 import { lineAt } from "@/game/reveal";
 import { SPEAKER_ACCENT, anchorFor, isOffscreen } from "@/game/sceneAnchors";
 import {
@@ -548,7 +548,7 @@ function Paper(props: PaperProps) {
   return <PaperPage key={signature} {...props} turns={turns} />;
 }
 
-/** Narration, action, and dialogue are all drawn on the paper; none is dropped. A dialogue line brings its speaker's portrait and a tail pointing at them. */
+/** Narration, action, and dialogue are all drawn on the paper; none is dropped. A dialogue line brings its speaker's portrait and name plate. */
 function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, children }: PaperProps & { turns: Turn[] }) {
   const gender = useContext(Face);
   const picture = plate ?? scenePlate(scene, gender);
@@ -590,7 +590,6 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
           }
           log={log ? <LineLog turns={past} onClose={() => setLog(false)} /> : null}
           portrait={speaking && person && person !== "child" ? <PanelPortrait key={speaking.name} {...personPortrait(person)} name={speaking.name} accent={accent} /> : null}
-          tail={speaking?.speaker ? <PanelTail head={anchor && !isOffscreen(anchor) ? anchor : null} offscreen={anchor && isOffscreen(anchor) ? anchor.offscreen : null} accent={accent} /> : null}
           live={
             <p className="sr-only" aria-live="polite">
               {current.kind === "dialogue" ? `${current.name}：「${current.text}」` : current.text}

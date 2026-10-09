@@ -30,9 +30,9 @@
 ## V4.2 — speaker anchors
 
 - `src/game/sceneAnchors.ts` records the head of every person in each Q painting (`x`, `y` as fractions of the 16:9 image, `r` head radius as a fraction of its height), measured by eye; boy and girl versions share a layout. A speaker who talks on a page but is not painted gets `{ offscreen, label }` (e.g. Dad in EVT_1986_SKILL_05 on the kindergarten plate: 「（旁邊）」).
-- Audit: every dialogue speaker on a painted page across the playtest lives must have an anchor or offscreen entry.
+- (V4.5) The anchors are no longer drawn or audited; they stay as data for future use. Only the offscreen `label` is still used, for 「（旁邊）」 after the speaker's name.
 
-## V4.3 — RPG dialogue box with a pointer tail (replaces the V4.2 bubble)
+## V4.3 — RPG dialogue box (replaces the V4.2 bubble; the pointer tail described here was removed in V4.5)
 
 - No speech bubble and no head ring on the painting any more; the painting stays clean.
 - Dialogue lives in the bottom panel. When the current line is dialogue, the speaker's portrait (arched window, name plate under it) sits at the panel's left edge, right of the purple scroll end, and the line is shown beside it as name + 「line」 in a larger size. Narration and action lines show no portrait. (V4.4: the panel now shows only the current line; see below.)
@@ -51,3 +51,8 @@
 - After the last line the choice tags appear, with that last line still on the paper. 「全部顯示」 is now 「跳到最後」 (jumps to the last line).
 - 「回看」 (shown once at least one line has been read) opens a small log over the panel listing the earlier lines (speaker names in their accent). It is a `role="dialog"` with focus moved to 「關上」; Esc or the button closes it and focus returns to 「回看」. Space/tap do not advance while it is open.
 - a11y: the `aria-live="polite"` line still announces each current line (「name：「line」」 for dialogue).
+
+## V4.5 — no pointer tail
+
+- The panel's pointer tail is gone, for dialogue and offscreen voices alike. The speaker is identified by the portrait at the panel's left edge, the name plate under it, and the name above the line, all in the speaker's accent. Offscreen voices keep the 「（旁邊）」 label.
+- `src/game/panelTail.ts` and its geometry tests are deleted; the head-anchor audit is dropped. A guard test keeps bubbles, head rings and tails from coming back.

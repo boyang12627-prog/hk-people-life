@@ -1,12 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { isDone, isTyping, skipReveal, startReveal, stepReveal, type Reveal } from "@/game/reveal";
-import { offscreenStub, panelTail, type HeadPoint, type Point, type Tail } from "@/game/panelTail";
-
-export type { HeadPoint };
 
 /**
  * UI V4 layout pieces: a full-bleed 16:9 stage (scene painting), a round wooden status frame
- * top-left, and an old-paper panel (speaker portrait + pointer tail for dialogue) at the
+ * top-left, and an old-paper panel (speaker portrait for dialogue) at the
  * bottom with hanging paper tags for choices. No text is ever baked into an image.
  */
 
@@ -48,11 +45,10 @@ function StatusFrame() {
 }
 
 /** The long old-paper panel. `side` holds the hanging tags; on narrow screens they drop below the text. */
-export function PaperPanel({ heading, children, side, live, portrait, tail, log }: { heading?: ReactNode; children: ReactNode; side?: ReactNode; live?: ReactNode; portrait?: ReactNode; tail?: ReactNode; log?: ReactNode }) {
+export function PaperPanel({ heading, children, side, live, portrait, log }: { heading?: ReactNode; children: ReactNode; side?: ReactNode; live?: ReactNode; portrait?: ReactNode; log?: ReactNode }) {
   const { afternoons } = useContext(StatusContext);
   return (
     <div className="ui-panel flex h-full min-h-0 rounded-md md:h-auto">
-      {tail}
       {log}
       <div aria-hidden="true" className="ui-scroll-end relative my-4 ml-1.5 w-3.5 shrink-0 rounded-sm md:ml-2 md:w-5" />
       {portrait ? <div className="ml-2 md:ml-3">{portrait}</div> : null}
@@ -120,49 +116,6 @@ export function PanelPortrait({ src, height, name, accent }: { src: string; heig
       </div>
       <p className="ui-nameplate relative z-10 -mt-2 rounded-sm px-2 py-0.5 font-serif text-xs tracking-wide md:text-sm">{name}</p>
     </div>
-  );
-}
-
-const TAIL_FILL = "#efe3c8";
-
-/**
- * The panel's pointer tail. Lives inside the panel (position: relative) and draws upward into the
- * painting, from the panel's top edge to just short of the speaker's head. Re-measures on resize.
- */
-export function PanelTail({ head, offscreen, accent }: { head: HeadPoint | null; offscreen: "left" | "right" | "top" | null; accent: string }) {
-  const ref = useRef<SVGSVGElement>(null);
-  const [tail, setTail] = useState<Tail | null>(null);
-  const key = head ? `${head.x},${head.y},${head.r}` : offscreen ?? "none";
-  useLayoutEffect(() => {
-    const svg = ref.current;
-    const panel = svg?.parentElement;
-    const stage = panel?.closest("section")?.querySelector(".ui-stage");
-    if (!svg || !panel || !stage) return;
-    const measure = () => {
-      const p = panel.getBoundingClientRect();
-      const s = stage.getBoundingClientRect();
-      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-      const half = rem * 1.1;
-      if (head) setTail(panelTail({ stage: { x: s.left, y: s.top, w: s.width, h: s.height }, panel: { x: p.left, y: p.top, w: p.width, h: p.height }, head, half }));
-      else if (offscreen) setTail(offscreenStub({ panelW: p.width, side: offscreen, half }));
-      else setTail(null);
-    };
-    measure();
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
-    observer?.observe(panel);
-    observer?.observe(stage);
-    return () => observer?.disconnect();
-  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
-  const f = (q: Point) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`;
-  return (
-    <svg ref={ref} aria-hidden="true" data-tail={tail ? (tail.dashed ? "offscreen" : "head") : "none"} className="pointer-events-none absolute left-0 top-0 z-10 h-px w-full overflow-visible">
-      {tail ? (
-        <>
-          <path d={`M${f(tail.b1)} L${f(tail.tip)} L${f(tail.b2)} Z`} fill={TAIL_FILL} fillOpacity={tail.dashed ? 0.85 : 1} />
-          <path d={`M${f(tail.b1)} L${f(tail.tip)} L${f(tail.b2)}`} fill="none" stroke={accent} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" strokeDasharray={tail.dashed ? "5 4" : undefined} data-tip={f(tail.tip)} />
-        </>
-      ) : null}
-    </svg>
   );
 }
 

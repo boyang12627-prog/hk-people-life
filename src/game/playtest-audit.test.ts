@@ -37,7 +37,6 @@ import { scanSources } from "../../scripts/voice-scan.ts";
 import type { Gender, State } from "./types.ts";
 import { isDone, lineAt, skipReveal, startReveal, stepReveal } from "./reveal.ts";
 import { SCENE_ANCHORS, SPEAKER_ACCENT, isOffscreen, plateName } from "./sceneAnchors.ts";
-import { TAIL_EDGE, TAIL_STOP, offscreenStub, panelTail } from "./panelTail.ts";
 import { beatPlate, eventPlate, scenePlate } from "./art.ts";
 import { say, type SceneLine } from "./scene.ts";
 
@@ -517,7 +516,7 @@ describe("ui v4 — stage, paper panel, line-by-line reveal", () => {
     assert.ok(app.includes("lineAt(turns, reveal)") && app.includes('data-current="true"'));
     assert.ok(app.includes('role="dialog"') && app.includes("回看") && app.includes('"Escape"'), "回看 log is a closable dialog");
     assert.ok(app.includes("useAdvanceKeys(!reveal.done && !log"), "space does not advance under the log");
-    assert.ok(/portrait=\{speaking &&/.test(app) && /tail=\{speaking\?\.speaker/.test(app), "portrait and tail only for a dialogue line");
+    assert.ok(/portrait=\{speaking &&/.test(app), "portrait only for a dialogue line");
   });
 
   it("every line is drawn, choices wait for the last line, lines are announced, and the palette stays at or below amber", () => {
@@ -545,101 +544,12 @@ describe("ui v4 — stage, paper panel, line-by-line reveal", () => {
   });
 });
 
-describe("ui v4.2 — speech bubbles point at the person who speaks", () => {
-  it("every dialogue speaker on a painted page has a head anchor in that painting, or an explicit offscreen entry", () => {
-    const missing = new Set<string>();
-    const seen = new Set<string>();
-    for (const life of LIVES) {
-      for (const page of life.pages) {
-        const s = page.state;
-        let plate: string | null = null;
-        let sequence: SceneLine[] = [];
-        if (page.phase === "story") {
-          const beat = s.note as Parameters<typeof beat1985>[0];
-          const story = beat1985(beat, s);
-          plate = beatPlate(beat, s.gender) ?? scenePlate(story.scene, s.gender);
-          sequence = story.sequence;
-        } else if (page.phase === "event") {
-          const card = cardFor(s.eventId ?? "", s);
-          plate = eventPlate(s.eventId, s.gender, card.scene) ?? scenePlate(card.scene, s.gender);
-          sequence = card.sequence;
-        } else if (page.phase === "repair") {
-          plate = beatPlate("sat-night", s.gender);
-          sequence = [say("媽媽", "為什麼走到門口？")];
-        }
-        for (const line of sequence) {
-          if (line.type !== "dialogue") continue;
-          const name = plateName(plate);
-          seen.add(`${name}:${line.speaker}`);
-          if (!name || !SCENE_ANCHORS[name]?.[line.speaker]) missing.add(`${name}:${line.speaker} (${s.eventId ?? s.note})`);
-        }
-      }
-    }
-    console.log(`bubble anchors used ${[...seen].sort().join(" ")}`);
-    assert.deepEqual([...missing].sort(), []);
-    for (const [name, anchors] of Object.entries(SCENE_ANCHORS)) {
-      for (const [who, anchor] of Object.entries(anchors)) {
-        if (!anchor || isOffscreen(anchor)) continue;
-        assert.ok(anchor.x > 0 && anchor.x < 1 && anchor.y > 0 && anchor.y < 1 && anchor.r > 0 && anchor.r < 0.2, `${name}:${who}`);
-      }
-    }
-    assert.equal(plateName("/hk-people-life/art/q/market-girl.webp"), "market");
-    assert.equal(plateName("/art/1985/memory.jpg"), null);
-  });
-});
-
-describe("ui v4.3 — the dialogue panel's tail points at the speaker's head", () => {
-  // Desktop: the panel overlays the bottom ~40% of a 1280x720 stage. Phone: the panel sits below the stage.
-  const LAYOUTS = {
-    desktop: { stage: { x: 0, y: 0, w: 1280, h: 720 }, panel: { x: 26, y: 446, w: 1228, h: 256 } },
-    phone: { stage: { x: 0, y: 0, w: 390, h: 219 }, panel: { x: 6, y: 227, w: 378, h: 600 } },
-  };
-  it("for every anchored speaker, the tip stops on a ring round the head, aims at its centre, sits above the panel, and the base stays on the panel's top edge", () => {
-    for (const [layout, { stage, panel }] of Object.entries(LAYOUTS)) {
-      const half = 14;
-      for (const [name, anchors] of Object.entries(SCENE_ANCHORS)) {
-        for (const [who, head] of Object.entries(anchors)) {
-          // The child never speaks a dialogue line; only speakers get a tail.
-          if (!head || isOffscreen(head) || who === "child") continue;
-          const tail = panelTail({ stage, panel, head, half });
-          const label = `${layout} ${name}:${who}`;
-          assert.ok(tail, label);
-          const A = { x: stage.x + head.x * stage.w - panel.x, y: stage.y + head.y * stage.h - panel.y };
-          const R = head.r * stage.h;
-          assert.ok(Math.abs(Math.hypot(tail.tip.x - A.x, tail.tip.y - A.y) - R * TAIL_STOP) < 0.5, `${label} tip on the ring`);
-          const base = { x: (tail.b1.x + tail.b2.x) / 2, y: 0 };
-          const cross = (tail.tip.x - A.x) * (base.y - A.y) - (tail.tip.y - A.y) * (base.x - A.x);
-          assert.ok(Math.abs(cross) < 1e-6 * Math.max(1, R * R * 100), `${label} base, tip and head centre are in line`);
-          assert.ok(tail.tip.y < 0, `${label} tip above the panel`);
-          assert.ok(tail.b1.y === 0 && tail.b2.y === 0 && tail.b1.x >= TAIL_EDGE && tail.b2.x <= panel.w - TAIL_EDGE, `${label} base on the top edge`);
-          assert.ok(tail.tip.y > A.y || Math.abs(tail.tip.x - A.x) > R, `${label} tip comes from below or beside, not across the face`);
-          assert.equal(tail.dashed, false);
-        }
-      }
-    }
-  });
-  it("the base slides under the speaker and clamps at the panel's ends", () => {
-    const { stage, panel } = LAYOUTS.desktop;
-    const left = panelTail({ stage, panel, head: { x: 0.16, y: 0.25, r: 0.08 }, half: 14 });
-    const right = panelTail({ stage, panel, head: { x: 0.72, y: 0.17, r: 0.08 }, half: 14 });
-    const edge = panelTail({ stage, panel, head: { x: 0.005, y: 0.2, r: 0.05 }, half: 14 });
-    assert.ok(left && right && edge);
-    assert.ok(Math.abs((left.b1.x + left.b2.x) / 2 - (0.16 * 1280 - 26)) < 0.01);
-    assert.ok(Math.abs((right.b1.x + right.b2.x) / 2 - (0.72 * 1280 - 26)) < 0.01);
-    assert.equal(edge.b1.x, TAIL_EDGE);
-    assert.equal(panelTail({ stage, panel: { ...panel, y: 100 }, head: { x: 0.5, y: 0.2, r: 0.1 }, half: 14 }), null, "head at the panel edge: no tail");
-  });
-  it("an offscreen voice gets a short dashed stub leaning toward its side", () => {
-    const stub = offscreenStub({ panelW: 1228, side: "left", half: 14 });
-    assert.equal(stub.dashed, true);
-    assert.ok(stub.tip.y < 0 && stub.tip.y > -40 && stub.tip.x < stub.b1.x);
-    assert.ok(offscreenStub({ panelW: 1228, side: "right", half: 14 }).tip.x > 1100);
-  });
-  it("no speech bubble or head ring on the painting; portrait and dialogue live in the panel", () => {
+describe("ui v4.5 — the portrait and name plate identify the speaker; nothing points into the painting", () => {
+  it("no speech bubble, head ring or pointer tail; portrait only for a dialogue line", () => {
     const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
     const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
-    assert.equal(/SpeechLayer|ui-bubble|ui-head-ring/.test(app + stage), false);
-    assert.ok(app.includes("portrait={") && app.includes("tail={"));
+    assert.equal(/SpeechLayer|ui-bubble|ui-head-ring|PanelTail|panelTail|\btail=/.test(app + stage), false);
+    assert.ok(/portrait=\{speaking &&/.test(app));
   });
   it("every speaker has one accent", () => {
     for (const who of ["媽媽", "爸爸", "嫲嫲", "阿傑", "阿姨", "老師"] as const) assert.match(SPEAKER_ACCENT[who], /^#[0-9a-f]{6}$/);

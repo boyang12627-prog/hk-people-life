@@ -7,7 +7,7 @@ import type { Speaker } from "./scene";
  * share one layout (checked side by side, the child's head moves by at most 0.02).
  *
  * A speaker who talks on a page but is not in the painting gets an `offscreen` entry instead, so the
- * panel shows a short dashed stub toward that side and a label such as 「（旁邊）」.
+ * panel shows a label such as 「（旁邊）」 after the name.
  */
 export type HeadAnchor = { x: number; y: number; r: number };
 export type Offscreen = { offscreen: "left" | "right" | "top"; label: string };
@@ -62,7 +62,7 @@ export function anchorFor(src: string | null | undefined, who: Who): HeadAnchor 
   return name ? SCENE_ANCHORS[name]?.[who] : undefined;
 }
 
-/** One accent per speaker: the panel portrait frame, name plate and pointer tail share it. All at or below amber. */
+/** One accent per speaker: the panel portrait frame, name plate and name share it. All at or below amber. */
 export const SPEAKER_ACCENT: Record<Speaker, string> = {
   媽媽: "#35665d",
   爸爸: "#3e4e6c",
