@@ -202,6 +202,8 @@ export type State = {
   battle: BattleOutcome | null;
   offeredExplore: boolean;
   name: string;
+  /** Dream, reality, and own-thinking when this year opened. Only the year-end sentence reads it. */
+  yearStart?: { dream: number; reality: number; think: number };
   schemaVersion: 3;
 };
 

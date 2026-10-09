@@ -58,6 +58,8 @@ export type BattleSpec = {
   goalLabel: string;
   /** Name of the line that already happened, under 剛才. */
   hitLabel: string;
+  /** Small caption over what is coming next. Shown before every step, not only the first. */
+  nextLabel: string;
   /**
    * Which skill unlocks a shared action. The names are the action's job, not the skill's nickname.
    * stabilize lowers the opening stress. prepared makes read stronger. see and ask only open those buttons.
@@ -113,6 +115,7 @@ export const KINDY_DOOR: BattleSpec = {
   label: "門口的聲音",
   goalLabel: "入到課室",
   hitLabel: "門口",
+  nextLabel: "下一聲",
   skills: { stabilize: "SKL_07", see: "SKL_02", ask: "SKL_04", prepared: "SKL_01" },
   techniques: { see: "TECH_READ_FACE" },
   skipKind: "win",
@@ -134,7 +137,7 @@ export const KINDY_DOOR: BattleSpec = {
       weakHint: "你還沒跟熟。只出到半個字，聲音小了一點。",
     },
     see: { label: "看臉色", detail: "避開下一聲", hint: "你看一看。下一聲，你會避開。" },
-    ask: { label: "問問題", detail: "走近少少", hint: "你問了一句。課室近了。" },
+    ask: { label: "問問題", detail: "走近一點", hint: "你問了一句。課室近了。" },
     braced: "你擋住了。聲音小了一半。",
     dodged: "你看得出哪一下會撞過來，避開了。",
     froze: "你站著。那一聲還是來了。",
@@ -149,7 +152,7 @@ export const KINDY_DOOR: BattleSpec = {
     },
     entered: "你進去了。",
     back: "你回到門口。",
-    skip: "你沒有打完。你還是進去了。",
+    skip: "你沒有一步一步想清楚，還是走進去了。",
     auto: "你跟著走完這段路。",
     skipButton: "跳過，算進去了",
     autoButton: "自動走進去",
@@ -169,6 +172,7 @@ export const PRIMARY_EXAM: BattleSpec = {
   label: "書桌前的時間",
   goalLabel: "做完這張卷",
   hitLabel: "試卷",
+  nextLabel: "下一題",
   skills: { stabilize: "SKL_07", see: "SKL_13", ask: "SKL_04", prepared: "SKL_01" },
   techniques: { see: "TECH_SPLIT_QUESTION" },
   skipKind: "win",
@@ -190,7 +194,7 @@ export const PRIMARY_EXAM: BattleSpec = {
       weakHint: "你還沒默過。只是再讀一次題目。",
     },
     see: { label: "先看哪題", detail: "這題可以放後", hint: "你先看哪題可以放後。" },
-    ask: { label: "分配時間", detail: "不是問老師", hint: "你把剩下的時間分了一下。" },
+    ask: { label: "分配時間", detail: "把剩下的時間分好", hint: "你把剩下的時間分了一下。" },
     braced: "你停住。這一分鐘沒有那麼趕。",
     dodged: "這題先放下。你去做會的。",
     froze: "你握著筆。時間還是在走。",
@@ -205,7 +209,7 @@ export const PRIMARY_EXAM: BattleSpec = {
     },
     entered: "你交了卷。",
     back: "你沒有做完。",
-    skip: "你沒有做完。卷子還是交了。",
+    skip: "你趕著寫完，有一兩題是猜的。卷子交了。",
     auto: "你自己做到收卷。",
     skipButton: "跳過，算交了卷",
     autoButton: "自動做完",
@@ -213,6 +217,19 @@ export const PRIMARY_EXAM: BattleSpec = {
 };
 
 export const BATTLE_SPECS = [KINDY_DOOR, PRIMARY_EXAM];
+
+/** Key in localStorage that keeps the skip and auto buttons on for a tester. */
+export const PLAYTEST_KEY = "hklife-playtest";
+
+/**
+ * Skip and auto are tester tools, not choices. They show only with `?playtest=1` in the address,
+ * or after a tester has set localStorage["hklife-playtest"] = "1".
+ */
+export function playtestTools(search: string, stored: string | null) {
+  const value = new URLSearchParams(search).get("playtest");
+  if (value === "0") return false;
+  return value === "1" || stored === "1";
+}
 
 /** Player-safe. Null means no fight is stored. A typo still opens the kindergarten door, and logs. Audit rejects the typo. */
 export function battleSpecById(id: string | null | undefined) {

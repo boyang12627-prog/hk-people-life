@@ -1,7 +1,7 @@
 import { INITIAL_COUNTERS, INITIAL_DERIVED, INITIAL_PRIMARY, type Approach, type BattleKind, type Effect, type SceneId, type State, type Tendency } from "./types";
-import { freshChain, friendFollow } from "./freedom";
+import { freshChain, friendFollow, knowsKit } from "./freedom";
 import { slotIs } from "./world";
-import { cardFor, choicesFor, STATIC_EVENTS, type Card, type Choice } from "./data/events";
+import { cardFor, choicesFor, STATIC_EVENTS, variantOf1986Market, type Card, type Choice } from "./data/events";
 import { heardNews, newsCold, picked, selectByPriority, type Spoken } from "./speak";
 
 export { cardFor, choicesFor, type Card, type Choice };
@@ -162,6 +162,51 @@ export const ACTIVITIES: Record<string, { id: string; label: string; detail: str
   },
 };
 
+/** 1984 and 1988 are one ordinary market trip with Mom. In 1985 and 1986 she goes on Saturday; on Sunday she stays home. */
+export function marketWithMom(year: number, slot: number) {
+  return (year !== 1985 && year !== 1986) || slot === 0;
+}
+
+/** The label is what the player is promised. A Sunday market trip does not promise Mom. */
+export function activityLabel(id: string, year: number, slot: number) {
+  if (id === "ACT_MARKET" && !marketWithMom(year, slot)) return "去街市";
+  return ACTIVITIES[id]?.label ?? id;
+}
+
+export function activityDetail(id: string, year: number, slot: number) {
+  if (id === "ACT_MARKET" && !marketWithMom(year, slot)) return "媽媽星期六已經買了菜，今天留在家。街市有誰在，到了才知道。";
+  return ACTIVITIES[id]?.detail ?? "";
+}
+
+/** The sentence under 這個下午. Reads only what already happened. */
+export function activityBlurb(id: string, state: Pick<State, "yearIndex" | "spent" | "skills" | "counter">) {
+  const year = yearOf(state).year;
+  if (id === "ACT_MARKET") {
+    return marketWithMom(year, state.spent.length)
+      ? "你拉著媽媽。那天地面很濕，魚檔的水滲進鞋子。"
+      : "你去了街市。地面很濕，魚檔的水滲進鞋子。媽媽今天留在家，沒有來。";
+  }
+  if (id === "ACT_DRAW" && (state.skills.includes("SKL_03") || state.counter.ART_PROGRESS >= 2)) {
+    return "你把紙塗滿。這一次你知道自己在畫什麼，畫完了才抬頭。";
+  }
+  return ACTIVITIES[id]?.blurb ?? "";
+}
+
+/** End-of-1986 offer. Says how many times you really went down; offered once. */
+export function exploreOfferTitle(state: Pick<State, "counter">) {
+  return state.counter.COUNTER_EXPLORE <= 0 ? "要不要下一次平台" : "要不要再下一次平台";
+}
+
+export function exploreOfferGo(state: Pick<State, "counter">) {
+  return state.counter.COUNTER_EXPLORE <= 0 ? "下平台" : "再下一次平台";
+}
+
+export function exploreOfferCopy(state: Pick<State, "counter">) {
+  return state.counter.COUNTER_EXPLORE <= 0
+    ? "這一年你沒有下過平台。屋邨門口在平台再過去一點。要不要下去一次？你也可以留在家裡。"
+    : "這一年你下過一次平台。再下去一次，會一直走到屋邨門口。你也可以留在家裡。";
+}
+
 const EVENT_SCENE: Record<string, SceneId> = {
   EVT_1984_NEWS_01: "home",
   EVT_1984_FAMILY_02: "home",
@@ -214,7 +259,7 @@ export function variantOf(id: string, state: State) {
   }
   if (id === "EVT_1986_FRIEND_09") return friendFollow(state);
   if (id === "EVT_1986_SKILL_05") return state.derived.INDEPENDENT_THOUGHT >= 50 ? "reflective" : "plain";
-  if (id === "EVT_1986_MARKET_07") return state.counter.REL_LOCAL_MARKET < 20 ? "first_meet" : "familiar";
+  if (id === "EVT_1986_MARKET_07") return variantOf1986Market(state);
   return "base";
 }
 
@@ -322,6 +367,34 @@ export function yearLean(dream: number, reality: number) {
   return "這一年，想做的和該做的，你還沒分出哪一樣先。";
 }
 
+/**
+ * The year-end sentence. It compares this year's movement, not the lifetime total,
+ * so a year spent on yourself and a year spent on chores read differently.
+ */
+export function yearSummary(state: Pick<State, "derived" | "yearStart">) {
+  const start = state.yearStart ?? { dream: 50, reality: 50, think: 40 };
+  const dream = state.derived.VALUE_DREAM - start.dream;
+  const reality = state.derived.VALUE_REALITY - start.reality;
+  const think = state.derived.INDEPENDENT_THOUGHT - start.think;
+  const gap = dream - reality;
+  if (gap >= 3) return "這一年，你多數先做自己想做的事。";
+  if (gap <= -3) return "這一年，你多數先做該做的事。";
+  if (think >= 3) return "這一年，你常常先問一句，才決定。";
+  if (dream + reality >= 4) return "這一年，想做的和該做的，你兩邊都做了一點。";
+  return "這一年，想做的和該做的，你還沒分出哪一樣先。";
+}
+
+/** The ending sentence. Same idea over the whole childhood. */
+export function orientationSummary(state: Pick<State, "derived">) {
+  const gap = state.derived.VALUE_DREAM - state.derived.VALUE_REALITY;
+  if (gap >= 8) return "過了這幾年，你似乎越來越想自己決定。";
+  if (gap <= -8) return "過了這幾年，你似乎越來越先做該做的事。";
+  if (state.derived.INDEPENDENT_THOUGHT >= 48) return "過了這幾年，你習慣先問一句為什麼，才決定。";
+  if (gap >= 6) return "過了這幾年，你多數先做想做的事，該做的也沒有放下。";
+  if (gap <= -6) return "過了這幾年，你多數先做該做的事，想做的也沒有放下。";
+  return "過了這幾年，想做的和該做的，你都放在心上，還沒分出哪一樣先。";
+}
+
 export function orientationLine(dream: number, reality: number) {
   const gap = dream - reality;
   if (gap >= 8) return "過了這幾年，你似乎越來越想自己決定。";
@@ -340,7 +413,8 @@ export function fifteenLines(state: State) {
   const penHeld = state.equipment.includes("EQP_BALLPOINT");
   if (keptPen && penHeld) lines.push("你小學那張卷，用的是同學多出來的那支筆。筆還在。");
   else if (keptPen) lines.push("那支原子筆不在了。你記得那張卷是用它寫的。");
-  const response = state.counter.PLAYER_DAD_CHOICE_RESPONSE;
+  const dadPick = picked(state, "MEM_DAD_WORK");
+  const response = state.counter.PLAYER_DAD_CHOICE_RESPONSE || (dadPick === "A" ? 1 : dadPick === "B" ? 2 : dadPick === "C" ? 3 : 0);
   if (response === 1) lines.push("你小時候把約定放下，自己去玩了。這天你沒有再等誰。");
   else if (response === 2) lines.push("你答應過他去上班。這天回家，你只應了一聲。");
   else if (response === 3) lines.push("你留下來陪過。這天你也先坐下，再答。");
@@ -387,13 +461,10 @@ function thirdHop(state: State) {
   else if (mom === "C") spoken.push({ priority: 0, text: "媽媽坐在那裡。你坐過去，沒有問很多。" });
   else if (mom === "B") spoken.push({ priority: 0, text: "你還是想有人陪。想完，你懂得自己把話收回來。" });
   const ball = picked(state, "MEM_RED_BALL");
-  if (ball === "B") spoken.push({ priority: 1, text: "朋友叫你。你會說輪流，不會一個人霸住。" });
+  if (ball === "B") spoken.push({ priority: 1, text: "朋友叫你。你會說輪流，不會一個人霸佔。" });
   else if (ball === "A") spoken.push({ priority: 1, text: "你記得自己霸過那個球。今天你不再搶先。" });
   else if (ball === "C") spoken.push({ priority: 1, text: "有人叫你。你站了一陣才走過去。" });
-  const dad = picked(state, "MEM_DAD_WORK");
-  if (dad === "B") spoken.push({ priority: 0, text: "爸爸又說要上班。你應了一聲，沒有再問整個下午。" });
-  else if (dad === "A") spoken.push({ priority: 0, text: "那個約定你小時候裂開過。今天你自己走，不必等人。" });
-  else if (dad === "C") spoken.push({ priority: 0, text: "爸爸留不住。你懂得坐下來等，不必立刻走。" });
+  // MEM_DAD_WORK is said once, by fifteenLines. Saying it here too gave two 約定 lines on one page.
   const market = picked(state, "MEM_MARKET_01");
   if (market === "B") spoken.push({ priority: 1, text: "有人幫你。你還是會問，一份好意是不是一定要還。" });
   else if (market === "A") spoken.push({ priority: 1, text: "街坊多給過你。你現在也會說謝謝。" });
@@ -409,7 +480,7 @@ function rememberedPeople(state: State) {
   if (picked(state, "MEM_GRAND_DAY") === "B") spoken.push({ priority: 1, text: "嫲嫲後來說湯還是熱的。你記得它涼了。" });
   if (picked(state, "MEM_NEIGHBOR") === "A") spoken.push({ priority: 1, text: "媽媽以為你不喜歡街市。你只是拉過她的衣袖。" });
   if (state.memories.some((item) => item.id === "MEM_OTHER_CHILD")) spoken.push({ priority: 1, text: "平台上那個孩子，你到現在也不知道名字。" });
-  if (state.npcDays.NPC_DAD_01?.todayOutcome === "overtime") spoken.push({ priority: 1, text: "那個星期六他替人留到最後。當時你只知道，鞋子脫得很慢。" });
+  if (state.npcDays.NPC_DAD_01?.todayOutcome === "overtime" && state.memories.some((item) => (item.memoryTypeId ?? item.id) === "MEM_DAD_HOME")) spoken.push({ priority: 1, text: "那個星期六他替人留到最後。當時你只知道，鞋子脫得很慢。" });
   return selectByPriority(spoken, 2);
 }
 
@@ -431,7 +502,7 @@ const RECALL: Record<string, Record<string, string>> = {
   },
   MEM_RED_BALL: {
     A: "紅球你不肯放。阿傑之後沒再叫你。",
-    B: "你和阿傑輪流玩。你不再一個人霸住球。",
+    B: "你和阿傑輪流玩。你不再一個人霸佔那個球。",
     C: "你走開。球留在別人那裡。",
   },
   MEM_FIRST_INTEREST: {
@@ -455,7 +526,7 @@ const RECALL: Record<string, Record<string, string>> = {
     A: "屋邨門口，你回去拉住人。",
     B: "你走到門口，然後自己停。",
     C: "你踏出過一步。媽媽叫你回去，你沒有走到馬路。",
-    skip: "你本來可以再下平台。你選了留在家裡。",
+    skip: "你本來可以下平台。你選了留在家裡。",
   },
 };
 
@@ -524,7 +595,7 @@ const VOICE_BIT: Record<string, Record<string, string>> = {
     A: "屋邨門口你回去拉住人",
     B: "你走到門口就自己停",
     C: "你踏出過屋邨門口一步，然後被人叫回去",
-    skip: "你本來可以再下平台，你選了留在家裡",
+    skip: "你本來可以下平台，你選了留在家裡",
   },
 };
 

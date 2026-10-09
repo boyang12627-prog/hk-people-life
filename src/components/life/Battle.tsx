@@ -18,10 +18,12 @@ type Props = {
   attack: number;
   held?: string;
   gender: Gender | null;
+  /** Skip and auto buttons. Tester tool only; see playtestTools(). */
+  tools?: boolean;
   onEnd: (outcome: BattleOutcome) => void;
 };
 
-export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearSpeed, stressResist, attack, held, gender, onEnd }: Props) {
+export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearSpeed, stressResist, attack, held, gender, tools = false, onEnd }: Props) {
   const stabilize = skills.includes(spec.skills.stabilize);
   const seeId = spec.techniques.see;
   const see = techniques.includes(seeId);
@@ -84,8 +86,8 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
           <img loading="lazy" decoding="async" src={personSrc("child", gender, sim.over ? "idle" : "think", spec.scene === "study" || spec.scene === "home" ? "sit" : "stand")} alt="" className="h-8 w-8 rounded-full border border-[#c4a574] object-cover object-[center_18%]" />
           <p className="font-serif text-sm tracking-wide text-[#6e4524]">{spec.label}</p>
         </div>
-        {!sim.over && !sim.hasActed ? <p className="text-xs text-[#6e4524]">下一聲</p> : null}
-        <p className="text-pretty text-base leading-7">{bonusOnly ? "還可以再走一步，或停一停。" : sim.over ? (entered ? spec.voice.entered : spec.voice.back) : sim.hasActed ? sim.hint : sim.threat.hint}</p>
+        {!sim.over && !bonusOnly ? <p className="text-xs text-[#6e4524]">{spec.nextLabel}</p> : null}
+        <p className="text-pretty text-base leading-7">{bonusOnly ? "還可以再走一步，或停一停。" : sim.over ? (entered ? spec.voice.entered : spec.voice.back) : sim.threat.hint}</p>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto bg-[#f6efe0] px-3 py-2 text-ink">
           <div>
@@ -143,8 +145,8 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
             {ask ? (
               <TurnButton label={spec.voice.ask.label} detail={costDetail(actionCost("ask"), spec.voice.ask.detail)} disabled={locked || broke("ask") || bonusLocked("ask")} onClick={() => choose("ask")} />
             ) : null}
-            <TurnButton label={spec.voice.skipButton} detail="" disabled={locked} onClick={() => endAs(spec.skipKind, spec.voice.skip)} />
-            <TurnButton label={spec.voice.autoButton} detail="" disabled={locked} onClick={() => endAs(resolveAuto(sim), spec.voice.auto)} />
+            {tools ? <TurnButton label={spec.voice.skipButton} detail="試玩用" disabled={locked} onClick={() => endAs(spec.skipKind, spec.voice.skip)} /> : null}
+            {tools ? <TurnButton label={spec.voice.autoButton} detail="試玩用" disabled={locked} onClick={() => endAs(resolveAuto(sim), spec.voice.auto)} /> : null}
           </div>
         </div>
       )}

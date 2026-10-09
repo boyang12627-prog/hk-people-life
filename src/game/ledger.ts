@@ -94,7 +94,7 @@ export const FLAG_LEDGER: FlagSpec[] = [
     consumerKind: "CODE",
     fallback: "Ah Jit sits at a normal distance.",
     scope: "life",
-    debugLabel: "霸住個波",
+    debugLabel: "霸佔紅球",
     owner: "friend",
   },
   {

@@ -1,6 +1,7 @@
 import type { SceneId, State } from "./types";
 import { picked } from "./speak";
 import { lifeMissed, placeOf } from "./world";
+import { knowsKit } from "./freedom";
 import { act, narrate, say, type SceneLine } from "./scene";
 
 export type BeatId = "open" | "downstairs" | "sat-night" | "sun-night" | "monday" | "aftermath";
@@ -16,9 +17,10 @@ export function isBeat(value: string | null): value is BeatId {
   return !!value && BEATS.has(value as BeatId);
 }
 
+/** What Mom saw on the way up. One sentence about how long he stayed, never two that disagree. */
 function missedHeard(state: State) {
   const mood = state.npcDays.NPC_FRIEND_01?.mood;
-  if (mood === "content") return "他一個人在平台踢波，也玩得很起勁。";
+  if (mood === "content") return "他自己踢球，玩了很久，也玩得很起勁。";
   if (mood === "left") return "他玩了一陣就走了。";
   return "他玩到天黑，後來坐在石凳上。";
 }
@@ -45,7 +47,9 @@ function satNight(state: State): SceneLine[] {
   } else if (news?.choiceId === "B") {
     seq.push(narrate("你說你在角落玩。媽媽說街市人很多，拉著她就好。"));
   } else if (news?.choiceId === "C") {
-    seq.push(narrate("你還記著那個聲音。媽媽把剩下的菜收進雪櫃，沒有再解釋。"));
+    seq.push(narrate("你還記著那個聲音。媽媽把剩下的菜收進冰箱，沒有再解釋。"));
+  } else if (state.spent[0] === "ACT_MARKET") {
+    seq.push(narrate("你跟媽媽從街市回來。鞋底還是濕的。"));
   } else if (state.spent[0] === "ACT_DRAW") {
     seq.push(narrate("紙還在桌上。嫲嫲下午坐在廳裡，看過那張紙，沒有收。"));
   } else if (state.spent[0] === "ACT_PLAY") {
@@ -54,10 +58,11 @@ function satNight(state: State): SceneLine[] {
     seq.push(narrate("你睡了很久。嫲嫲在家，沒有叫你。"));
   }
   if (!ball) {
-    seq.push(act("媽媽拎著膠袋走上來。", "屋邨走廊 · 傍晚"));
-    seq.push(act("媽媽把膠袋放下。", "家裡 · 門口"));
-    seq.push(say("媽媽", "今天樓下那個孩子，好像自己玩了很久。"));
-    seq.push(act("她把鞋脫在門口。你沒有下過樓。"));
+    const withMom = state.spent[0] === "ACT_MARKET";
+    seq.push(act(withMom ? "你們拎著塑膠袋走上來。經過平台的時候，媽媽看了一眼。" : "媽媽拎著塑膠袋走上來。", "屋邨走廊 · 傍晚"));
+    seq.push(act("媽媽把塑膠袋放下。", "家裡 · 門口"));
+    seq.push(say("媽媽", "樓下那個抱紅球的孩子，今天一個人在平台。"));
+    seq.push(act(withMom ? "她把鞋脫在門口。你今天沒有到平台。" : "她把鞋脫在門口。你今天沒有下過樓。"));
     seq.push(say("媽媽", missedHeard(state)));
   } else if (!news) seq.push(narrate(lifeMissed("NPC_MOM_01", "sat")));
   seq.push(narrate("袋子仍然在門口。明天還不是上學。"));
@@ -74,11 +79,11 @@ function sunNight(state: State): SceneLine[] {
     else if (waited?.emotion === "later") heard = "你說今天不行。他沒有再約。";
     else heard = "他來過。你沒有出聲。他走了。";
   } else if (kit?.nextPlan === "return") {
-    heard = waited ? "你下去的時候，他已經在玩。他說你昨天沒有下來。" : "阿傑今天又去了平台。你不在。他沒有上來找你。";
+    heard = waited ? "你下去的時候，他已經在玩。他說你昨天沒有下來。" : "平台上那個抱紅球的孩子，今天又去了平台。你不在。他沒有上來找你。";
   } else if (kit?.nextPlan === "avoid") {
     heard = "阿傑今天沒有來。球留在他家。他沒有再約你。";
   } else if (kit?.nextPlan === "withdraw") {
-    heard = "阿傑今天沒有來找你。昨天平台上只有他一個人。";
+    heard = knowsKit(state) ? "阿傑今天沒有來找你。" : "平台上那個抱紅球的孩子，今天沒有再出現。昨天平台上只有他一個人。";
   } else if (sun === "ACT_ESTATE") heard = `你今天下了樓。下過雨。${lifeMissed("NPC_FRIEND_01", "sun")}`;
   else if (sun === "ACT_MARKET") heard = lifeMissed("NPC_MOM_01", "sun");
   const seq: SceneLine[] = [
@@ -103,7 +108,7 @@ export function beat1985(id: BeatId, state: State): StoryPage {
       title: "袋子在門口",
       sequence: [
         act("媽媽把袋子放在門口。", "家裡 · 早上"),
-        say("媽媽", "明天開始上學。"),
+        say("媽媽", "星期一開始上學。"),
         act("爸爸在電視前面穿鞋。", "電視前面"),
         say("爸爸", "我去上班。"),
         say("媽媽", "今晚早點睡。"),
@@ -130,9 +135,12 @@ export function beat1985(id: BeatId, state: State): StoryPage {
   if (id === "monday") {
     const ball = state.memories.find((item) => item.id === "MEM_RED_BALL");
     const plan = state.npcDays.NPC_FRIEND_01?.nextPlan;
-    let door = "這一次不是你按下去才發生。明天已經到了。";
-    if (plan === "seek") door = "門裡有人在等。是昨天來找你的那個孩子。";
-    else if (plan === "return") door = "你昨天沒有下去。今天你先看平台那個方向。";
+    const waited = state.memories.find((item) => item.id === "MEM_KIT_WAIT");
+    let door = "星期一到了。";
+    if (plan === "seek") door = "門裡有人在等。是昨天上來找你的阿傑。";
+    else if (plan === "return" && waited?.choiceId === "A") door = "昨天你在平台和阿傑玩過。今天你先找他。";
+    else if (plan === "return" && waited) door = "昨天你在平台見過阿傑。今天你先看他在不在。";
+    else if (plan === "return") door = "星期六你沒有下去。今天你先看平台那個方向。";
     else if (plan === "avoid") door = "你沒有找人。他昨天沒有再約你。";
     else if (ball?.emotion === "hold") door = "你沒有找人。你記得自己不肯放。";
     return {
