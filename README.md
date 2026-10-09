@@ -71,9 +71,9 @@ Gate 1 要求量度「寫一個事件要幾耐」。人類坐下來寫對白的�
 
 ## 美術
 
-方向在 [docs/ART_BIBLE.md](docs/ART_BIBLE.md)。現行只有 Q 版一套：每個地方一張 Q 版全圖，男女各一張，在 `public/art/q/`，1984 到 1988 和戰鬥（門口、變擠、進去之後、1988 書桌）都用這一套。對話框頭像在 `public/art/1985/people/`。1996 疊的那一小塊記憶是 `public/art/1985/memory.jpg`。頭身比等幾項仍是待定，寫在 Art Bible 裡。
+方向在 [docs/ART_BIBLE.md](docs/ART_BIBLE.md)。現行只有 Q 版一套：每個地方一張 Q 版全圖，男女各一張，在 `public/art/q/`，1984 到 1988 和戰鬥（門口、變擠、進去之後、1988 書桌）都用這一套。對話框頭像在 `public/art/1985/people/`。1996 疊的那一小塊記憶是 `public/art/1985/memory.jpg`。頭身比、線和眼睛以現有圖為準，寫在 Art Bible 裡。
 
-程式真正用到的圖由 `src/game/art.ts` 的 `imageManifest()` 列出。`public/art/1984/dinner-*.jpg` 和 `public/art/1985/` 的 `cast`、`door-*`、`pressure-*`、`inside-*`、`later-*` 不在清單上，暫時保留，未刪。
+程式真正用到的圖由 `src/game/art.ts` 的 `imageManifest()` 列出，`public/art/` 裡沒有清單以外的檔。舊的 `public/art/1984/dinner-*.jpg` 和 `public/art/1985/` 的 `cast`、`door-*`、`pressure-*`、`inside-*`、`later-*` 已刪，只留在 git 歷史。頭像 PNG 已縮到長邊 320px（畫面只用 32px）。
 
 ## 檢查
 

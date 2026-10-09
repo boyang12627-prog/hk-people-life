@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBattle, initiativeFor, resolveTurn } from "./battleSim.ts";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
 import { beatPlate, eventPlate, imageManifest, slicePlate, yearPlate } from "./art.ts";
 import { lineText, sceneTurns, SPEAKERS, type SceneLine } from "./scene.ts";
@@ -1166,6 +1166,15 @@ describe("logic audit v3.2", () => {
     for (const want of ["/art/q/pressure-boy.jpg", "/art/q/inside-girl.jpg", "/art/q/draw-girl.jpg", "/art/1985/memory.jpg", "/art/1985/people/mom-sit.png"]) {
       assert.ok(manifest.includes(want), want);
     }
+    const onDisk: string[] = [];
+    const walk = (dir: URL, prefix: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (entry.isDirectory()) walk(new URL(`${entry.name}/`, dir), `${prefix}${entry.name}/`);
+        else onDisk.push(`${prefix}${entry.name}`);
+      }
+    };
+    walk(new URL("../../public/art/", import.meta.url), "/art/");
+    assert.deepEqual(onDisk.filter((path) => !manifest.includes(path)).sort(), [], "public/art has files the game never asks for");
     for (const file of ["../components/life/LifeApp.tsx", "../components/life/Battle.tsx"]) {
       assert.equal(readFileSync(new URL(file, import.meta.url), "utf8").includes("/art/"), false, `${file} builds an art path outside art.ts`);
     }
