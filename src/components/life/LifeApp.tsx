@@ -580,10 +580,10 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
       panel={
         <PaperPanel
           heading={
-            <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
               <PanelHeading kicker={kicker} title={title} />
               {past.length > 0 ? (
-                <button type="button" onClick={() => setLog(true)} className="min-h-11 shrink-0 rounded-sm px-2 text-sm text-ink/70 underline decoration-dotted underline-offset-4" aria-haspopup="dialog">
+                <button type="button" onClick={() => setLog(true)} className="min-h-11 shrink-0 rounded-sm px-2 text-sm text-ink/70 underline decoration-dotted underline-offset-4 md:min-h-8" aria-haspopup="dialog">
                   回看
                 </button>
               ) : null}
@@ -624,7 +624,7 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
               </div>
             ) : (
               <div key={index} className="mt-0.5" data-kind={current.kind} data-current="true">
-                {current.kind === "action" && current.where ? <LocationTag place={current.where} className="mb-1" /> : null}
+                {current.kind === "action" && current.where ? <LocationTag place={current.where} className="-mt-0.5 mb-1.5" /> : null}
                 <p className={`text-pretty text-[1.0625rem] leading-7 md:text-[1.4375rem] md:leading-[1.75] ${current.kind === "action" ? "text-ink/85" : "text-ink"}`}>
                   {textOf(index)}
                   {reveal.typing ? <span aria-hidden="true" className="ui-caret">▍</span> : null}

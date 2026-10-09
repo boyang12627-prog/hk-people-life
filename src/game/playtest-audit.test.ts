@@ -581,6 +581,17 @@ describe("ui v4.5 — the portrait and name plate identify the speaker; nothing 
     assert.ok(app.includes("<LocationTag place={turn.where}"), "回看 log shows the place with the tag too");
     assert.equal(/>\{(current\.where|turn\.where|where)\}</.test(app), false, "no bare place text left");
   });
+  it("the beat title sits beside the year/time label in one heading row; the location tag is a step larger", () => {
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    const heading = stage.slice(stage.indexOf("export function PanelHeading"), stage.indexOf("/** A hanging paper tag."));
+    assert.match(heading, /data-heading="true" className="flex[^"]*items-baseline/, "kicker and title share one row");
+    assert.ok(heading.indexOf("{kicker}") < heading.indexOf("{title}"), "title comes right after the year/time label");
+    assert.match(heading, /<h1 data-beat-title="true"[^>]*>\{title\}<\/h1>/);
+    assert.equal(/<p[^>]*>\{kicker\}<\/p>\s*<h1/.test(heading), false, "the title is no longer a separate line under the kicker");
+    const tag = stage.slice(stage.indexOf("export function LocationTag"), stage.indexOf("/** Small striped plastic bag."));
+    assert.match(tag, /ui-location[^`]*text-sm[^`]*md:text-base/, "location text is larger");
+    assert.match(tag, /md:h-5 md:w-4/, "pin is larger");
+  });
   it("every speaker has one accent", () => {
     for (const who of ["媽媽", "爸爸", "嫲嫲", "阿傑", "阿姨", "老師"] as const) assert.match(SPEAKER_ACCENT[who], /^#[0-9a-f]{6}$/);
     assert.equal(new Set(Object.values(SPEAKER_ACCENT)).size, 6);

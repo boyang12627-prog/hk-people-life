@@ -81,11 +81,16 @@ export function PaperPanel({ heading, children, side, next, live, portrait, log 
   );
 }
 
+/**
+ * One row at the top of the panel: the year/time label (1985 · 早上), then the beat title for this
+ * story moment (袋子在門口) right beside it, so the title no longer takes its own line in the panel.
+ */
 export function PanelHeading({ kicker, title }: { kicker: string; title: string }) {
   return (
-    <div className="min-w-0">
-      <p className="text-xs tracking-wide text-ink/60 md:text-sm">{kicker}</p>
-      <h1 className="font-serif text-lg leading-snug text-pretty text-ink md:text-[1.375rem]">{title}</h1>
+    <div data-heading="true" className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+      <p className="shrink-0 text-xs tracking-wide text-ink/60 md:text-sm">{kicker}</p>
+      <span aria-hidden="true" className="h-3 w-px shrink-0 self-center bg-[#a77f4c]/70 md:h-3.5" />
+      <h1 data-beat-title="true" className="min-w-0 font-serif text-base font-medium leading-snug tracking-wide text-pretty text-[#5c3a1e] md:text-lg">{title}</h1>
     </div>
   );
 }
@@ -184,7 +189,7 @@ export function LocationTag({ place, className = "" }: { place: string; classNam
   const name = placeLabel(place);
   if (!name) return null;
   return (
-    <span data-location={name} className={`ui-location inline-flex items-center gap-1 rounded-full py-0.5 pl-1.5 pr-2.5 align-middle font-serif text-xs leading-none tracking-wide md:text-sm ${className}`}>
+    <span data-location={name} className={`ui-location inline-flex items-center gap-1.5 rounded-full py-1 pl-2 pr-3 align-middle font-serif text-sm leading-none tracking-wide md:text-base ${className}`}>
       <Pin />
       <span>{name}</span>
     </span>
@@ -194,7 +199,7 @@ export function LocationTag({ place, className = "" }: { place: string; classNam
 /** Map pin, inline SVG in the Art Bible palette: estate green #35665d body, paper #f3ead7 dot. */
 export function Pin() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 20" className="h-3.5 w-3 shrink-0 md:h-4 md:w-3.5">
+    <svg aria-hidden="true" viewBox="0 0 16 20" className="h-4 w-3.5 shrink-0 md:h-5 md:w-4">
       <path d="M8 1.2a6 6 0 0 0-6 6c0 4.4 6 11.4 6 11.4s6-7 6-11.4a6 6 0 0 0-6-6z" fill="#35665d" stroke="#284d46" strokeWidth="0.9" />
       <circle cx="8" cy="7.2" r="2.3" fill="#f3ead7" />
     </svg>
