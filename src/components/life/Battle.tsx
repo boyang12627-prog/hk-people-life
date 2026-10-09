@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { resolveAuto } from "@/game/battleBalance";
 import type { BattleSpec } from "@/game/battleSpec";
 import { actionCost, createBattle, resolveTurn, techniqueReady, type BattleAction, type BattleSim } from "@/game/battleSim";
-import { personSrc } from "@/game/art";
+import { battlePlate, personSrc } from "@/game/art";
 import type { Approach, BattleKind, BattleOutcome, Gender } from "@/game/types";
 
 type Props = {
@@ -71,15 +71,7 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
   const locked = Boolean(sim.over) || reportedRef.current;
   const entered = sim.over === "win" || sim.over === "perfect";
 
-  const who = gender === "boy" ? "boy" : "girl";
-  const kindy = spec.scene === "kindy";
-  const src = kindy
-    ? entered
-      ? `/art/q/inside-${who}.jpg`
-      : sim.round >= 4 || sim.threat.heavy
-        ? `/art/q/pressure-${who}.jpg`
-        : `/art/q/kindy-${who}.jpg`
-    : `/art/q/${spec.scene}-${who}.jpg`;
+  const src = battlePlate(spec.scene, gender, { entered, pressed: sim.round >= 4 || sim.threat.heavy });
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border-4 border-[#6e4524] bg-[#f4efe4] shadow-[inset_0_0_0_2px_#e8d7a8]" data-round={tick}>
