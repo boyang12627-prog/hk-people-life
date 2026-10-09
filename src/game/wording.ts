@@ -98,7 +98,7 @@ export type VoiceWarning = { speaker: Speaker | null; register: Register; text: 
 
 /**
  * Possibly unnatural speech, for the writer to read again. A warning is a question, not a rule:
- * some written lines are kept on purpose (README keeps 阿傑's 「你昨天沒有下來」 word for word).
+ * some written lines may be kept on purpose; the writer decides.
  */
 export function dialogueWarnings(speaker: Speaker | null, text: string, register?: Register): VoiceWarning[] {
   const reg: Register = register ?? (speaker ? DEFAULT_REGISTER[speaker] : "narrative");

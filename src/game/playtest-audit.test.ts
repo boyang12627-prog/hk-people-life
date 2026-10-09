@@ -391,7 +391,7 @@ describe("playtest fixes v3.3 / voice v3.4 — 書面中文 in narration, HK voi
     for (const line of new Set(warnings)) t.diagnostic(`VOICE WARNING ${line}`);
     // Dialogue keeps Hong Kong words on purpose. These are the V3.3 conversions that were reverted.
     const said = scanned.dialogue.map((item) => item.text).join("\n");
-    for (const word of ["拿去用啦", "今次", "踢波", "個波", "唔使錢"]) assert.ok(said.includes(word), `dialogue keeps ${word}`);
+    for (const word of ["拿去用啦", "今次", "踢波", "個波", "唔使錢", "你琴日冇落嚟。", "你去年冇落嚟。"]) assert.ok(said.includes(word), `dialogue keeps ${word}`);
   });
 
   it("speech quoted inside narration is dialogue, not narration", () => {

@@ -299,7 +299,7 @@ function rawCard(id: string, state: State): RawCard {
           scene: "estate",
           kicker: "1985 · 星期日",
           title: "他已經在玩",
-          lines: ["你下了樓。雨還在下。平台上那個抱紅球的孩子已經在玩。", "不是你去找他。他今天自己又來了。", "他看見你，先說他叫阿傑。", say("阿傑", "你昨天沒有下來。")],
+          lines: ["你下了樓。雨還在下。平台上那個抱紅球的孩子已經在玩。", "不是你去找他。他今天自己又來了。", "他看見你，先說他叫阿傑。", say("阿傑", "你琴日冇落嚟。")],
         };
       }
       const home = state.spent[1] !== "ACT_ESTATE";
@@ -433,7 +433,7 @@ function rawCard(id: string, state: State): RawCard {
       const missed = state.npcDays.NPC_FRIEND_01;
       const lines: Line[] =
         follow === "ask" && missed?.missedPlayer && echoOpen(ARC_AH_KIT, "1y")
-          ? [place, say("阿傑", "去年你沒有下來。"), missed.mood === "content" ? "他說自己也玩得很起勁。他在踢球。" : missed.mood === "left" ? "他說玩了一陣就走了。" : "他說後來坐在石凳上。"]
+          ? [place, say("阿傑", "你去年冇落嚟。"), missed.mood === "content" ? "他說自己也玩得很起勁。他在踢球。" : missed.mood === "left" ? "他說玩了一陣就走了。" : "他說後來坐在石凳上。"]
           : follow === "ask"
             ? [place, act("他看你。"), say("阿傑", "你見過呢個未？"), "去年你沒碰到它。"]
             : follow === "wary"
