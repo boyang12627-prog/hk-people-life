@@ -6,6 +6,12 @@ export type Reveal = { shown: number; chars: number };
 
 export const ALL = Number.MAX_SAFE_INTEGER;
 
+/**
+ * After the last line the tags (choices, 繼續) ignore input this long, so a quick second tap meant
+ * for 下一句, or for the previous page's tag, never picks a choice by accident.
+ */
+export const ACTION_LOCK_MS = 400;
+
 export function startReveal(still: boolean): Reveal {
   return { shown: 1, chars: still ? ALL : 0 };
 }

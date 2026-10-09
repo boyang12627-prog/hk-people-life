@@ -54,8 +54,8 @@ export function beatPlate(beat: string, gender: Gender | null) {
   return name ? painted(name, gender) : null;
 }
 
-export function yearPlate(year: number, gender: Gender | null) {
-  if (year === 1986) return painted("tv", gender);
+/** A year opening's own picture. None now: every opening uses its year's scene (1986 is 走廊, so the corridor painting). */
+export function yearPlate(_year: number, _gender: Gender | null): string | null {
   return null;
 }
 

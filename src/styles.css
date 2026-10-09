@@ -193,6 +193,18 @@ main {
   .ui-tags {
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   }
+  /* One or two tags: a single narrow column at the right edge, like 下一句. */
+  .ui-tags.ui-tags-narrow {
+    grid-template-columns: 1fr;
+  }
+}
+/* Tags ignore input for a moment after they appear (see PaperPage). */
+.ui-tags[data-locked="true"] .ui-tag {
+  cursor: default;
+}
+.ui-scroll-hint {
+  background: rgb(239 227 200 / 0.9);
+  box-shadow: inset 0 0 0 1px rgb(167 127 76 / 0.6);
 }
 
 .ui-caret {

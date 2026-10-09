@@ -835,7 +835,8 @@ describe("logic audit v3.2", () => {
     assert.equal(eventPlate("EVT_1985_FRIEND_04", "boy", "estate"), null);
     assert.equal(beatPlate("sun-night", "boy"), "/art/q/bag-boy.webp");
     assert.equal(eventPlate("EVT_1984_FAMILY_02", "girl"), "/art/q/home-girl.webp");
-    assert.equal(yearPlate(1986, "girl"), "/art/q/tv-girl.webp");
+    assert.equal(yearPlate(1986, "girl"), null, "1986 opening is titled 走廊: it uses the corridor painting, not the TV room");
+    assert.equal(slicePlate({ year: 1986, scene: "corridor", gender: "girl" }), "/art/q/corridor-girl.webp");
     assert.equal(eventPlate("EVT_1984_NEWS_01", "boy"), null);
     const played = produce1985(["ACT_PLAY", "ACT_DRAW"]);
     assert.deepEqual(played.queue, ["EVT_1985_SCHOOL_01", "MINI_85_GRANDMA", "MINI_85_TV", "MINI_85_DAD"]);

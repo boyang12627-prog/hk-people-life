@@ -30,6 +30,8 @@ import { chainEcho, knowsKit, missed1986, missedLine } from "./freedom.ts";
 import { beat1985 } from "./story.ts";
 import { freshState, mergeDeltas, reducer } from "./engine.ts";
 import { lineText, placeLabel } from "./scene.ts";
+import { SPOKEN_IN_NARRATION, expandSpokenNarration, splitSpokenNarration } from "./narrationSpeech.ts";
+import { ACTION_LOCK_MS } from "./reveal.ts";
 import { picked, selectSpoken } from "./speak.ts";
 import { KINDY_DOOR, PRIMARY_EXAM, playtestTools } from "./battleSpec.ts";
 import { CANTONESE_TO_WRITTEN, cantoneseHits, dialogueWarnings, quotedSpeaker } from "./wording.ts";
@@ -576,10 +578,11 @@ describe("ui v4.5 — the portrait and name plate identify the speaker; nothing 
     assert.match(stage, /export function Pin\(\)[\s\S]*?<svg aria-hidden="true"/, "the pin is inline SVG");
     assert.equal(/📍/.test(app + stage), false, "no emoji pin");
     assert.match(css, /\.ui-location \{/);
-    assert.ok(app.includes("<LocationTag place={where}"), "offscreen speaker label uses the tag");
+    assert.equal(app.includes("<LocationTag place={where}"), false, "an off-screen speaker label (旁邊) is not a place: no pin");
+    assert.ok(app.includes("data-offscreen-label={where}"), "it is a plain subtle label");
     assert.ok(app.includes("<LocationTag place={current.where}"), "action place uses the tag");
     assert.ok(app.includes("<LocationTag place={turn.where}"), "回看 log shows the place with the tag too");
-    assert.equal(/>\{(current\.where|turn\.where|where)\}</.test(app), false, "no bare place text left");
+    assert.equal(/>\{(current\.where|turn\.where)\}</.test(app), false, "no bare place text left");
   });
   it("the beat title sits beside the year/time label in one heading row; the location tag is a step larger", () => {
     const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
@@ -595,5 +598,79 @@ describe("ui v4.5 — the portrait and name plate identify the speaker; nothing 
   it("every speaker has one accent", () => {
     for (const who of ["媽媽", "爸爸", "嫲嫲", "阿傑", "阿姨", "老師"] as const) assert.match(SPEAKER_ACCENT[who], /^#[0-9a-f]{6}$/);
     assert.equal(new Set(Object.values(SPEAKER_ACCENT)).size, 6);
+  });
+});
+
+describe("live playtest fixes (2026-10-09)", () => {
+  const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+  const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+  const battle = readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8");
+
+  it("P1-1 tags ignore input for a moment after they appear (fast second tap on 下一句 never picks a choice)", () => {
+    assert.ok(ACTION_LOCK_MS >= 300 && ACTION_LOCK_MS <= 600, `lock ${ACTION_LOCK_MS}ms`);
+    assert.match(app, /setTimeout\(\(\) => setLocked\(false\), ACTION_LOCK_MS\)/, "unlock after the lock time");
+    assert.match(app, /useState\(true\)[\s\S]{0,200}setLocked\(true\);\s*if \(!reveal\.done\) return;/, "locked on mount and every time the tags appear, including a typewriter finishing by itself");
+    assert.ok(app.includes("locked={reveal.done && locked}"));
+    assert.match(stage, /onClickCapture=\{swallow\}/, "clicks on locked tags are swallowed");
+    assert.match(stage, /event\.key === "Enter" \|\| event\.key === " "\) swallow\(event\)/, "and Enter/Space too");
+  });
+
+  it("P1-2 battle feedback fits: 剛才 and the other side's move side by side on desktop, and any overflow shows a cue", () => {
+    assert.match(battle, /data-battle-feedback="true" className="[^"]*md:grid-cols-2/);
+    assert.match(stage, /<ScrollCue show=\{cue\.more\} \/>/, "panel text shows 往下還有 when more is below");
+    assert.ok(stage.includes("往下還有"));
+  });
+
+  it("P1-3 從頭開始 asks first and is not next to the main tag", () => {
+    const year = app.slice(app.indexOf("function YearOpen"), app.indexOf("function StoryBeat"));
+    assert.equal(/onClick=\{onRestart\}/.test(year), false, "no one-tap restart");
+    assert.match(year, /<ConfirmLink label="從頭開始" question="[^"]+" yes="[^"]+" no="[^"]+" onConfirm=\{onRestart\} \/>/);
+    const actions = year.slice(year.indexOf("actions={"), year.indexOf("</>"));
+    assert.equal(actions.includes("從頭開始"), false, "not among the tags");
+    assert.match(stage, /export function ConfirmLink[\s\S]*useState\(false\)[\s\S]*onClick=\{onConfirm\}/);
+  });
+
+  it("P2-5 one or two tags use a narrow right column, so the text gets the width", () => {
+    assert.ok(app.includes('sideSize={actionCount <= 2 ? "narrow" : "wide"}'));
+    assert.match(stage, /sideSize === "narrow"\s*\? "ui-tags ui-tags-narrow[^"]*md:w-56/);
+  });
+
+  it("P2-6 回看 covers most of the screen and shows a scroll cue", () => {
+    const log = app.slice(app.indexOf("function LineLog"), app.indexOf("function ResultBody"));
+    assert.match(log, /role="dialog"[^>]*className="fixed inset-0/);
+    assert.match(log, /md:h-\[86dvh\]/);
+    assert.match(log, /<ScrollCue show=\{cue\.more\} \/>/);
+  });
+
+  it("P2-7 phone: the tag list is not clipped to half the panel and clears the afternoon counter", () => {
+    assert.equal(/"ui-tags[^"]*(?<!md:)max-h-\[48%\]/.test(stage), false);
+    assert.match(stage, /afternoons !== null \? "pb-8" : "pb-3"/);
+  });
+
+  it("P2-8 speech inside narration becomes dialogue with its speaker; the quoted words are unchanged", () => {
+    const sources = ["./data/events.ts", "./content.ts"].map((file) => readFileSync(new URL(file, import.meta.url), "utf8")).join("\n");
+    for (const [quote, speaker] of Object.entries(SPOKEN_IN_NARRATION)) {
+      assert.ok(sources.includes(quote), `${quote} is in the data`);
+      const literal = [...sources.matchAll(/"([^"\n]*)"/g)].map((m) => m[1]).find((text) => text.includes(quote) && text !== quote);
+      assert.ok(literal, `${quote} sits inside a narration string`);
+      const lines = splitSpokenNarration(literal);
+      const said = lines.filter((line) => line.type === "dialogue");
+      assert.ok(said.some((line) => line.type === "dialogue" && line.speaker === speaker && `「${line.text}」` === quote), `${quote} → ${speaker}`);
+      for (const line of lines) if (line.type === "narration") assert.equal(line.text.includes(quote), false, `${quote} left in narration`);
+    }
+    assert.deepEqual(splitSpokenNarration("你看清楚那輛車。阿姨說：「呢個唔使錢。」你把它握在手裡。"), [
+      { type: "narration", text: "你看清楚那輛車。" },
+      { type: "dialogue", speaker: "阿姨", text: "呢個唔使錢。" },
+      { type: "narration", text: "你把它握在手裡。" },
+    ]);
+    assert.deepEqual(splitSpokenNarration("嫲嫲笑：「以前邊有咁多掣㗎。」你記住「以前」兩個字。").map((line) => line.text), ["嫲嫲笑。", "以前邊有咁多掣㗎。", "你記住「以前」兩個字。"]);
+    assert.deepEqual(splitSpokenNarration("你不知道「將來」是什麼。"), [{ type: "narration", text: "你不知道「將來」是什麼。" }], "a quoted word is not speech");
+    assert.deepEqual(expandSpokenNarration([say("媽媽", "看完要走。")]), [say("媽媽", "看完要走。")], "dialogue lines pass through");
+    assert.match(app, /sceneTurns\(expandSpokenNarration\(/, "every page splits before drawing");
+    // Nothing left: every 「 that follows a speaker's lead-in in the data is listed.
+    for (const m of sources.matchAll(/(媽媽|爸爸|嫲嫲|阿傑|老師|阿姨)[^。！？「"]{0,6}：(「[^」]+」)/g)) {
+      if (m[0].includes("say(")) continue;
+      assert.ok(SPOKEN_IN_NARRATION[m[2]], `unlisted speech in narration: ${m[0]}`);
+    }
   });
 });

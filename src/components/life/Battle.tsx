@@ -132,10 +132,10 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
             )
           }
         >
-          <p className="text-pretty text-base leading-7 md:text-lg md:leading-8" aria-live="polite">{lead}</p>
+          <p className="text-pretty text-base leading-7 md:text-lg md:leading-7" aria-live="polite">{lead}</p>
           {sim.stableFirst ? <p className="text-xs text-ink/70">你先。</p> : null}
           {sim.pressureFirst ? <p className="text-xs text-ink/70">對方先。</p> : null}
-          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 md:grid-cols-4">
+          <div className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-1.5 md:grid-cols-4">
             <Meter label="精神力" value={sim.hp} max={sim.maxHp} tone="bg-estate" />
             <Meter label="氣力" value={sim.sp} max={sim.maxSp} tone="bg-amber" />
             <Meter label="壓力" value={sim.stress} max={100} tone="bg-ink" />
@@ -143,14 +143,17 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
           </div>
           {held ? <p className="mt-2 text-sm text-pretty text-ink/75">{held}</p> : null}
           {sim.hasActed ? (
-            <div className="mt-2 border-t border-dashed border-[#a77f4c] pt-1.5">
-              <p className="text-xs text-[#5c3a1e]">剛才</p>
-              <p className="text-sm text-pretty text-ink/80">{sim.hint}</p>
+            // Desktop: 剛才 and the other side's move sit side by side so the feedback fits the panel.
+            <div data-battle-feedback="true" className="mt-2 grid gap-x-5 gap-y-1 border-t border-dashed border-[#a77f4c] pt-1.5 md:grid-cols-2">
+              <div className="min-w-0">
+                <p className="text-xs text-[#5c3a1e]">剛才</p>
+                <p className="text-sm text-pretty text-ink/80">{sim.hint}</p>
+              </div>
               {sim.enemyHint ? (
-                <>
-                  <p className="mt-1.5 text-xs text-[#5c3a1e]">{spec.hitLabel}</p>
+                <div className="min-w-0">
+                  <p className="text-xs text-[#5c3a1e]">{spec.hitLabel}</p>
                   <p className="text-sm text-pretty text-ink/80">{sim.enemyHint}</p>
-                </>
+                </div>
               ) : null}
             </div>
           ) : (

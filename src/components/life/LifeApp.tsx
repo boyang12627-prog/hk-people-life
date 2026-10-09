@@ -1,7 +1,9 @@
-import { createContext, useContext, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
+import { Children, Fragment, createContext, isValidElement, useContext, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { Battle } from "@/components/life/Battle";
 import { playRoom, playTone, unlockAudio } from "@/components/life/audio";
-import { Frame, LocationTag, PanelHeading, PanelPortrait, PaperPanel, StatusContext, Tag, useAdvanceKeys, useReveal, type Status } from "@/components/life/Stage";
+import { ConfirmLink, Frame, LocationTag, PanelHeading, PanelPortrait, PaperPanel, ScrollCue, StatusContext, Tag, useAdvanceKeys, useReveal, useScrollCue, type Status } from "@/components/life/Stage";
+import { expandSpokenNarration } from "@/game/narrationSpeech";
+import { ACTION_LOCK_MS } from "@/game/reveal";
 import { lineAt } from "@/game/reveal";
 import { SPEAKER_ACCENT, anchorFor, isOffscreen } from "@/game/sceneAnchors";
 import {
@@ -296,13 +298,11 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
       plate={plate}
       kicker={String(year.year)}
       title={year.title}
+      bodyColumns
       dialogue={[narrate(year.era), narrate(year.open)]}
       actions={
         <>
           <Primary onClick={onNext}>{year.year === 1985 ? "早上" : "用這兩個下午"}</Primary>
-          <button type="button" onClick={onRestart} className="col-span-full mt-3 min-h-11 w-full rounded-sm text-sm text-ink/70 underline decoration-dotted underline-offset-4">
-            從頭開始
-          </button>
         </>
       }
     >
@@ -320,6 +320,10 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
       {year.year === 1986 && missedLine(state.missed, "later") ? <p className="mt-2 text-pretty text-base leading-7">{missedLine(state.missed, "later")}</p> : null}
       {year.year === 1988 && missed1986(state.missed, "later", knowsKit(state)) ? <p className="mt-2 text-pretty text-base leading-7">{missed1986(state.missed, "later", knowsKit(state))}</p> : null}
       <LifeNow state={state} />
+      {/* Far from the main tag (that sits at the panel's right edge), and it asks first. */}
+      <div className="mt-1">
+        <ConfirmLink label="從頭開始" question="真的從頭開始？這一局會清掉。" yes="從頭開始" no="不用" onConfirm={onRestart} />
+      </div>
     </Paper>
   );
 }
@@ -437,6 +441,7 @@ function YearEnd({ state, onNext }: { state: State; onNext: () => void }) {
       scene="home"
       kicker={`${year.year} 完`}
       title="你記住了"
+      bodyColumns
       dialogue={[...(memories.length === 0 ? [narrate("這一年沒有什麼特別的事。")] : memories.map((item) => narrate(recallLine(item)))), narrate(yearSummary(state))]}
       actions={<Primary onClick={onNext}>{last ? "看看十年後" : "下一年"}</Primary>}
     >
@@ -540,17 +545,30 @@ type PaperProps = {
   overlay?: ReactNode;
   actions?: ReactNode;
   children?: ReactNode;
+  /** Long info pages (year opening, year end): on desktop the body flows in two columns so it fits the panel. */
+  bodyColumns?: boolean;
 };
+
+/** How many tags a page offers (fragments flattened). One or two get the narrow right-hand column. */
+function countActions(node: ReactNode): number {
+  let n = 0;
+  Children.forEach(node, (child) => {
+    if (isValidElement<{ children?: ReactNode }>(child) && child.type === Fragment) n += countActions(child.props.children);
+    else if (child !== null && child !== undefined && child !== false) n += 1;
+  });
+  return n;
+}
 
 /** One page: the painting as the stage, the lines one by one, then the body and the tags. */
 function Paper(props: PaperProps) {
-  const turns = sceneTurns(props.dialogue?.length ? props.dialogue : [narrate(SENSE[props.scene])]);
+  // Speech written inside narration strings becomes real dialogue lines (wording unchanged).
+  const turns = sceneTurns(expandSpokenNarration(props.dialogue?.length ? props.dialogue : [narrate(SENSE[props.scene])]));
   const signature = `${props.kicker}|${props.title}|${turns.map((turn) => turn.text).join("|")}`;
   return <PaperPage key={signature} {...props} turns={turns} />;
 }
 
 /** Narration, action, and dialogue are all drawn on the paper; none is dropped. A dialogue line brings its speaker's portrait and name plate. */
-function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, children }: PaperProps & { turns: Turn[] }) {
+function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, children, bodyColumns = false }: PaperProps & { turns: Turn[] }) {
   const gender = useContext(Face);
   const picture = plate ?? scenePlate(scene, gender);
   const reveal = useReveal(turns.map((turn) => turn.text.length));
@@ -562,6 +580,18 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
   useEffect(() => {
     if (reveal.done && nextFocused.current) sideRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
   }, [reveal.done]);
+
+  // When the tags appear (after the last line, whether tapped or typed out by itself, or on a page that
+  // opens already done) they ignore input for ACTION_LOCK_MS, so a quick second tap meant for 下一句 or
+  // for the previous page's tag never picks a choice.
+  const [locked, setLocked] = useState(true);
+  useEffect(() => {
+    setLocked(true);
+    if (!reveal.done) return;
+    const id = window.setTimeout(() => setLocked(false), ACTION_LOCK_MS);
+    return () => window.clearTimeout(id);
+  }, [reveal.done]);
+  const actionCount = countActions(actions);
 
   const { index, current, past } = lineAt(turns, reveal);
   const textOf = (at: number) => (at === index ? turns[at].text.slice(0, reveal.chars) : turns[at].text);
@@ -597,6 +627,8 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
             </p>
           }
           side={reveal.done ? <div ref={sideRef} className="contents">{actions}</div> : null}
+          sideSize={actionCount <= 2 ? "narrow" : "wide"}
+          locked={reveal.done && locked}
           next={
             reveal.done ? null : (
               <Tag main label="下一句" hint="空白鍵" onClick={reveal.advance} tagRef={(node) => {
@@ -615,7 +647,7 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
                 <p className="flex items-center gap-1.5 text-sm tracking-wide md:text-lg" style={{ color: accent }}>
                   <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full md:h-2.5 md:w-2.5" style={{ background: accent }} />
                   <span className="font-medium">{current.name}</span>
-                  {where ? <LocationTag place={where} className="ml-1" /> : null}
+                  {where ? <span data-offscreen-label={where} className="ml-1 text-sm font-normal text-ink/55 md:text-base">{where}</span> : null}
                 </p>
                 <p className="text-pretty text-[1.0625rem] leading-7 text-ink md:text-[1.4375rem] md:leading-[1.75]">
                   「{textOf(index)}
@@ -632,7 +664,11 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
               </div>
             )}
           </div>
-          {reveal.done ? <div className="mt-1">{children}</div> : null}
+          {reveal.done ? (
+            <div data-body="true" className={bodyColumns ? "mt-1 md:columns-2 md:gap-x-8 [&>*]:break-inside-avoid" : "mt-1"}>
+              {children}
+            </div>
+          ) : null}
         </PaperPanel>
       }
     />
@@ -656,22 +692,24 @@ function LineLog({ turns, onClose }: { turns: Turn[]; onClose: () => void }) {
       opener?.focus?.();
     };
   }, []);
+  const cue = useScrollCue<HTMLOListElement>();
   return (
-    // .ui-panel sets position: relative, so the absolute box is a separate wrapper.
-    <div role="dialog" aria-modal="true" aria-label="回看" className="absolute inset-0 z-20">
-     <div className="ui-panel flex h-full flex-col rounded-md px-5 pb-3 pt-4">
+    // Over most of the screen, not just the panel, so a long page reads back without squinting.
+    <div role="dialog" aria-modal="true" aria-label="回看" data-log="true" className="fixed inset-0 z-50 flex items-center justify-center bg-[#140c06]/60 p-2 md:p-[4vh]" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+     <div className="ui-panel flex h-full max-h-[92dvh] w-full max-w-5xl flex-col rounded-md px-5 pb-3 pt-4 md:h-[86dvh] md:px-8 md:pt-6">
       <div className="flex items-center justify-between">
-        <p className="font-serif text-lg text-ink">回看</p>
-        <button ref={closeRef} type="button" onClick={onClose} className="min-h-11 rounded-sm px-3 text-sm text-ink/75 underline decoration-dotted underline-offset-4">
+        <p className="font-serif text-lg text-ink md:text-2xl">回看</p>
+        <button ref={closeRef} type="button" onClick={onClose} className="min-h-11 rounded-sm px-3 text-sm text-ink/75 underline decoration-dotted underline-offset-4 md:text-base">
           關上
         </button>
       </div>
-      <ol className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-2 text-base leading-7">
+      <div className="relative mt-2 flex min-h-0 flex-1 flex-col">
+      <ol ref={cue.ref} className="min-h-0 flex-1 space-y-2 overflow-y-auto pb-8 pr-2 text-base leading-7 md:text-xl md:leading-[1.75]">
         {turns.map((turn, at) => (
           <li key={at} data-kind={turn.kind}>
             {turn.kind === "dialogue" ? (
               <>
-                <span className="mr-1.5 text-sm" style={{ color: turn.speaker ? SPEAKER_ACCENT[turn.speaker] : "#5c3a1e" }}>{turn.name}</span>「{turn.text}」
+                <span className="mr-1.5 text-sm md:text-lg" style={{ color: turn.speaker ? SPEAKER_ACCENT[turn.speaker] : "#5c3a1e" }}>{turn.name}</span>「{turn.text}」
               </>
             ) : (
               <>
@@ -682,6 +720,8 @@ function LineLog({ turns, onClose }: { turns: Turn[]; onClose: () => void }) {
           </li>
         ))}
       </ol>
+      <ScrollCue show={cue.more} />
+      </div>
      </div>
     </div>
   );

@@ -23,7 +23,7 @@ export function Frame({ picture, overlay, stage, panel, onStageClick, label }: {
         <StatusFrame />
         {stage}
       </div>
-      <div className="relative flex min-h-0 flex-1 flex-col px-1.5 pb-1.5 pt-2 md:absolute md:inset-x-[2%] md:bottom-[2.5%] md:max-h-[38%] md:flex-none md:p-0">{panel}</div>
+      <div className="relative flex min-h-0 flex-1 flex-col px-1.5 pb-1.5 pt-2 md:absolute md:inset-x-[2%] md:bottom-[2.5%] md:max-h-[48%] md:flex-none md:p-0">{panel}</div>
     </section>
   );
 }
@@ -46,29 +46,94 @@ function StatusFrame() {
 }
 
 /**
+ * True while an element has more content below its visible area. Drives the 「往下還有」 cue on the
+ * panel text and the 回看 log, so nothing scrollable is ever hidden without a sign.
+ */
+export function useScrollCue<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => setMore(el.scrollTop + el.clientHeight < el.scrollHeight - 4);
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(check);
+    resize?.observe(el);
+    for (const child of Array.from(el.children)) resize?.observe(child);
+    const mutate = typeof MutationObserver === "undefined" ? null : new MutationObserver(() => {
+      check();
+      for (const child of Array.from(el.children)) resize?.observe(child);
+    });
+    mutate?.observe(el, { childList: true, subtree: true, characterData: true, attributes: true });
+    return () => {
+      el.removeEventListener("scroll", check);
+      resize?.disconnect();
+      mutate?.disconnect();
+    };
+  }, []);
+  return { ref, more };
+}
+
+/** Fade and a small 「往下還有」 at the bottom of a scrollable area that has more below. */
+export function ScrollCue({ show }: { show: boolean }) {
+  if (!show) return null;
+  return (
+    <div data-scroll-cue="true" aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 flex h-10 items-end justify-center bg-gradient-to-t from-[#efe3c8]/95 to-transparent pb-0.5">
+      <span className="ui-scroll-hint rounded-full px-2 text-xs tracking-wide text-[#5c3a1e]">往下還有 ▾</span>
+    </div>
+  );
+}
+
+/**
  * The long old-paper panel. `side` holds the hanging tags; on narrow screens they drop below the text.
  * `next` is the single 下一句 tag while lines are still being read: a narrow column at the panel's
  * right edge, vertically centred, so the text keeps most of the width.
+ * `sideSize="narrow"` does the same for one or two tags (繼續, 再試一次…): the text gets the width.
+ * `locked` makes the tags ignore input for a moment after they appear (no accidental double-click choice).
  */
-export function PaperPanel({ heading, children, side, next, live, portrait, log }: { heading?: ReactNode; children: ReactNode; side?: ReactNode; next?: ReactNode; live?: ReactNode; portrait?: ReactNode; log?: ReactNode }) {
+export function PaperPanel({ heading, children, side, next, live, portrait, log, sideSize = "wide", locked = false }: { heading?: ReactNode; children: ReactNode; side?: ReactNode; next?: ReactNode; live?: ReactNode; portrait?: ReactNode; log?: ReactNode; sideSize?: "narrow" | "wide"; locked?: boolean }) {
   const { afternoons } = useContext(StatusContext);
+  const cue = useScrollCue<HTMLDivElement>();
+  const swallow = (event: { preventDefault: () => void; stopPropagation: () => void }) => {
+    if (!locked) return;
+    event.preventDefault();
+    event.stopPropagation();
+  };
   return (
     <div className="ui-panel flex h-full min-h-0 rounded-md md:h-auto">
       {log}
       <div aria-hidden="true" className="ui-scroll-end relative my-4 ml-1.5 w-3.5 shrink-0 rounded-sm md:ml-2 md:w-5" />
       {portrait ? <div className="ml-2 md:ml-4">{portrait}</div> : null}
-      <div className="flex min-h-0 flex-1 flex-col gap-1 pb-7 pl-2 pr-3 pt-4 md:flex-row md:gap-5 md:pl-4 md:pr-4">
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          {heading ? <div className="mb-1.5 flex items-center gap-2">{heading}</div> : null}
-          {live}
-          {children}
+      <div className={`flex min-h-0 flex-1 flex-col gap-1 pl-2 pr-3 pt-4 md:flex-row md:gap-5 md:pb-7 md:pl-4 md:pr-4 ${afternoons !== null ? "pb-8" : "pb-3"}`}>
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <div ref={cue.ref} data-panel-text="true" className="min-h-0 flex-1 overflow-y-auto pr-1">
+            {heading ? <div className="mb-1.5 flex items-center gap-2">{heading}</div> : null}
+            {live}
+            {children}
+          </div>
+          <ScrollCue show={cue.more} />
         </div>
         {next ? (
           <div data-next="true" className="flex shrink-0 justify-end px-1 pb-1 md:w-48 md:self-center md:pb-3">
             <div className="w-full max-w-60 md:max-w-none">{next}</div>
           </div>
         ) : side ? (
-          <div className="ui-tags max-h-[48%] shrink-0 overflow-y-auto px-1 pb-1 md:max-h-none md:w-[42%] md:max-w-xl">{side}</div>
+          <div
+            data-side={sideSize}
+            data-locked={locked ? "true" : undefined}
+            onClickCapture={swallow}
+            onKeyDownCapture={(event) => {
+              if (event.key === "Enter" || event.key === " ") swallow(event);
+            }}
+            className={
+              sideSize === "narrow"
+                ? "ui-tags ui-tags-narrow shrink-0 px-1 pb-1 md:w-56 md:self-center md:pb-3"
+                : "ui-tags shrink-0 px-1 pb-1 md:max-h-none md:w-[42%] md:max-w-xl md:overflow-y-auto"
+            }
+          >
+            {side}
+          </div>
         ) : null}
       </div>
       {afternoons !== null ? (
@@ -78,6 +143,29 @@ export function PaperPanel({ heading, children, side, next, live, portrait, log 
         </p>
       ) : null}
     </div>
+  );
+}
+
+/** A small text link that asks once before it acts: 從頭開始 → 「真的從頭開始？」 是 / 不. Kept away from the main tag. */
+export function ConfirmLink({ label, question, yes, no, onConfirm }: { label: string; question: string; yes: string; no: string; onConfirm: () => void }) {
+  const [asking, setAsking] = useState(false);
+  if (!asking) {
+    return (
+      <button type="button" data-confirm-link="true" onClick={() => setAsking(true)} className="min-h-11 rounded-sm px-1 text-sm text-ink/60 underline decoration-dotted underline-offset-4 md:min-h-8">
+        {label}
+      </button>
+    );
+  }
+  return (
+    <span role="group" aria-label={question} data-confirm-ask="true" className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-sm border border-dashed border-[#a77f4c] bg-[#f7efdc] px-2 py-1 text-sm text-ink">
+      <span>{question}</span>
+      <button type="button" onClick={onConfirm} className="min-h-11 rounded-sm px-2 font-medium text-[#7a3d2c] underline underline-offset-4 md:min-h-8">
+        {yes}
+      </button>
+      <button type="button" autoFocus onClick={() => setAsking(false)} className="min-h-11 rounded-sm px-2 text-ink/75 underline decoration-dotted underline-offset-4 md:min-h-8">
+        {no}
+      </button>
+    </span>
   );
 }
 
