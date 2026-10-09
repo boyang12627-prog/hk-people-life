@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { Battle } from "@/components/life/Battle";
 import { playRoom, playTone, unlockAudio } from "@/components/life/audio";
-import { Frame, PanelHeading, PanelPortrait, PaperPanel, StatusContext, Tag, useAdvanceKeys, useReveal, type Status } from "@/components/life/Stage";
+import { Frame, LocationTag, PanelHeading, PanelPortrait, PaperPanel, StatusContext, Tag, useAdvanceKeys, useReveal, type Status } from "@/components/life/Stage";
 import { lineAt } from "@/game/reveal";
 import { SPEAKER_ACCENT, anchorFor, isOffscreen } from "@/game/sceneAnchors";
 import {
@@ -615,7 +615,7 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
                 <p className="flex items-center gap-1.5 text-sm tracking-wide md:text-lg" style={{ color: accent }}>
                   <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full md:h-2.5 md:w-2.5" style={{ background: accent }} />
                   <span className="font-medium">{current.name}</span>
-                  {where ? <span className="text-ink/70">{where}</span> : null}
+                  {where ? <LocationTag place={where} className="ml-1" /> : null}
                 </p>
                 <p className="text-pretty text-[1.0625rem] leading-7 text-ink md:text-[1.4375rem] md:leading-[1.75]">
                   「{textOf(index)}
@@ -623,11 +623,13 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
                 </p>
               </div>
             ) : (
-              <p key={index} className={`mt-0.5 text-pretty text-[1.0625rem] leading-7 md:text-[1.4375rem] md:leading-[1.75] ${current.kind === "action" ? "text-ink/85" : "text-ink"}`} data-kind={current.kind} data-current="true">
-                {current.kind === "action" && current.where ? <span className="mr-1.5 text-xs tracking-wide text-[#5c3a1e] md:text-sm">{current.where}</span> : null}
-                {textOf(index)}
-                {reveal.typing ? <span aria-hidden="true" className="ui-caret">▍</span> : null}
-              </p>
+              <div key={index} className="mt-0.5" data-kind={current.kind} data-current="true">
+                {current.kind === "action" && current.where ? <LocationTag place={current.where} className="mb-1" /> : null}
+                <p className={`text-pretty text-[1.0625rem] leading-7 md:text-[1.4375rem] md:leading-[1.75] ${current.kind === "action" ? "text-ink/85" : "text-ink"}`}>
+                  {textOf(index)}
+                  {reveal.typing ? <span aria-hidden="true" className="ui-caret">▍</span> : null}
+                </p>
+              </div>
             )}
           </div>
           {reveal.done ? <div className="mt-1">{children}</div> : null}
@@ -672,7 +674,10 @@ function LineLog({ turns, onClose }: { turns: Turn[]; onClose: () => void }) {
                 <span className="mr-1.5 text-sm" style={{ color: turn.speaker ? SPEAKER_ACCENT[turn.speaker] : "#5c3a1e" }}>{turn.name}</span>「{turn.text}」
               </>
             ) : (
-              turn.text
+              <>
+                {turn.kind === "action" && turn.where ? <LocationTag place={turn.where} className="mr-1.5" /> : null}
+                {turn.text}
+              </>
             )}
           </li>
         ))}

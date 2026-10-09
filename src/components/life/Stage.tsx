@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { isDone, isTyping, startReveal, stepReveal, type Reveal } from "@/game/reveal";
+import { placeLabel } from "@/game/scene";
 
 /**
  * UI V4 layout pieces: a full-bleed 16:9 stage (scene painting), a round wooden status frame
@@ -173,6 +174,31 @@ export function useAdvanceKeys(active: boolean, advance: () => void) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [active, advance]);
+}
+
+/**
+ * Location tag: a small map pin (estate green, paper dot) before the place name, on a faint green
+ * paper chip so it reads as a label, not as narration. Brackets in the name are dropped.
+ */
+export function LocationTag({ place, className = "" }: { place: string; className?: string }) {
+  const name = placeLabel(place);
+  if (!name) return null;
+  return (
+    <span data-location={name} className={`ui-location inline-flex items-center gap-1 rounded-full py-0.5 pl-1.5 pr-2.5 align-middle font-serif text-xs leading-none tracking-wide md:text-sm ${className}`}>
+      <Pin />
+      <span>{name}</span>
+    </span>
+  );
+}
+
+/** Map pin, inline SVG in the Art Bible palette: estate green #35665d body, paper #f3ead7 dot. */
+export function Pin() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 20" className="h-3.5 w-3 shrink-0 md:h-4 md:w-3.5">
+      <path d="M8 1.2a6 6 0 0 0-6 6c0 4.4 6 11.4 6 11.4s6-7 6-11.4a6 6 0 0 0-6-6z" fill="#35665d" stroke="#284d46" strokeWidth="0.9" />
+      <circle cx="8" cy="7.2" r="2.3" fill="#f3ead7" />
+    </svg>
+  );
 }
 
 /** Small striped plastic bag. */

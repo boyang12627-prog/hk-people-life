@@ -63,6 +63,11 @@ export function sequenceText(lines: readonly SceneLine[]): string {
   return lines.map(lineText).join("");
 }
 
+/** A place name for a location tag: no wrapping brackets (（門口） -> 門口), trimmed. The pin icon replaces them. */
+export function placeLabel(raw: string) {
+  return raw.trim().replace(/^[（(]\s*/, "").replace(/\s*[）)]$/, "").trim();
+}
+
 /** What the dialogue box draws for one entry. One turn per entry, so nothing is dropped. */
 export type Turn = { kind: SceneLine["type"]; speaker: Speaker | null; name: string; where?: string; text: string };
 

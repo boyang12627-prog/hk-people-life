@@ -29,7 +29,7 @@ import {
 import { chainEcho, knowsKit, missed1986, missedLine } from "./freedom.ts";
 import { beat1985 } from "./story.ts";
 import { freshState, mergeDeltas, reducer } from "./engine.ts";
-import { lineText } from "./scene.ts";
+import { lineText, placeLabel } from "./scene.ts";
 import { picked, selectSpoken } from "./speak.ts";
 import { KINDY_DOOR, PRIMARY_EXAM, playtestTools } from "./battleSpec.ts";
 import { CANTONESE_TO_WRITTEN, cantoneseHits, dialogueWarnings, quotedSpeaker } from "./wording.ts";
@@ -559,6 +559,27 @@ describe("ui v4.5 — the portrait and name plate identify the speaker; nothing 
     assert.match(app, /next=\{\s*reveal\.done \? null : \(\s*<Tag main label="下一句"/, "下一句 goes in the panel's next slot");
     assert.match(stage, /data-next="true"[^>]*md:self-center/, "the next column is vertically centred on desktop");
     assert.ok(app.includes("md:text-[1.4375rem]"), "line text is a step above text-xl on desktop");
+  });
+  it("locations show as a map-pin tag without brackets, everywhere a place is shown", () => {
+    assert.equal(placeLabel("（門口）"), "門口");
+    assert.equal(placeLabel("(門口)"), "門口");
+    assert.equal(placeLabel(" 家裡 · 門口 "), "家裡 · 門口");
+    for (const [scene, anchors] of Object.entries(SCENE_ANCHORS)) {
+      for (const [who, anchor] of Object.entries(anchors)) {
+        if (anchor && isOffscreen(anchor)) assert.equal(/[（）()]/.test(anchor.label), false, `${scene} ${who} offscreen label has brackets`);
+      }
+    }
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+    assert.match(stage, /export function LocationTag[\s\S]*<Pin \/>[\s\S]*placeLabel\(place\)|placeLabel\(place\)[\s\S]*<Pin \/>/, "the tag draws the pin before the bracket-free name");
+    assert.match(stage, /export function Pin\(\)[\s\S]*?<svg aria-hidden="true"/, "the pin is inline SVG");
+    assert.equal(/📍/.test(app + stage), false, "no emoji pin");
+    assert.match(css, /\.ui-location \{/);
+    assert.ok(app.includes("<LocationTag place={where}"), "offscreen speaker label uses the tag");
+    assert.ok(app.includes("<LocationTag place={current.where}"), "action place uses the tag");
+    assert.ok(app.includes("<LocationTag place={turn.where}"), "回看 log shows the place with the tag too");
+    assert.equal(/>\{(current\.where|turn\.where|where)\}</.test(app), false, "no bare place text left");
   });
   it("every speaker has one accent", () => {
     for (const who of ["媽媽", "爸爸", "嫲嫲", "阿傑", "阿姨", "老師"] as const) assert.match(SPEAKER_ACCENT[who], /^#[0-9a-f]{6}$/);

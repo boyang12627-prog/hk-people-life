@@ -142,6 +142,13 @@ main {
 }
 
 
+/* Location tag: map pin + place name on a faint estate-green chip, set apart from the narration. */
+.ui-location {
+  color: #35665d;
+  background: rgb(53 102 93 / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(53 102 93 / 0.35);
+}
+
 /* Hanging paper tag for choices: a string and a punched hole. */
 .ui-tag {
   position: relative;

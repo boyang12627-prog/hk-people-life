@@ -7,7 +7,7 @@ import type { Speaker } from "./scene";
  * share one layout (checked side by side, the child's head moves by at most 0.02).
  *
  * A speaker who talks on a page but is not in the painting gets an `offscreen` entry instead, so the
- * panel shows a label such as 「（旁邊）」 after the name.
+ * panel shows a location tag (map pin + 「旁邊」) after the name.
  */
 export type HeadAnchor = { x: number; y: number; r: number };
 export type Offscreen = { offscreen: "left" | "right" | "top"; label: string };
@@ -30,7 +30,7 @@ export const SCENE_ANCHORS: Record<string, SceneAnchors> = {
     阿傑: a(0.54, 0.35, 0.05),
     child: a(0.43, 0.5, 0.08),
     // EVT_1986_SKILL_05: Dad joins the talk with the teacher but is not in the kindergarten painting.
-    爸爸: { offscreen: "left", label: "（旁邊）" },
+    爸爸: { offscreen: "left", label: "旁邊" },
   },
   market: { 阿姨: a(0.16, 0.25, 0.08), 媽媽: a(0.72, 0.17, 0.08), child: a(0.82, 0.48, 0.07) },
   orange: { 媽媽: a(0.79, 0.17, 0.06), child: a(0.53, 0.38, 0.08) },
