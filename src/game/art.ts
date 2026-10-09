@@ -34,7 +34,7 @@ const BEAT_PLATE: Record<string, string> = {
 const BASE = ((import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? "/").replace(/\/?$/, "/");
 const ART = `${BASE}art`;
 
-/** Q scene paintings are WebP, 1280x720: the plate is at most ~640 CSS px wide in the max-w-lg column, so 1280 covers 2x screens. */
+/** Q scene paintings are WebP, 1280x720 (the source art is no larger). The UI V4 stage fills a desktop browser, so above 1280 CSS px they upscale. */
 export const SCENE_EXT = "webp";
 
 function painted(name: string, gender: Gender | null) {
@@ -98,6 +98,24 @@ const SIT: Partial<Record<Exclude<PersonId, "child">, string>> = {
   grandma: "grandma-sit",
 };
 
+/**
+ * Speaker portrait crop for the panel window. The standing sprites draw heads at very different
+ * sizes (dad's is about half his sprite, the teacher's a quarter), so each gets its own height
+ * (as % of the window) so the faces come out about the same size.
+ */
+const PORTRAIT_HEIGHT: Record<Exclude<PersonId, "child">, number> = {
+  dad: 150,
+  mom: 210,
+  grandma: 185,
+  kit: 210,
+  teacher: 270,
+  auntie: 205,
+};
+
+export function personPortrait(id: Exclude<PersonId, "child">) {
+  return { src: `${ART}/1985/people/${FILE[id]}.png`, height: PORTRAIT_HEIGHT[id] };
+}
+
 export function personSrc(id: PersonId, gender: Gender | null, mood: Mood = "idle", pose: Pose = "stand") {
   if (id === "child") {
     const who = gender === "boy" ? "boy" : "girl";
@@ -127,6 +145,24 @@ export function personFromSpeaker(name: string): PersonId | null {
   if (name === "老師") return "teacher";
   if (name === "阿姨") return "auntie";
   return null;
+}
+
+/** Ages drawn for the protagonist's status-frame portrait (public/art/portrait/{boy,girl}-{age}.webp). */
+export const PORTRAIT_AGES = [3, 4, 5, 7, 15] as const;
+
+/** The protagonist is 3 in 1984. */
+export const BIRTH_YEAR = 1981;
+
+/** Which drawn age to show for an age: that age if drawn, otherwise the nearest drawn age below it (never below 3). */
+export function portraitAge(age: number) {
+  let pick: number = PORTRAIT_AGES[0];
+  for (const drawn of PORTRAIT_AGES) if (drawn <= age) pick = drawn;
+  return pick;
+}
+
+/** Head-and-shoulders bust for the round status frame: 1984=3, 1985=4, 1986=5, 1988=7, 1996=15. */
+export function protagonistPortrait(year: number, gender: Gender) {
+  return `${ART}/portrait/${gender}-${portraitAge(year - BIRTH_YEAR)}.webp`;
 }
 
 /** The picture after an afternoon spent at home. Null means the screen uses the scene picture. */
@@ -174,6 +210,7 @@ export function imageManifest(): string[] {
     for (const year of [1984, 1985, 1986, 1988]) add(yearPlate(year, gender));
     for (const id of ["ACT_DRAW", "ACT_PLAY", "ACT_REST"]) add(afternoonPlate(id, gender));
     add(dinnerPlate(gender));
+    for (const age of PORTRAIT_AGES) add(protagonistPortrait(BIRTH_YEAR + age, gender));
     for (const id of PEOPLE) {
       for (const mood of ["idle", "think"] as const) {
         for (const pose of ["stand", "sit"] as const) add(personSrc(id, gender, mood, pose));

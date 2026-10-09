@@ -4,6 +4,7 @@ import type { BattleSpec } from "@/game/battleSpec";
 import { actionCost, createBattle, resolveTurn, techniqueReady, type BattleAction, type BattleSim } from "@/game/battleSim";
 import { battlePlate, personSrc } from "@/game/art";
 import type { Approach, BattleKind, BattleOutcome, Gender } from "@/game/types";
+import { Frame, PaperPanel, Tag } from "@/components/life/Stage";
 
 type Props = {
   spec: BattleSpec;
@@ -75,82 +76,89 @@ export function Battle({ spec, approach, hp, sp, skills, techniques, mind, gearS
 
   const src = battlePlate(spec.scene, gender, { entered, pressed: sim.round >= 4 || sim.threat.heavy });
 
+  const lead = bonusOnly ? "還可以再走一步，或停一停。" : sim.over ? (entered ? spec.voice.entered : spec.voice.back) : sim.threat.hint;
+  const face = personSrc("child", gender, sim.over ? "idle" : "think", spec.scene === "study" || spec.scene === "home" ? "sit" : "stand");
+
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border-4 border-[#6e4524] bg-[#f4efe4] shadow-[inset_0_0_0_2px_#e8d7a8]" data-round={tick}>
-      <div className="relative h-[34%] min-h-36 shrink-0">
-        <img src={src} alt="" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1c140c]/25 to-transparent" />
-      </div>
-      <div className="shrink-0 border-b-2 border-[#8a6232] bg-[#fffaf0] px-3 py-2 text-ink">
-        <div className="mb-1 flex items-center gap-2">
-          <img loading="lazy" decoding="async" src={personSrc("child", gender, sim.over ? "idle" : "think", spec.scene === "study" || spec.scene === "home" ? "sit" : "stand")} alt="" className="h-8 w-8 rounded-full border border-[#c4a574] object-cover object-[center_18%]" />
-          <p className="font-serif text-sm tracking-wide text-[#6e4524]">{spec.label}</p>
-        </div>
-        {!sim.over && !bonusOnly ? <p className="text-xs text-[#6e4524]">{spec.nextLabel}</p> : null}
-        <p className="text-pretty text-base leading-7">{bonusOnly ? "還可以再走一步，或停一停。" : sim.over ? (entered ? spec.voice.entered : spec.voice.back) : sim.threat.hint}</p>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto bg-[#f6efe0] px-3 py-2 text-ink">
-          <div>
-            <p className="text-xs text-ink/60">
-              第 {sim.round} / {sim.maxRounds} 步 · {spec.label}
-            </p>
-            {sim.stableFirst ? <p className="text-xs text-ink/60">你先。</p> : null}
-            {sim.pressureFirst ? <p className="text-xs text-ink/60">對方先。</p> : null}
-            <div className="mt-2 flex gap-1" aria-hidden="true">
-              {Array.from({ length: sim.maxRounds }, (_, index) => (
-                <span key={index} className={`h-1.5 flex-1 rounded-full ${index < sim.round ? "bg-ink" : "bg-line"}`} />
-              ))}
-            </div>
+    <Frame
+      label={spec.label}
+      picture={src}
+      overlay={
+        <div className="pointer-events-none absolute right-2 top-2 flex flex-col items-end gap-1 md:right-[2%] md:top-[3%]" data-round={tick}>
+          <p className="ui-paper-label rotate-1 rounded-sm px-2 py-0.5 font-serif text-sm tabular-nums md:text-base">
+            第 {sim.round} / {sim.maxRounds} 步
+          </p>
+          <div className="flex w-28 gap-0.5 md:w-40" aria-hidden="true">
+            {Array.from({ length: sim.maxRounds }, (_, index) => (
+              <span key={index} className={`h-1.5 flex-1 rounded-full ${index < sim.round ? "bg-[#f3ead7]" : "bg-[#f3ead7]/35"}`} />
+            ))}
           </div>
-          <Meter label="精神力" value={sim.hp} max={sim.maxHp} tone="bg-estate" />
-          <Meter label="氣力" value={sim.sp} max={sim.maxSp} tone="bg-amber" />
-          <Meter label="壓力" value={sim.stress} max={100} tone="bg-ink" />
-          <Meter label={spec.goalLabel} value={sim.goal} max={100} tone="bg-estate" />
-          {held ? <p className="mt-2 text-sm text-pretty text-ink/70">{held}</p> : null}
+        </div>
+      }
+      panel={
+        <PaperPanel
+          heading={
+            <div className="flex min-w-0 items-center gap-2">
+              <img loading="lazy" decoding="async" src={face} alt="" className="h-8 w-8 rounded-full border border-[#a77f4c] bg-[#f3ead7] object-cover object-[center_18%]" />
+              <div className="min-w-0">
+                <p className="text-xs tracking-wide text-ink/60">{spec.label}</p>
+                {!sim.over && !bonusOnly ? <p className="font-serif text-base text-[#5c3a1e]">{spec.nextLabel}</p> : null}
+              </div>
+            </div>
+          }
+          live={null}
+          side={
+            sim.over ? (
+              <TurnButton main label="看這一次" detail="" disabled={false} onClick={finish} />
+            ) : (
+              <>
+                <TurnButton label={spec.voice.walk.label} detail={spec.voice.walk.detail} disabled={locked || bonusLocked("walk")} onClick={() => choose("walk")} />
+                <TurnButton label={spec.voice.guard.label} detail={costDetail(actionCost("guard"), spec.voice.guard.detail)} disabled={locked || broke("guard") || bonusLocked("guard")} onClick={() => choose("guard")} />
+                <TurnButton
+                  label={spec.voice.read.label}
+                  detail={costDetail(actionCost("read"), prepared ? spec.voice.read.detail : (spec.voice.read.weakDetail ?? spec.voice.read.detail))}
+                  disabled={locked || broke("read") || bonusLocked("read")}
+                  onClick={() => choose("read")}
+                />
+                {see ? (
+                  <TurnButton label={spec.voice.see.label} detail={costDetail(actionCost("see", seeId), spec.voice.see.detail)} disabled={locked || broke("see") || seeLocked || bonusLocked("see")} onClick={() => choose("see")} />
+                ) : null}
+                {ask ? (
+                  <TurnButton label={spec.voice.ask.label} detail={costDetail(actionCost("ask"), spec.voice.ask.detail)} disabled={locked || broke("ask") || bonusLocked("ask")} onClick={() => choose("ask")} />
+                ) : null}
+                {tools ? <TurnButton label={spec.voice.skipButton} detail="試玩用" disabled={locked} onClick={() => endAs(spec.skipKind, spec.voice.skip)} /> : null}
+                {tools ? <TurnButton label={spec.voice.autoButton} detail="試玩用" disabled={locked} onClick={() => endAs(resolveAuto(sim), spec.voice.auto)} /> : null}
+              </>
+            )
+          }
+        >
+          <p className="text-pretty text-base leading-7 md:text-lg md:leading-8" aria-live="polite">{lead}</p>
+          {sim.stableFirst ? <p className="text-xs text-ink/70">你先。</p> : null}
+          {sim.pressureFirst ? <p className="text-xs text-ink/70">對方先。</p> : null}
+          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 md:grid-cols-4">
+            <Meter label="精神力" value={sim.hp} max={sim.maxHp} tone="bg-estate" />
+            <Meter label="氣力" value={sim.sp} max={sim.maxSp} tone="bg-amber" />
+            <Meter label="壓力" value={sim.stress} max={100} tone="bg-ink" />
+            <Meter label={spec.goalLabel} value={sim.goal} max={100} tone="bg-estate" />
+          </div>
+          {held ? <p className="mt-2 text-sm text-pretty text-ink/75">{held}</p> : null}
           {sim.hasActed ? (
-            <div className="mt-2">
-              <p className="text-xs text-muted">剛才</p>
-              <p className="text-sm text-pretty text-ink/70">{sim.hint}</p>
+            <div className="mt-2 border-t border-dashed border-[#a77f4c] pt-1.5">
+              <p className="text-xs text-[#5c3a1e]">剛才</p>
+              <p className="text-sm text-pretty text-ink/80">{sim.hint}</p>
               {sim.enemyHint ? (
                 <>
-                  <p className="mt-2 text-xs text-muted">{spec.hitLabel}</p>
-                  <p className="text-sm text-pretty text-ink/70">{sim.enemyHint}</p>
+                  <p className="mt-1.5 text-xs text-[#5c3a1e]">{spec.hitLabel}</p>
+                  <p className="text-sm text-pretty text-ink/80">{sim.enemyHint}</p>
                 </>
               ) : null}
             </div>
           ) : (
-            <p className="mt-2 text-sm text-pretty text-ink/70">{sim.hint}</p>
+            <p className="mt-2 text-sm text-pretty text-ink/80">{sim.hint}</p>
           )}
-      </div>
-      {sim.over ? (
-        <div className="shrink-0 border-t border-[#c4a574] bg-[#efe2c6] p-2">
-          <button type="button" className="min-h-12 w-full rounded-md border border-[#8a6232] bg-[#e7c27a] text-base font-medium text-ink" onClick={finish}>
-            看這一次
-          </button>
-        </div>
-      ) : (
-        <div className="shrink-0 border-t border-[#c4a574] bg-[#efe2c6] p-2">
-          <div className="grid grid-cols-2 gap-1">
-            <TurnButton label={spec.voice.walk.label} detail={spec.voice.walk.detail} disabled={locked || bonusLocked("walk")} onClick={() => choose("walk")} />
-            <TurnButton label={spec.voice.guard.label} detail={costDetail(actionCost("guard"), spec.voice.guard.detail)} disabled={locked || broke("guard") || bonusLocked("guard")} onClick={() => choose("guard")} />
-            <TurnButton
-              label={spec.voice.read.label}
-              detail={costDetail(actionCost("read"), prepared ? spec.voice.read.detail : (spec.voice.read.weakDetail ?? spec.voice.read.detail))}
-              disabled={locked || broke("read") || bonusLocked("read")}
-              onClick={() => choose("read")}
-            />
-            {see ? (
-              <TurnButton label={spec.voice.see.label} detail={costDetail(actionCost("see", seeId), spec.voice.see.detail)} disabled={locked || broke("see") || seeLocked || bonusLocked("see")} onClick={() => choose("see")} />
-            ) : null}
-            {ask ? (
-              <TurnButton label={spec.voice.ask.label} detail={costDetail(actionCost("ask"), spec.voice.ask.detail)} disabled={locked || broke("ask") || bonusLocked("ask")} onClick={() => choose("ask")} />
-            ) : null}
-            {tools ? <TurnButton label={spec.voice.skipButton} detail="試玩用" disabled={locked} onClick={() => endAs(spec.skipKind, spec.voice.skip)} /> : null}
-            {tools ? <TurnButton label={spec.voice.autoButton} detail="試玩用" disabled={locked} onClick={() => endAs(resolveAuto(sim), spec.voice.auto)} /> : null}
-          </div>
-        </div>
-      )}
-    </div>
+        </PaperPanel>
+      }
+    />
   );
 }
 
@@ -161,28 +169,18 @@ function costDetail(cost: number, detail: string) {
 function Meter({ label, value, max, tone }: { label: string; value: number; max: number; tone: string }) {
   const width = max <= 0 ? 0 : Math.max(0, Math.min(100, (value / max) * 100));
   return (
-    <div>
-      <div className="mb-1 flex justify-between text-xs text-ink/70">
+    <div role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={max} aria-valuenow={Math.round(value)}>
+      <div className="mb-0.5 flex justify-between text-xs text-ink/80">
         <span>{label}</span>
         <span className="tabular-nums">{Math.round(value)}</span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-line">
-        <div className={`h-1.5 rounded-full ${tone}`} style={{ width: `${width}%` }} />
+      <div className="h-2 overflow-hidden rounded-full border border-[#a77f4c] bg-[#e7d9bb]">
+        <div className={`meter h-full rounded-full ${tone}`} style={{ width: `${width}%` }} />
       </div>
     </div>
   );
 }
 
-function TurnButton({ label, detail, onClick, disabled }: { label: string; detail: string; onClick: () => void; disabled: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="flex min-h-12 flex-col items-start justify-center rounded-md border border-[#c4a574] bg-[#fff8ea] px-3 py-2 text-left text-ink disabled:opacity-40"
-    >
-      <span className="text-base font-medium">{label}</span>
-      <span className="text-xs text-ink/70">{detail}</span>
-    </button>
-  );
+function TurnButton({ label, detail, onClick, disabled, main = false }: { label: string; detail: string; onClick: () => void; disabled: boolean; main?: boolean }) {
+  return <Tag label={label} detail={detail || undefined} onClick={onClick} disabled={disabled} main={main} />;
 }

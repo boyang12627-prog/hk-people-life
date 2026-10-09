@@ -29,12 +29,16 @@ import {
 import { chainEcho, knowsKit, missed1986, missedLine } from "./freedom.ts";
 import { beat1985 } from "./story.ts";
 import { freshState, mergeDeltas, reducer } from "./engine.ts";
-import { lineText } from "./scene.ts";
+import { lineText, placeLabel } from "./scene.ts";
 import { picked, selectSpoken } from "./speak.ts";
 import { KINDY_DOOR, PRIMARY_EXAM, playtestTools } from "./battleSpec.ts";
 import { CANTONESE_TO_WRITTEN, cantoneseHits, dialogueWarnings, quotedSpeaker } from "./wording.ts";
 import { scanSources } from "../../scripts/voice-scan.ts";
 import type { Gender, State } from "./types.ts";
+import { isDone, lineAt, skipReveal, startReveal, stepReveal } from "./reveal.ts";
+import { SCENE_ANCHORS, SPEAKER_ACCENT, isOffscreen, plateName } from "./sceneAnchors.ts";
+import { beatPlate, eventPlate, scenePlate } from "./art.ts";
+import { say, type SceneLine } from "./scene.ts";
 
 type Page = { year: number; phase: string; known: boolean; text: string; state: State };
 
@@ -476,5 +480,120 @@ describe("voice v3.4 — Dad arc pays off only when earned", () => {
     const earned = { ...unearned, memories: [mem("MEM_DAD_WORK", "B", 1986)] } as unknown as State;
     assert.equal(reducer(earned, { type: "ack" }).eventId, "EVT_1986_DAD_NIGHT");
     assert.equal(EVENT_GATES.EVT_1988_DAD_SIGN({ memories: [mem("MEM_DAD_WORK", "A", 1986)] }), false);
+  });
+});
+
+describe("ui v4 — stage, paper panel, line-by-line reveal", () => {
+  it("one tap finishes the typed line, the next tap shows the next line, and it never runs past the end", () => {
+    const lengths = [5, 3, 4];
+    let r = startReveal(false);
+    assert.deepEqual(r, { shown: 1, chars: 0 });
+    assert.equal(isDone(r, lengths), false);
+    r = stepReveal(r, lengths, false);
+    assert.equal(r.shown, 1, "first tap only finishes typing");
+    r = stepReveal(r, lengths, false);
+    assert.deepEqual(r, { shown: 2, chars: 0 });
+    r = stepReveal(stepReveal(r, lengths, false), lengths, false);
+    r = stepReveal(r, lengths, false);
+    assert.equal(r.shown, 3);
+    assert.equal(isDone(r, lengths), true);
+    assert.deepEqual(stepReveal(r, lengths, false), r);
+    let still = startReveal(true);
+    assert.equal(isDone(still, [9]), true, "reduced motion: one line, already done");
+    still = stepReveal(still, [9, 9], true);
+    assert.equal(isDone(still, [9, 9]), true);
+    assert.equal(isDone(skipReveal(lengths), lengths), true);
+  });
+
+  it("the panel holds only the current line; earlier lines go to 回看 only", () => {
+    const lines = ["n1", "d1", "n2"];
+    assert.deepEqual(lineAt(lines, { shown: 1, chars: 0 }), { index: 0, current: "n1", past: [] });
+    assert.deepEqual(lineAt(lines, { shown: 2, chars: 0 }), { index: 1, current: "d1", past: ["n1"] });
+    assert.deepEqual(lineAt(lines, skipReveal([2, 2, 2])), { index: 2, current: "n2", past: ["n1", "d1"] }, "after the last line the choices sit under it");
+    assert.equal(lineAt(lines, { shown: 9, chars: 0 }).current, "n2", "never past the end");
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    assert.equal(/turns\.slice\(0, reveal\.shown\)\.map|scrollHeight/.test(app), false, "no history list and no auto-scroll on the paper");
+    assert.ok(app.includes("lineAt(turns, reveal)") && app.includes('data-current="true"'));
+    assert.ok(app.includes('role="dialog"') && app.includes("回看") && app.includes('"Escape"'), "回看 log is a closable dialog");
+    assert.ok(app.includes("useAdvanceKeys(!reveal.done && !log"), "space does not advance under the log");
+    assert.ok(/portrait=\{speaking &&/.test(app), "portrait only for a dialogue line");
+  });
+
+  it("every line is drawn, choices wait for the last line, lines are announced, and the palette stays at or below amber", () => {
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    const battle = readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+    const anchors = readFileSync(new URL("./sceneAnchors.ts", import.meta.url), "utf8");
+    assert.ok(app.includes('aria-live="polite"'));
+    assert.ok(app.includes("side={reveal.done ? <div ref={sideRef} className=\"contents\">{actions}</div> : null}"), "actions only after every line");
+    assert.ok(app.includes("useAdvanceKeys"));
+    assert.ok(stage.includes("下午 {afternoons}/2"));
+    assert.ok(stage.includes("prefers-reduced-motion"));
+    assert.equal(stage.includes("/art/"), false, "Stage.tsx builds no art path");
+    assert.ok(/<details/.test(app), "folded numbers stay");
+    // Nothing brighter than amber #c9843a: no colour with more chroma (max - min channel).
+    const chroma = (hex: string) => {
+      const n = hex.length === 4 ? hex.slice(1).split("").map((c) => parseInt(c + c, 16)) : [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+      return Math.max(...n) - Math.min(...n);
+    };
+    const limit = chroma("#c9843a");
+    for (const [name, src] of Object.entries({ app, stage, battle, css, anchors })) {
+      for (const hex of src.match(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g) ?? []) assert.ok(chroma(hex) <= limit, `${name} ${hex} is brighter than amber`);
+    }
+  });
+});
+
+describe("ui v4.5 — the portrait and name plate identify the speaker; nothing points into the painting", () => {
+  it("no speech bubble, head ring or pointer tail; portrait only for a dialogue line", () => {
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    assert.equal(/SpeechLayer|ui-bubble|ui-head-ring|PanelTail|panelTail|\btail=/.test(app + stage), false);
+    assert.ok(/portrait=\{speaking &&/.test(app));
+  });
+  it("panel v2: no enamel mug, no skip-all, 下一句 sits in its own right-hand column, larger line text", () => {
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    assert.equal(/\bMug\b|enamel/.test(app + stage), false, "the enamel cup is gone from the panel");
+    assert.equal(/跳到最後|reveal\.skip|skipReveal/.test(app + stage), false, "no skip-to-end on the paper");
+    assert.match(app, /next=\{\s*reveal\.done \? null : \(\s*<Tag main label="下一句"/, "下一句 goes in the panel's next slot");
+    assert.match(stage, /data-next="true"[^>]*md:self-center/, "the next column is vertically centred on desktop");
+    assert.ok(app.includes("md:text-[1.4375rem]"), "line text is a step above text-xl on desktop");
+  });
+  it("locations show as a map-pin tag without brackets, everywhere a place is shown", () => {
+    assert.equal(placeLabel("（門口）"), "門口");
+    assert.equal(placeLabel("(門口)"), "門口");
+    assert.equal(placeLabel(" 家裡 · 門口 "), "家裡 · 門口");
+    for (const [scene, anchors] of Object.entries(SCENE_ANCHORS)) {
+      for (const [who, anchor] of Object.entries(anchors)) {
+        if (anchor && isOffscreen(anchor)) assert.equal(/[（）()]/.test(anchor.label), false, `${scene} ${who} offscreen label has brackets`);
+      }
+    }
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+    assert.match(stage, /export function LocationTag[\s\S]*<Pin \/>[\s\S]*placeLabel\(place\)|placeLabel\(place\)[\s\S]*<Pin \/>/, "the tag draws the pin before the bracket-free name");
+    assert.match(stage, /export function Pin\(\)[\s\S]*?<svg aria-hidden="true"/, "the pin is inline SVG");
+    assert.equal(/📍/.test(app + stage), false, "no emoji pin");
+    assert.match(css, /\.ui-location \{/);
+    assert.ok(app.includes("<LocationTag place={where}"), "offscreen speaker label uses the tag");
+    assert.ok(app.includes("<LocationTag place={current.where}"), "action place uses the tag");
+    assert.ok(app.includes("<LocationTag place={turn.where}"), "回看 log shows the place with the tag too");
+    assert.equal(/>\{(current\.where|turn\.where|where)\}</.test(app), false, "no bare place text left");
+  });
+  it("the beat title sits beside the year/time label in one heading row; the location tag is a step larger", () => {
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    const heading = stage.slice(stage.indexOf("export function PanelHeading"), stage.indexOf("/** A hanging paper tag."));
+    assert.match(heading, /data-heading="true" className="flex[^"]*items-baseline/, "kicker and title share one row");
+    assert.ok(heading.indexOf("{kicker}") < heading.indexOf("{title}"), "title comes right after the year/time label");
+    assert.match(heading, /<h1 data-beat-title="true"[^>]*>\{title\}<\/h1>/);
+    assert.equal(/<p[^>]*>\{kicker\}<\/p>\s*<h1/.test(heading), false, "the title is no longer a separate line under the kicker");
+    const tag = stage.slice(stage.indexOf("export function LocationTag"), stage.indexOf("/** Small striped plastic bag."));
+    assert.match(tag, /ui-location[^`]*text-sm[^`]*md:text-base/, "location text is larger");
+    assert.match(tag, /md:h-5 md:w-4/, "pin is larger");
+  });
+  it("every speaker has one accent", () => {
+    for (const who of ["媽媽", "爸爸", "嫲嫲", "阿傑", "阿姨", "老師"] as const) assert.match(SPEAKER_ACCENT[who], /^#[0-9a-f]{6}$/);
+    assert.equal(new Set(Object.values(SPEAKER_ACCENT)).size, 6);
   });
 });
