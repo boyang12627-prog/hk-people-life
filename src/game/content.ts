@@ -101,7 +101,7 @@ export const YEARS: YearDef[] = [
     calendar: "childhood-afternoon",
     era: "屋邨還是那樣。十月，電視裡有個戴帽子的女人下船。",
     open: "你五歲。爸爸說：「女皇來了。」你不知道女皇是誰。你也開始明白，大人不是不想陪你，是他們也有必須做的事。",
-    events: ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_MARKET_07", "EVT_1986_ECHO_08", "EVT_1986_FRIEND_09"],
+    events: ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_DAD_NIGHT", "EVT_1986_MARKET_07", "EVT_1986_ECHO_08", "EVT_1986_FRIEND_09"],
     dailies: ["MINI_86_ESTATE", "MINI_86_TV", "MINI_86_HELP"],
     activities: ["ACT_MARKET", "ACT_PLAY", "ACT_DRAW", "ACT_REST", "ACT_ESTATE"],
   },
@@ -113,7 +113,7 @@ export const YEARS: YearDef[] = [
     calendar: "prototype-slice",
     era: "小學。測驗紙發下來的時候，課室很靜。",
     open: "你七歲。老師說今天要寫一張卷。你還不知道自己寫不寫得完。",
-    events: ["EVT_1988_PEN_01", "EVT_1988_EXAM_01"],
+    events: ["EVT_1988_PEN_01", "EVT_1988_EXAM_01", "EVT_1988_DAD_SIGN"],
     dailies: [],
     activities: ["ACT_MARKET", "ACT_DRAW", "ACT_REST"],
   },
@@ -223,6 +223,16 @@ const EVENT_SCENE: Record<string, SceneId> = {
   EVT_1986_MARKET_07: "market",
   EVT_1986_ECHO_08: "estate",
   EVT_1986_FRIEND_09: "corridor",
+  EVT_1986_DAD_NIGHT: "home",
+  EVT_1988_DAD_SIGN: "home",
+};
+
+const has = (state: Pick<State, "memories">, id: string) => state.memories.some((item) => (item.memoryTypeId ?? item.id) === id);
+
+/** Events that only open when the player has earned them. openNext skips a gated event; nothing else changes. */
+export const EVENT_GATES: Record<string, (state: Pick<State, "memories">) => boolean> = {
+  EVT_1986_DAD_NIGHT: (state) => has(state, "MEM_DAD_WORK"),
+  EVT_1988_DAD_SIGN: (state) => has(state, "MEM_DAD_WORK") && has(state, "MEM_EXAM_PAPER"),
 };
 
 export function isLastYear(yearIndex: number) {
@@ -418,6 +428,7 @@ export function fifteenLines(state: State) {
   if (response === 1) lines.push("你小時候把約定放下，自己去玩了。這天你沒有再等誰。");
   else if (response === 2) lines.push("你答應過他去上班。這天回家，你只應了一聲。");
   else if (response === 3) lines.push("你留下來陪過。這天你也先坐下，再答。");
+  lines.push(...dadArc(state));
   const again = picked(state, "MEM_FRIEND_AGAIN");
   if (again === "A") lines.push("五歲那年，你還是走向阿傑。");
   else if (again === "B") lines.push("五歲那年，你看著，沒有馬上加入。");
@@ -425,6 +436,37 @@ export function fifteenLines(state: State) {
   lines.push(...thirdHop(state));
   lines.push(...rememberedPeople(state));
   lines.push("原來你小時候那些選擇，沒有消失。");
+  return lines;
+}
+
+/**
+ * Dad arc, beat 5 of 5, at fifteen. One line from childhood, gated by what the child saw and asked:
+ * 1984 「最要緊是一家人安穩」 (MEM_NEWS_01, harmony variant) → 1985 slow shoes (MEM_DAD_HOME) →
+ * 1986 「下次吧」 (MEM_DAD_WORK) → that night (MEM_DAD_LATE) → 1988 signing the paper (MEM_DAD_SIGN) → here.
+ * The reason (he stayed late for others) is only said if the child heard it: asked in 1986 or 1988, or saw the overtime Sunday.
+ */
+export function dadArc(state: State): string[] {
+  const park = picked(state, "MEM_DAD_WORK");
+  if (!park) return [];
+  const night = picked(state, "MEM_DAD_LATE");
+  const sign = picked(state, "MEM_DAD_SIGN");
+  const sawHome = state.memories.some((item) => (item.memoryTypeId ?? item.id) === "MEM_DAD_HOME");
+  const overtime = sawHome && state.npcDays.NPC_DAD_01?.todayOutcome === "overtime";
+  const sawShoes = sawHome || !!night || !!sign;
+  const heardWhy = night === "B" || sign === "C" || overtime;
+  if (!sawShoes) return [];
+  const lines = ["十一點，門開了。爸爸坐在門口脫鞋，脫得很慢。"];
+  if (!heardWhy) {
+    lines.push("你小時候見過他這樣脫鞋。你沒有問過為什麼。");
+    return lines;
+  }
+  lines.push("小時候你以為「下次吧」只是推你。");
+  if (sign === "C") lines.push("那幾年同事一個一個移民，他替人留到最後。走不開的時候，他就說下次。");
+  else if (night === "B") lines.push("公司一直沒有請到人。他替人留到最後。走不開的時候，他就說下次。");
+  else lines.push("那個星期六他替人留到最後。當時你只知道，鞋子脫得很慢。");
+  const news = state.memories.find((item) => (item.memoryTypeId ?? item.id) === "MEM_NEWS_01");
+  if (news?.variant === "harmony") lines.push("「最要緊是一家人安穩。」他只說過一次，之後就一直做。");
+  lines.push(park === "A" ? "他問你星期日有沒有空。你說約了人。他說好，下次。" : "他問你星期日有沒有空。公園那個下次，他還記得。");
   return lines;
 }
 
@@ -480,7 +522,6 @@ function rememberedPeople(state: State) {
   if (picked(state, "MEM_GRAND_DAY") === "B") spoken.push({ priority: 1, text: "嫲嫲後來說湯還是熱的。你記得它涼了。" });
   if (picked(state, "MEM_NEIGHBOR") === "A") spoken.push({ priority: 1, text: "媽媽以為你不喜歡街市。你只是拉過她的衣袖。" });
   if (state.memories.some((item) => item.id === "MEM_OTHER_CHILD")) spoken.push({ priority: 1, text: "平台上那個孩子，你到現在也不知道名字。" });
-  if (state.npcDays.NPC_DAD_01?.todayOutcome === "overtime" && state.memories.some((item) => (item.memoryTypeId ?? item.id) === "MEM_DAD_HOME")) spoken.push({ priority: 1, text: "那個星期六他替人留到最後。當時你只知道，鞋子脫得很慢。" });
   return selectByPriority(spoken, 2);
 }
 
@@ -516,6 +557,16 @@ const RECALL: Record<string, Record<string, string>> = {
     A: "公園去不成。你自己去玩，約定裂了。",
     B: "你說過「知道了」。公園仍然取消。",
     C: "公園取消。你留下來和他一起。",
+  },
+  MEM_DAD_LATE: {
+    A: "那晚他很晚回來。你裝睡，聽見他脫鞋。",
+    B: "你問過下次是幾時。他說，等公司請到人。",
+    C: "你替他把鞋擺好。鞋底很薄。",
+  },
+  MEM_DAD_SIGN: {
+    A: "你等爸爸簽完卷才睡。",
+    B: "你先睡了。卷第二天已經簽好。",
+    C: "你問過他為什麼這麼晚。同事移民了，他替人做。",
   },
   MEM_MARKET_01: {
     A: "你跟阿姨說過謝謝。沒有人塞錢給你。",
@@ -585,6 +636,16 @@ const VOICE_BIT: Record<string, Record<string, string>> = {
     A: "公園去不成，你自己去玩",
     B: "你說過「知道了」",
     C: "公園取消，你留下來和他一起",
+  },
+  MEM_DAD_LATE: {
+    A: "你裝睡，聽見爸爸在門口脫鞋",
+    B: "你問過爸爸下次是幾時",
+    C: "你替爸爸把鞋擺好",
+  },
+  MEM_DAD_SIGN: {
+    A: "你等爸爸簽完卷才睡",
+    B: "你先睡了，卷第二天簽好",
+    C: "你問過爸爸為什麼這麼晚",
   },
   MEM_MARKET_01: {
     A: "你跟阿姨說過謝謝",

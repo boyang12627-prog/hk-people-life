@@ -202,9 +202,9 @@ describe("logic audit v3.2", () => {
     };
     assert.ok(cardFor("EVT_1986_MARKET_07", painted).sequence.map(lineText).join("").includes("顏色"));
     const loud = choicesFor("EVT_1986_MARKET_07", { ...freshState(), primary: { ...freshState().primary, STAT_SPEECH: 6 } }).find((item) => item.id === "B");
-    assert.ok(loud?.result.includes("不必立刻還"));
+    assert.ok(loud?.result.includes("唔使即刻還"));
     const quiet = choicesFor("EVT_1986_MARKET_07", { ...freshState(), primary: { ...freshState().primary, STAT_SPEECH: 5 } }).find((item) => item.id === "B");
-    assert.equal(quiet?.result.includes("不必立刻還"), false);
+    assert.equal(quiet?.result.includes("唔使即刻還"), false);
     const dreaming = {
       ...freshState(),
       derived: { ...freshState().derived, VALUE_DREAM: 70, VALUE_REALITY: 50 },
@@ -866,7 +866,7 @@ describe("logic audit v3.2", () => {
     }
     assert.ok(cardFor("EVT_1986_FAMILY_06", remember("MEM_DAD_HOME", "A")).sequence.map(lineText).join("").includes("回來過"));
     const out = produce1986(["ACT_MARKET", "ACT_ESTATE"]);
-    assert.deepEqual(out.queue, ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_MARKET_07", "MINI_86_HELP", "MINI_QUIET", "EVT_1986_ECHO_08"]);
+    assert.deepEqual(out.queue, ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_DAD_NIGHT", "EVT_1986_MARKET_07", "MINI_86_HELP", "MINI_QUIET", "EVT_1986_ECHO_08"]);
     assert.equal(out.missed.includes("MISS_86_FRIEND"), true);
     const home = produce1986(["ACT_PLAY", "ACT_DRAW"]);
     assert.equal(home.queue.includes("MINI_86_TV"), true);
@@ -880,7 +880,7 @@ describe("logic audit v3.2", () => {
     assert.ok(cardFor("EVT_1986_FRIEND_09", missedHim).sequence.map(lineText).join("").includes("見過"));
     const shared = { ...freshState(), flags: ["FLAG_SHARED_BALL"], spent: ["ACT_PLAY"], npc: { ...freshState().npc, NPC_FRIEND_01: { relation: 5, trust: 5, available: true } } };
     assert.equal(friendFollow(shared), "invite");
-    assert.ok(cardFor("EVT_1986_FRIEND_09", shared).sequence.map(lineText).join("").includes("不是搶"));
+    assert.ok(cardFor("EVT_1986_FRIEND_09", shared).sequence.map(lineText).join("").includes("唔係搶"));
     const grabbed = { ...freshState(), flags: ["FLAG_TOY_MONOPOLY"], spent: ["ACT_ESTATE"] };
     assert.equal(friendFollow(grabbed), "wary");
     assert.ok(cardFor("EVT_1986_FRIEND_09", grabbed).sequence.map(lineText).join("").includes("抱緊"));
@@ -968,7 +968,7 @@ describe("logic audit v3.2", () => {
     assert.equal(atPodium.npc.NPC_FRIEND_01.relation, 0);
     assert.equal(withMom.npcDays.NPC_FRIEND_01?.nextPlan, "return");
     assert.equal(withMom.npcDays.NPC_FRIEND_01?.missedPlayer, true);
-    assert.ok(beat1985("sat-night", withMom).sequence.map(lineText).join("").includes("踢球"));
+    assert.ok(beat1985("sat-night", withMom).sequence.map(lineText).join("").includes("踢波"));
     assert.equal(atHome.npcDays.NPC_FRIEND_01?.nextPlan, "withdraw");
     assert.equal(atHome.npcDays.NPC_FRIEND_01?.mood, "disappointed");
     assert.ok(beat1985("sat-night", atHome).sequence.map(lineText).join("").includes("石凳"));
@@ -979,16 +979,16 @@ describe("logic audit v3.2", () => {
     const found = sunday(withMom, "ACT_ESTATE");
     const rain = sunday(atHome, "ACT_ESTATE");
     assert.equal(visit.eventId, "MINI_85_KIT_WAIT");
-    assert.equal(cardFor("MINI_85_KIT_WAIT", visit).sequence.map(lineText).join("").includes("昨天沒有下來"), false);
+    assert.equal(cardFor("MINI_85_KIT_WAIT", visit).sequence.map(lineText).join("").includes("你琴日冇落嚟"), false);
     assert.equal(found.eventId, "MINI_85_KIT_WAIT");
-    assert.ok(cardFor("MINI_85_KIT_WAIT", found).sequence.map(lineText).join("").includes("昨天沒有下來"));
+    assert.ok(cardFor("MINI_85_KIT_WAIT", found).sequence.map(lineText).join("").includes("你琴日冇落嚟"));
     assert.equal(rain.eventId, "MINI_85_ALONE_PODIUM");
     assert.ok(cardFor(rain.eventId, rain).sequence.map(lineText).join("").includes("不認識"));
     assert.ok(resolveWorldAt(1985, "sun", "ACT_ESTATE", withMom).includes("MINI_85_KIT_WAIT"));
     assert.equal(resolveWorldAt(1985, "sun", "ACT_HOME", atHome).includes("MINI_85_KIT_WAIT"), false);
     const later = cardFor("EVT_1986_FRIEND_09", { ...withMom, yearIndex: 2 }).sequence.map(lineText).join("");
     const bench = cardFor("EVT_1986_FRIEND_09", { ...atHome, yearIndex: 2 }).sequence.map(lineText).join("");
-    assert.ok(later.includes("去年你沒有下來"));
+    assert.ok(later.includes("你去年冇落嚟"));
     assert.ok(later.includes("踢球"));
     assert.ok(bench.includes("石凳"));
     assert.equal(bench.includes("踢球"), false);

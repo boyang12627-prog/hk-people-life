@@ -5,13 +5,14 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import {
   activityBlurb,
   activityDetail,
   activityLabel,
   cardFor,
+  dadArc,
+  EVENT_GATES,
   choicesFor,
   examStory,
   battleStory,
@@ -29,9 +30,10 @@ import { chainEcho, knowsKit, missed1986, missedLine } from "./freedom.ts";
 import { beat1985 } from "./story.ts";
 import { freshState, mergeDeltas, reducer } from "./engine.ts";
 import { lineText } from "./scene.ts";
-import { selectSpoken } from "./speak.ts";
+import { picked, selectSpoken } from "./speak.ts";
 import { KINDY_DOOR, PRIMARY_EXAM, playtestTools } from "./battleSpec.ts";
-import { CANTONESE_TO_WRITTEN, cantoneseHits } from "./wording.ts";
+import { CANTONESE_TO_WRITTEN, cantoneseHits, dialogueWarnings, quotedSpeaker } from "./wording.ts";
+import { scanSources } from "../../scripts/voice-scan.ts";
 import type { Gender, State } from "./types.ts";
 
 type Page = { year: number; phase: string; known: boolean; text: string; state: State };
@@ -366,30 +368,41 @@ describe("playtest fixes v3.3 — P1", () => {
   });
 });
 
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const path = join(dir, name);
-    if (statSync(path).isDirectory()) return sourceFiles(path);
-    return /\.(ts|tsx)$/.test(name) && !name.endsWith(".test.ts") && name !== "wording.ts" ? [path] : [];
-  });
-}
+describe("playtest fixes v3.3 / voice v3.4 — 書面中文 in narration, HK voice in dialogue", () => {
+  const root = new URL("..", import.meta.url).pathname;
+  const scanned = scanSources(root);
 
-function stripComments(text: string) {
-  return text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
-}
-
-describe("playtest fixes v3.3 — P2 書面中文", () => {
-  it("no listed Cantonese word in any player-facing string", () => {
-    const root = new URL("..", import.meta.url).pathname;
+  it("no listed Cantonese word in any narration or action string (strict)", () => {
     const hits: string[] = [];
-    for (const file of sourceFiles(root)) {
-      const code = stripComments(readFileSync(file, "utf8"));
-      for (const literal of code.match(/"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g) ?? []) {
-        for (const hit of cantoneseHits(literal)) hits.push(`${file.replace(root, "")}: ${literal} → ${hit.rule.written}`);
-      }
+    for (const item of scanned.narration) {
+      for (const hit of cantoneseHits(item.text)) hits.push(`${item.file}: ${item.text} → ${hit.rule.written}`);
     }
     assert.deepEqual(hits, []);
     assert.ok(CANTONESE_TO_WRITTEN.length >= 10);
+    assert.ok(scanned.narration.length > 500, "narration was scanned");
+  });
+
+  it("dialogue is reported, never failed: the warning list is for the writer (docs/VOICE_WARNINGS.md)", (t) => {
+    assert.ok(scanned.dialogue.length >= 50, "dialogue was found");
+    for (const item of scanned.dialogue) {
+      if (!item.quoted) assert.ok(item.speaker, `say() without a known speaker: ${item.file} ${item.text}`);
+    }
+    const warnings = scanned.dialogue.flatMap((item) => dialogueWarnings(item.speaker, item.text, item.register).map((w) => `${item.speaker ?? "（未標）"}［${w.register}］${item.text} — ${w.reason}`));
+    for (const line of new Set(warnings)) t.diagnostic(`VOICE WARNING ${line}`);
+    // Dialogue keeps Hong Kong words on purpose. These are the V3.3 conversions that were reverted.
+    const said = scanned.dialogue.map((item) => item.text).join("\n");
+    for (const word of ["拿去用啦", "今次", "踢波", "個波", "唔使錢", "你琴日冇落嚟。", "你去年冇落嚟。"]) assert.ok(said.includes(word), `dialogue keeps ${word}`);
+  });
+
+  it("speech quoted inside narration is dialogue, not narration", () => {
+    assert.deepEqual(cantoneseHits("他說這支是多出來的。「你拿去用啦。」筆芯有一點深。"), []);
+    assert.ok(cantoneseHits("你拿去用啦。").length > 0);
+    assert.equal(quotedSpeaker("媽媽看爸爸一眼。「大人有時也會擔心。」", "大人有時也會擔心。"), "媽媽");
+    assert.equal(quotedSpeaker("阿姨說：「呢個唔使錢。」", "呢個唔使錢。"), "阿姨");
+    const voice = dialogueWarnings("阿傑", "這個球是我先拿到的！");
+    assert.ok(voice.length > 0 && voice.every((w) => w.register === "colloquial"));
+    assert.deepEqual(dialogueWarnings("老師", "不用怕，進去和其他小朋友玩。"), []);
+    assert.ok(dialogueWarnings("老師", "唔使驚。").length > 0);
   });
 
   it("the list itself catches what the playtest found", () => {
@@ -397,5 +410,71 @@ describe("playtest fixes v3.3 — P2 書面中文", () => {
       assert.ok(cantoneseHits(bad).length > 0, bad);
     }
     for (const ok of ["一隻麻雀飛過", "不要出街口", "塑膠袋太重", "和阿傑一組", "士多", "默書"]) assert.deepEqual(cantoneseHits(ok), [], ok);
+  });
+});
+
+describe("voice v3.4 — Dad arc pays off only when earned", () => {
+  const mem = (id: string, choiceId: string, year: number, variant = "base") => ({ id, memoryTypeId: id, instanceId: `${id}_${year}`, eventId: "", choiceId, variant, year, age: year - 1981, npc: "NPC_DAD_01", emotion: "", weight: 1, echo: "" });
+  const at15 = (memories: ReturnType<typeof mem>[], overtime = false) =>
+    ({ ...freshState(), yearIndex: 3, memories, npcDays: overtime ? { NPC_DAD_01: { todayOutcome: "overtime" } } : {} }) as unknown as State;
+
+  it("no park, or no shoes seen: no Dad payoff at fifteen", () => {
+    assert.deepEqual(dadArc(at15([])), []);
+    assert.deepEqual(dadArc(at15([mem("MEM_DAD_WORK", "B", 1986)])), []);
+    assert.equal(fifteenLines(at15([])).join("").includes("脫鞋"), false);
+  });
+
+  it("saw him come home but never asked: the shoes, and no reason", () => {
+    const lines = dadArc(at15([mem("MEM_DAD_WORK", "B", 1986), mem("MEM_DAD_LATE", "A", 1986)])).join("");
+    assert.ok(lines.includes("脫得很慢") && lines.includes("沒有問過為什麼"));
+    for (const word of ["替人", "移民", "還記得", "安穩"]) assert.equal(lines.includes(word), false, word);
+  });
+
+  it("asked, or saw the overtime Sunday: he is reinterpreted, by the reason the child heard", () => {
+    const asked86 = dadArc(at15([mem("MEM_DAD_WORK", "C", 1986), mem("MEM_DAD_LATE", "B", 1986)])).join("");
+    assert.ok(asked86.includes("替人留到最後") && asked86.includes("請到人") && asked86.includes("還記得"));
+    assert.equal(asked86.includes("移民"), false, "移民 is only said if the child asked in 1988");
+    const asked88 = dadArc(at15([mem("MEM_DAD_WORK", "A", 1986), mem("MEM_DAD_SIGN", "C", 1988)])).join("");
+    assert.ok(asked88.includes("移民") && asked88.includes("約了人"));
+    assert.equal(asked88.includes("還記得"), false, "the park promise is remembered only if the child did not walk away from it");
+    const overtime = dadArc(at15([mem("MEM_DAD_WORK", "B", 1986), mem("MEM_DAD_HOME", "A", 1985)], true)).join("");
+    assert.ok(overtime.includes("那個星期六他替人留到最後"));
+    const noOvertime = dadArc(at15([mem("MEM_DAD_WORK", "B", 1986), mem("MEM_DAD_HOME", "A", 1985)])).join("");
+    assert.equal(noOvertime.includes("替人"), false);
+  });
+
+  it("「一家人安穩」 comes back only if Dad said it on screen in 1984", () => {
+    const base = [mem("MEM_DAD_WORK", "B", 1986), mem("MEM_DAD_LATE", "B", 1986)];
+    assert.ok(dadArc(at15([...base, mem("MEM_NEWS_01", "A", 1984, "harmony")])).join("").includes("安穩"));
+    assert.equal(dadArc(at15([...base, mem("MEM_NEWS_01", "A", 1984, "cold")])).join("").includes("安穩"), false);
+  });
+
+  it("driven lives: the night and the signing follow the park and the paper; the reason never comes unearned", () => {
+    let full = 0;
+    let partial = 0;
+    for (const life of LIVES) {
+      const order = life.pages.filter((page) => page.phase === "event").map((page) => page.state.eventId);
+      const night = order.indexOf("EVT_1986_DAD_NIGHT");
+      const sign = order.indexOf("EVT_1988_DAD_SIGN");
+      assert.ok(night > order.indexOf("EVT_1986_FAMILY_06"), "the night comes after the park");
+      assert.ok(sign > order.indexOf("EVT_1988_EXAM_01"), "the signing comes after the paper");
+      const fifteen = life.pages.find((page) => page.phase === "fifteen");
+      assert.ok(fifteen);
+      const s = fifteen.state;
+      const heard = picked(s, "MEM_DAD_LATE") === "B" || picked(s, "MEM_DAD_SIGN") === "C" || (picked(s, "MEM_DAD_HOME") !== "" && s.npcDays.NPC_DAD_01?.todayOutcome === "overtime");
+      if (fifteen.text.includes("替人留到最後")) {
+        assert.ok(heard, fifteen.text);
+        full += 1;
+      } else if (fifteen.text.includes("沒有問過為什麼")) partial += 1;
+      if (fifteen.text.includes("移民")) assert.equal(picked(s, "MEM_DAD_SIGN"), "C");
+      assert.equal(fifteen.text.split("替人留到最後").length - 1 <= 1, true, "said once");
+    }
+    assert.ok(full > 0 && partial > 0, `both payoffs were exercised (full ${full}, partial ${partial})`);
+    assert.equal(EVENT_GATES.EVT_1986_DAD_NIGHT({ memories: [] }), false);
+    const unearned = { ...freshState(), phase: "result", yearIndex: 2, queue: ["EVT_1986_DAD_NIGHT", "EVT_1986_FRIEND_09"], result: { text: "", deltas: [], skills: [] } } as unknown as State;
+    assert.equal(reducer(unearned, { type: "ack" }).eventId, "EVT_1986_FRIEND_09", "no park, no night");
+    const earned = { ...unearned, memories: [mem("MEM_DAD_WORK", "B", 1986)] } as unknown as State;
+    assert.equal(reducer(earned, { type: "ack" }).eventId, "EVT_1986_DAD_NIGHT");
+    assert.equal(EVENT_GATES.EVT_1988_DAD_SIGN({ memories: [mem("MEM_DAD_WORK", "A", 1986)] }), false);
   });
 });

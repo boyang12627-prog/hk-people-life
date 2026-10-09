@@ -5,10 +5,33 @@
 
 export type Speaker = "媽媽" | "爸爸" | "嫲嫲" | "阿傑" | "老師" | "阿姨";
 
+/**
+ * How a line of speech is written. Narration and action are always concise written Chinese.
+ * - formal: written Chinese, as a teacher speaks to a class.
+ * - narrative: written grammar with Hong Kong words and rhythm (一陣、好累、今日).
+ * - colloquial: Cantonese as it is said (唔、咗、嘅、啦). Use for a line that would sound false in written grammar.
+ * See docs/VOICE.md for each speaker.
+ */
+export type Register = "formal" | "narrative" | "colloquial";
+
 export type SceneLine =
   | { type: "narration"; text: string }
   | { type: "action"; where?: string; text: string }
-  | { type: "dialogue"; speaker: Speaker; text: string };
+  | { type: "dialogue"; speaker: Speaker; text: string; register?: Register };
+
+/** The register a speaker uses when a line does not say. Matches docs/VOICE.md. */
+export const DEFAULT_REGISTER: Record<Speaker, Register> = {
+  媽媽: "narrative",
+  爸爸: "narrative",
+  嫲嫲: "colloquial",
+  阿傑: "colloquial",
+  阿姨: "colloquial",
+  老師: "formal",
+};
+
+export function registerOf(line: Extract<SceneLine, { type: "dialogue" }>): Register {
+  return line.register ?? DEFAULT_REGISTER[line.speaker];
+}
 
 export const SPEAKERS: readonly Speaker[] = ["媽媽", "爸爸", "嫲嫲", "阿傑", "老師", "阿姨"];
 
@@ -21,8 +44,8 @@ export function act(text: string, where?: string): SceneLine {
   return where ? { type: "action", where, text } : { type: "action", text };
 }
 
-export function say(speaker: Speaker, text: string): SceneLine {
-  return { type: "dialogue", speaker, text };
+export function say(speaker: Speaker, text: string, register?: Register): SceneLine {
+  return register ? { type: "dialogue", speaker, text, register } : { type: "dialogue", speaker, text };
 }
 
 /** Plain strings are narration by rule, not by reading their punctuation. */
