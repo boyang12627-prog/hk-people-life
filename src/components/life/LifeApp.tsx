@@ -739,18 +739,7 @@ function ResultBody({ result, hideText = false }: { result: NonNullable<State["r
       {hideText ? null : <p className="text-pretty text-base leading-7">{result.text}</p>}
       {result.skills.length > 0 ? <p className="mt-2 text-sm text-ink/75">學會了：{result.skills.join("、")}</p> : null}
       {result.lean ? <p className="mt-2 text-sm text-ink/65">{result.lean}</p> : null}
-      {result.deltas.length > 0 ? (
-        <details className="mt-1">
-          <summary className="min-h-11 py-2 text-sm text-ink/75">記下了</summary>
-          <ul className="flex flex-wrap gap-2 pb-2">
-            {result.deltas.map((delta, index) => (
-              <li key={`${delta.label}-${index}`} className="rounded-full border border-[#c4a574] bg-[#f7efdc] px-2.5 py-1 text-xs text-ink">
-                {delta.label} {delta.value > 0 ? `+${delta.value}` : delta.value}
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
+      {/* Deltas stay in the engine; the player does not see a stat list. */}
     </>
   );
 }

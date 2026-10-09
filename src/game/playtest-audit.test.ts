@@ -534,7 +534,10 @@ describe("ui v4 — stage, paper panel, line-by-line reveal", () => {
     assert.ok(stage.includes("下午 {afternoons}/2"));
     assert.ok(stage.includes("prefers-reduced-motion"));
     assert.equal(stage.includes("/art/"), false, "Stage.tsx builds no art path");
-    assert.ok(/<details/.test(app), "folded numbers stay");
+    assert.equal(app.includes("記下了"), false, "the result page shows no 記下了 stat list");
+    assert.equal(/result\.deltas\.map/.test(app), false, "deltas are not rendered to the player");
+    assert.ok(app.includes("學會了："), "learned skills still shown");
+    assert.ok(app.includes("result.lean"), "lean line still shown");
     // Nothing brighter than amber #c9843a: no colour with more chroma (max - min channel).
     const chroma = (hex: string) => {
       const n = hex.length === 4 ? hex.slice(1).split("").map((c) => parseInt(c + c, 16)) : [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
