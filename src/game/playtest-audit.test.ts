@@ -35,7 +35,7 @@ import { KINDY_DOOR, PRIMARY_EXAM, playtestTools } from "./battleSpec.ts";
 import { CANTONESE_TO_WRITTEN, cantoneseHits, dialogueWarnings, quotedSpeaker } from "./wording.ts";
 import { scanSources } from "../../scripts/voice-scan.ts";
 import type { Gender, State } from "./types.ts";
-import { isDone, skipReveal, startReveal, stepReveal } from "./reveal.ts";
+import { isDone, lineAt, skipReveal, startReveal, stepReveal } from "./reveal.ts";
 import { SCENE_ANCHORS, SPEAKER_ACCENT, isOffscreen, plateName } from "./sceneAnchors.ts";
 import { TAIL_EDGE, TAIL_STOP, offscreenStub, panelTail } from "./panelTail.ts";
 import { beatPlate, eventPlate, scenePlate } from "./art.ts";
@@ -504,6 +504,20 @@ describe("ui v4 — stage, paper panel, line-by-line reveal", () => {
     still = stepReveal(still, [9, 9], true);
     assert.equal(isDone(still, [9, 9]), true);
     assert.equal(isDone(skipReveal(lengths), lengths), true);
+  });
+
+  it("the panel holds only the current line; earlier lines go to 回看 only", () => {
+    const lines = ["n1", "d1", "n2"];
+    assert.deepEqual(lineAt(lines, { shown: 1, chars: 0 }), { index: 0, current: "n1", past: [] });
+    assert.deepEqual(lineAt(lines, { shown: 2, chars: 0 }), { index: 1, current: "d1", past: ["n1"] });
+    assert.deepEqual(lineAt(lines, skipReveal([2, 2, 2])), { index: 2, current: "n2", past: ["n1", "d1"] }, "after the last line the choices sit under it");
+    assert.equal(lineAt(lines, { shown: 9, chars: 0 }).current, "n2", "never past the end");
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    assert.equal(/turns\.slice\(0, reveal\.shown\)\.map|scrollHeight/.test(app), false, "no history list and no auto-scroll on the paper");
+    assert.ok(app.includes("lineAt(turns, reveal)") && app.includes('data-current="true"'));
+    assert.ok(app.includes('role="dialog"') && app.includes("回看") && app.includes('"Escape"'), "回看 log is a closable dialog");
+    assert.ok(app.includes("useAdvanceKeys(!reveal.done && !log"), "space does not advance under the log");
+    assert.ok(/portrait=\{speaking &&/.test(app) && /tail=\{speaking\?\.speaker/.test(app), "portrait and tail only for a dialogue line");
   });
 
   it("every line is drawn, choices wait for the last line, lines are announced, and the palette stays at or below amber", () => {

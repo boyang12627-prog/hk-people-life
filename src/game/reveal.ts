@@ -30,3 +30,12 @@ export function stepReveal(r: Reveal, lengths: readonly number[], still: boolean
 export function skipReveal(lengths: readonly number[]): Reveal {
   return { shown: Math.max(1, lengths.length), chars: ALL };
 }
+
+/**
+ * The panel shows one line at a time (V4.4): the current line, and the lines already read
+ * (for the 回看 log only). Never empty while there is at least one line.
+ */
+export function lineAt<T>(items: readonly T[], r: Reveal): { index: number; current: T; past: T[] } {
+  const index = Math.max(0, Math.min(r.shown, items.length) - 1);
+  return { index, current: items[index], past: items.slice(0, index) };
+}

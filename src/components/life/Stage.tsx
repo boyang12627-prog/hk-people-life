@@ -48,11 +48,12 @@ function StatusFrame() {
 }
 
 /** The long old-paper panel. `side` holds the hanging tags; on narrow screens they drop below the text. */
-export function PaperPanel({ heading, children, side, live, portrait, tail }: { heading?: ReactNode; children: ReactNode; side?: ReactNode; live?: ReactNode; portrait?: ReactNode; tail?: ReactNode }) {
+export function PaperPanel({ heading, children, side, live, portrait, tail, log }: { heading?: ReactNode; children: ReactNode; side?: ReactNode; live?: ReactNode; portrait?: ReactNode; tail?: ReactNode; log?: ReactNode }) {
   const { afternoons } = useContext(StatusContext);
   return (
     <div className="ui-panel flex h-full min-h-0 rounded-md md:h-auto">
       {tail}
+      {log}
       <div aria-hidden="true" className="ui-scroll-end relative my-4 ml-1.5 w-3.5 shrink-0 rounded-sm md:ml-2 md:w-5" />
       {portrait ? <div className="ml-2 md:ml-3">{portrait}</div> : null}
       <div className="flex min-h-0 flex-1 flex-col gap-1 pb-7 pl-2 pr-3 pt-4 md:flex-row md:gap-4 md:pl-3">

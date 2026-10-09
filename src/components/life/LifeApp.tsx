@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useReducer, useRef, useState, typ
 import { Battle } from "@/components/life/Battle";
 import { playRoom, playTone, unlockAudio } from "@/components/life/audio";
 import { Frame, PanelHeading, PanelPortrait, PanelTail, PaperPanel, StatusContext, Tag, useAdvanceKeys, useReveal, type Status } from "@/components/life/Stage";
+import { lineAt } from "@/game/reveal";
 import { SPEAKER_ACCENT, anchorFor, isOffscreen } from "@/game/sceneAnchors";
 import {
   activityDetail,
@@ -552,7 +553,8 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
   const gender = useContext(Face);
   const picture = plate ?? scenePlate(scene, gender);
   const reveal = useReveal(turns.map((turn) => turn.text.length));
-  useAdvanceKeys(!reveal.done, reveal.advance);
+  const [log, setLog] = useState(false);
+  useAdvanceKeys(!reveal.done && !log, reveal.advance);
   const sideRef = useRef<HTMLDivElement>(null);
   const nextFocused = useRef(false);
 
@@ -560,14 +562,7 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
     if (reveal.done && nextFocused.current) sideRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
   }, [reveal.done]);
 
-  const index = reveal.shown - 1;
-  const current = turns[index];
-  const linesRef = useRef<HTMLDivElement>(null);
-  // Keep the newest line in view when the panel's text overflows.
-  useEffect(() => {
-    const box = linesRef.current?.closest<HTMLElement>(".overflow-y-auto");
-    if (box) box.scrollTop = box.scrollHeight;
-  }, [reveal.shown, reveal.chars, reveal.done]);
+  const { index, current, past } = lineAt(turns, reveal);
   const textOf = (at: number) => (at === index ? turns[at].text.slice(0, reveal.chars) : turns[at].text);
   const speaking = current.kind === "dialogue" ? current : null;
   const anchor = speaking?.speaker ? anchorFor(picture, speaking.speaker) : undefined;
@@ -580,10 +575,20 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
       label={`${kicker} · ${title}`}
       picture={picture}
       overlay={overlay}
-      onStageClick={reveal.done ? undefined : reveal.advance}
+      onStageClick={reveal.done || log ? undefined : reveal.advance}
       panel={
         <PaperPanel
-          heading={<PanelHeading kicker={kicker} title={title} />}
+          heading={
+            <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+              <PanelHeading kicker={kicker} title={title} />
+              {past.length > 0 ? (
+                <button type="button" onClick={() => setLog(true)} className="min-h-11 shrink-0 rounded-sm px-2 text-sm text-ink/70 underline decoration-dotted underline-offset-4" aria-haspopup="dialog">
+                  回看
+                </button>
+              ) : null}
+            </div>
+          }
+          log={log ? <LineLog turns={past} onClose={() => setLog(false)} /> : null}
           portrait={speaking && person && person !== "child" ? <PanelPortrait key={speaking.name} {...personPortrait(person)} name={speaking.name} accent={accent} /> : null}
           tail={speaking?.speaker ? <PanelTail head={anchor && !isOffscreen(anchor) ? anchor : null} offscreen={anchor && isOffscreen(anchor) ? anchor.offscreen : null} accent={accent} /> : null}
           live={
@@ -604,50 +609,84 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
                     }
                   }} />
                   <button type="button" onClick={reveal.skip} className="col-span-full mt-2 min-h-11 w-full rounded-sm text-sm text-ink/70 underline decoration-dotted underline-offset-4">
-                    全部顯示
+                    跳到最後
                   </button>
                 </>
               )}
             </div>
           }
         >
-          <div ref={linesRef} className="flex flex-col gap-1.5" onClick={reveal.done ? undefined : reveal.advance} data-lines={turns.length} data-shown={reveal.shown}>
-            {turns.slice(0, reveal.shown).map((turn, at) => {
-              if (turn.kind === "dialogue") {
-                if (at === index) {
-                  return (
-                    <div key={`${at}-${turn.text}`} className="mt-0.5" data-kind="dialogue" data-current="true" data-speaker={turn.name}>
-                      <p className="flex items-center gap-1.5 text-sm tracking-wide md:text-base" style={{ color: accent }}>
-                        <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full" style={{ background: accent }} />
-                        <span className="font-medium">{turn.name}</span>
-                        {where ? <span className="text-ink/70">{where}</span> : null}
-                      </p>
-                      <p className="text-pretty text-base leading-7 text-ink md:text-xl md:leading-9">
-                        「{textOf(at)}
-                        {reveal.typing ? <span aria-hidden="true" className="ui-caret">▍</span> : "」"}
-                      </p>
-                    </div>
-                  );
-                }
-                return (
-                  <p key={`${at}-${turn.text}`} className="text-sm text-pretty text-ink/70" data-kind="dialogue">
-                    <span className="mr-1 text-xs tracking-wide text-[#5c3a1e]">{turn.name}</span>「{turn.text}」
-                  </p>
-                );
-              }
-              return (
-                <p key={`${at}-${turn.text}`} className={`text-pretty text-base leading-7 md:text-lg md:leading-8 ${turn.kind === "action" ? "text-ink/85" : "text-ink"}`} data-kind={turn.kind}>
-                  {turn.kind === "action" && turn.where ? <span className="mr-1.5 text-xs tracking-wide text-[#5c3a1e]">{turn.where}</span> : null}
-                  {textOf(at)}
-                  {at === index && reveal.typing ? <span aria-hidden="true" className="ui-caret">▍</span> : null}
+          {/* Only the current line is on the paper; earlier lines are in 回看. */}
+          <div className="flex flex-col gap-1.5" onClick={reveal.done ? undefined : reveal.advance} data-lines={turns.length} data-shown={reveal.shown}>
+            {current.kind === "dialogue" ? (
+              <div key={index} className="mt-0.5" data-kind="dialogue" data-current="true" data-speaker={current.name}>
+                <p className="flex items-center gap-1.5 text-sm tracking-wide md:text-base" style={{ color: accent }}>
+                  <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full" style={{ background: accent }} />
+                  <span className="font-medium">{current.name}</span>
+                  {where ? <span className="text-ink/70">{where}</span> : null}
                 </p>
-              );
-            })}
+                <p className="text-pretty text-base leading-7 text-ink md:text-xl md:leading-9">
+                  「{textOf(index)}
+                  {reveal.typing ? <span aria-hidden="true" className="ui-caret">▍</span> : "」"}
+                </p>
+              </div>
+            ) : (
+              <p key={index} className={`mt-0.5 text-pretty text-base leading-7 md:text-xl md:leading-9 ${current.kind === "action" ? "text-ink/85" : "text-ink"}`} data-kind={current.kind} data-current="true">
+                {current.kind === "action" && current.where ? <span className="mr-1.5 text-xs tracking-wide text-[#5c3a1e] md:text-sm">{current.where}</span> : null}
+                {textOf(index)}
+                {reveal.typing ? <span aria-hidden="true" className="ui-caret">▍</span> : null}
+              </p>
+            )}
           </div>
           {reveal.done ? <div className="mt-1">{children}</div> : null}
         </PaperPanel>
       }
     />
+  );
+}
+
+/** 回看: the lines already read on this page, over the panel. Esc or the button closes it. */
+function LineLog({ turns, onClose }: { turns: Turn[]; onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      opener?.focus?.();
+    };
+  }, []);
+  return (
+    // .ui-panel sets position: relative, so the absolute box is a separate wrapper.
+    <div role="dialog" aria-modal="true" aria-label="回看" className="absolute inset-0 z-20">
+     <div className="ui-panel flex h-full flex-col rounded-md px-5 pb-3 pt-4">
+      <div className="flex items-center justify-between">
+        <p className="font-serif text-lg text-ink">回看</p>
+        <button ref={closeRef} type="button" onClick={onClose} className="min-h-11 rounded-sm px-3 text-sm text-ink/75 underline decoration-dotted underline-offset-4">
+          關上
+        </button>
+      </div>
+      <ol className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-2 text-base leading-7">
+        {turns.map((turn, at) => (
+          <li key={at} data-kind={turn.kind}>
+            {turn.kind === "dialogue" ? (
+              <>
+                <span className="mr-1.5 text-sm" style={{ color: turn.speaker ? SPEAKER_ACCENT[turn.speaker] : "#5c3a1e" }}>{turn.name}</span>「{turn.text}」
+              </>
+            ) : (
+              turn.text
+            )}
+          </li>
+        ))}
+      </ol>
+     </div>
+    </div>
   );
 }
 

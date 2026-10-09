@@ -35,10 +35,19 @@
 ## V4.3 — RPG dialogue box with a pointer tail (replaces the V4.2 bubble)
 
 - No speech bubble and no head ring on the painting any more; the painting stays clean.
-- Dialogue lives in the bottom panel. When the current line is dialogue, the speaker's portrait (arched window, name plate under it) sits at the panel's left edge, right of the purple scroll end, and the line is shown beside it as name + 「line」 in a larger size. Narration and action lines show no portrait. Earlier dialogue lines stay in the panel history in small type. The panel auto-scrolls to keep the newest line in view.
+- Dialogue lives in the bottom panel. When the current line is dialogue, the speaker's portrait (arched window, name plate under it) sits at the panel's left edge, right of the purple scroll end, and the line is shown beside it as name + 「line」 in a larger size. Narration and action lines show no portrait. (V4.4: the panel now shows only the current line; see below.)
 - The panel grows a tail from its **top edge** up into the painting (`PanelTail` in `Stage.tsx`, geometry in `src/game/panelTail.ts`, pure and tested). The base slides along the top edge under the speaker's head (clamped `TAIL_EDGE` from the corners); the tip aims at the head centre and stops `TAIL_STOP` (1.45) head radii away, i.e. under the chin, never on the face. If the head is at or under the panel edge, no tail.
 - Offscreen speakers: a short dashed stub leaning toward the side the voice comes from, plus the label (「（旁邊）」) after the name.
 - One accent per speaker (`SPEAKER_ACCENT`) on the portrait frame, name plate, name dot/text and tail stroke. All accents pass the amber chroma check.
 - Portrait crops: the standing sprites draw heads at very different sizes, so `personPortrait()` in `art.ts` gives each person its own height so the faces come out about the same size. Portrait windows are rem-sized, so they scale with the stage like the rest of the panel.
 - a11y unchanged: the `aria-live` line still reads 「name：「line」」; the portrait and tail are decorative (`alt=""`, `aria-hidden`).
 - Tests: for every anchored speaker in every scene, on a desktop layout (panel over the stage) and a phone layout (panel below), the tip sits on the ring round the head, base, tip and head centre line up, the tip is above the panel, and the base stays on the top edge; plus clamping, the offscreen stub, and a guard that no bubble/ring code comes back.
+
+## V4.4 — one line at a time
+
+- The panel shows **only the current line**; no history on the paper, no auto-scroll. `lineAt()` in `src/game/reveal.ts` (pure, tested) picks the current line and the ones already read.
+- Narration / action line: just that text (with the place tag for action lines), no portrait, no tail.
+- Dialogue line: the whole panel switches to that speaker's portrait + name plate + 「line」, with the tail pointing at them. The next narration line switches back.
+- After the last line the choice tags appear, with that last line still on the paper. 「全部顯示」 is now 「跳到最後」 (jumps to the last line).
+- 「回看」 (shown once at least one line has been read) opens a small log over the panel listing the earlier lines (speaker names in their accent). It is a `role="dialog"` with focus moved to 「關上」; Esc or the button closes it and focus returns to 「回看」. Space/tap do not advance while it is open.
+- a11y: the `aria-live="polite"` line still announces each current line (「name：「line」」 for dialogue).
