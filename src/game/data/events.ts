@@ -32,8 +32,10 @@ export const CHILDHOOD_EVENT_IDS = [
   "EVT_1986_MARKET_07",
   "EVT_1986_ECHO_08",
   "EVT_1986_FRIEND_09",
+  "EVT_1986_DAD_NIGHT",
   "EVT_1988_PEN_01",
   "EVT_1988_EXAM_01",
+  "EVT_1988_DAD_SIGN",
 ] as const;
 
 export type StaticEvent = {
@@ -72,7 +74,7 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
         "自己看完就走",
         "think",
         { derived: { INDEPENDENT_THOUGHT: 1, STATE_MOOD: 1 }, equipment: ["EQP_PLASTIC_WATCH"] },
-        "你看清楚那輛車。沒有人買。櫃台旁邊有一隻不會走的塑膠錶。阿姨說：「這個不用錢。」你把它握在手裡，再追上媽媽。",
+        "你看清楚那輛車。沒有人買。櫃台旁邊有一隻不會走的塑膠錶。阿姨說：「呢個唔使錢。」你把它握在手裡，再追上媽媽。",
         mem("MEM_TOY_WATCH", "MINI_84_TOY", "B", "NPC_AUNT_01", "kept", "你沒有買那輛車。手上多了一隻不會走的塑膠錶。"),
       ),
       choice("C", "不看，跟著走", "reality", { derived: { VALUE_REALITY: 1, STATE_FAMILY_HARMONY: 1, STATE_MOOD: -1 } }, "你跟著走。車留在櫃裡。媽媽沒發現你停過。"),
@@ -99,7 +101,7 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
     choices: [
       choice("A", "聽她講", "reality", { npc: { NPC_GRAND_01: { trust: 3, relation: 2 } }, derived: { INDEPENDENT_THOUGHT: 1 } }, "你聽。你不知道全部，但你知道這棟樓以前更難走。", mem("MEM_GRAND_DAY", "MINI_85_GRANDMA", "A", "NPC_GRAND_01", "listen", "你留在廳裡聽嫲嫲講以前。")),
       choice("B", "走去玩", "dream", { derived: { STATE_MOOD: 2 }, npc: { NPC_GRAND_01: { relation: -1 } } }, "你留下碗湯，走到玩具那裡。嫲嫲沒有叫你回來。", mem("MEM_GRAND_DAY", "MINI_85_GRANDMA", "B", "NPC_GRAND_01", "left", "湯還在。你聽了一半就走。")),
-      choice("C", "問為什麼要走樓梯", "think", { derived: { INDEPENDENT_THOUGHT: 2 }, npc: { NPC_GRAND_01: { trust: 2 } } }, "嫲嫲笑：「因為那時候沒有這些按鈕。」你記住「以前」兩個字。", mem("MEM_GRAND_DAY", "MINI_85_GRANDMA", "C", "NPC_GRAND_01", "ask", "你問了以前為什麼要走樓梯。")),
+      choice("C", "問為什麼要走樓梯", "think", { derived: { INDEPENDENT_THOUGHT: 2 }, npc: { NPC_GRAND_01: { trust: 2 } } }, "嫲嫲笑：「以前邊有咁多掣㗎。」你記住「以前」兩個字。", mem("MEM_GRAND_DAY", "MINI_85_GRANDMA", "C", "NPC_GRAND_01", "ask", "你問了以前為什麼要走樓梯。")),
     ],
   },
   MINI_85_DAD: {
@@ -205,7 +207,7 @@ export const STATIC_EVENTS: Record<string, StaticEvent> = {
         "拿去問坐你旁邊的人",
         "reality",
         { npc: { NPC_FRIEND_01: { trust: 2, relation: 2 } }, skills: ["SKL_13"], equipment: ["EQP_BALLPOINT"] },
-        "你問阿傑是不是他的。他搖頭，說這支是多出來的。「你拿去用吧。」筆芯有一點深。",
+        "你問阿傑是不是他的。他搖頭，說這支是多出來的。「你拿去用啦。」筆芯有一點深。",
         mem("MEM_BALLPOINT", "EVT_1988_PEN_01", "A", "NPC_FRIEND_01", "kept", "你問過他是不是他的。他說這支是多出來的，你拿去用。"),
       ),
       choice("B", "不去碰它", "balance", { derived: { STATE_PEACE: 1 } }, "你沒有撿。筆還在那裡。你上了樓。"),
@@ -249,7 +251,7 @@ export function variantOf1986Market(state: State) {
 type RawCard = { scene: SceneId; kicker: string; title: string; lines: readonly Line[] };
 
 function spokenLine(item: Spoken): Line {
-  return item.speaker ? say(item.speaker, item.text) : item.text;
+  return item.speaker ? say(item.speaker, item.text, item.register) : item.text;
 }
 
 /** The card a screen draws. `sequence` names who says each line; nothing is inferred from punctuation. */
@@ -317,7 +319,7 @@ function rawCard(id: string, state: State): RawCard {
         : [
             "電視裡講著很遠的事。你只知道今天有魚。",
             "畫面裡有人握手。你不知道他們是誰。",
-            say("媽媽", "先吃飯。這麼遠的事，等一下再說。"),
+            say("媽媽", "先吃飯。這麼遠的事，等一陣再說。"),
             act("爸爸低聲說。"),
             say("爸爸", "最要緊是一家人安穩。"),
           ];
@@ -335,8 +337,8 @@ function rawCard(id: string, state: State): RawCard {
         title: state.counter.NPC_MOM_STRESS < 20 ? "媽媽今天早了" : "媽媽今天很累",
         lines:
           state.counter.NPC_MOM_STRESS < 20
-            ? ["媽媽今天早收工。地上有玩具，她還有力氣對你笑。", say("媽媽", "再玩一會兒，我們一起收，好不好？")]
-            : ["媽媽還沒脫鞋就坐下了。", say("媽媽", "等一下。媽媽今天真的很累。"), "地上還有你沒有收的玩具。"],
+            ? ["媽媽今天早收工。地上有玩具，她還有力氣對你笑。", say("媽媽", "再玩一陣，我們一起收，好不好？")]
+            : ["媽媽還沒脫鞋就坐下了。", say("媽媽", "等一等。媽媽今日好累。"), "地上還有你沒有收的玩具。"],
       };
     case "EVT_1985_SCHOOL_01": {
       const mom = picked(state, "MEM_MOM_TIRED");
@@ -411,13 +413,13 @@ function rawCard(id: string, state: State): RawCard {
           scene: "estate",
           kicker: "1985 · 平台",
           title: "平台上的紅球",
-          lines: ["你下了樓。平台上那個孩子抱著紅球。", "他叫阿傑。", say("阿傑", "這個球是我先拿到的！")],
+          lines: ["你下了樓。平台上那個孩子抱著紅球。", "他叫阿傑。", say("阿傑", "個波係我先攞到㗎！")],
         };
       }
       const school = picked(state, "MEM_FIRST_SCHOOL");
       const lines: Line[] = state.npc.NPC_FRIEND_01.available
-        ? ["課室有個紅球。阿傑抱住不放。", say("阿傑", "這個球是我先拿到的！"), "你也想碰。老師走開了。"]
-        : ["有個孩子抱住紅球，你還不正式認識他。他叫阿傑。", say("阿傑", "這個球是我先拿到的！"), "老師走開了。"];
+        ? ["課室有個紅球。阿傑抱住不放。", say("阿傑", "個波係我先攞到㗎！"), "你也想碰。老師走開了。"]
+        : ["有個孩子抱住紅球，你還不正式認識他。他叫阿傑。", say("阿傑", "個波係我先攞到㗎！"), "老師走開了。"];
       if (school.includes("fail") || school.includes("bad") || state.flags.includes("FLAG_RETRY_SCHOOL")) lines.unshift("你上次沒進到課室。今天球仍然在。");
       else if (school.startsWith("safe")) lines.unshift("你上次拉著媽媽。今天球在你前面。");
       else if (!state.flags.includes("FLAG_FIRST_SCHOOL")) lines.unshift("你還沒正式進過課室。這個球你沒玩過。");
@@ -433,11 +435,11 @@ function rawCard(id: string, state: State): RawCard {
         follow === "ask" && missed?.missedPlayer && echoOpen(ARC_AH_KIT, "1y")
           ? [place, say("阿傑", "去年你沒有下來。"), missed.mood === "content" ? "他說自己也玩得很起勁。他在踢球。" : missed.mood === "left" ? "他說玩了一陣就走了。" : "他說後來坐在石凳上。"]
           : follow === "ask"
-            ? [place, act("他看你。"), say("阿傑", "你有沒有見過這個？"), "去年你沒碰到它。"]
+            ? [place, act("他看你。"), say("阿傑", "你見過呢個未？"), "去年你沒碰到它。"]
             : follow === "wary"
             ? [place, "他把球抱緊。他記得你不肯放。"]
             : follow === "invite"
-              ? [place, act("他把球放在腳邊。"), say("阿傑", "這次不是搶。你來不來？")]
+              ? [place, act("他把球放在腳邊。"), say("阿傑", "今次唔係搶。你嚟唔嚟？")]
               : follow === "watch"
                 ? [place, "你沒有走過去。你看他們怎麼輪。"]
                 : [place, "去年你站著看過。這次他沒有把球抱那麼緊。"];
@@ -447,7 +449,7 @@ function rawCard(id: string, state: State): RawCard {
     case "EVT_1986_SKILL_05": {
       const lines: Line[] = [
         say("老師", state.counter.ART_PROGRESS >= 1 || state.skills.includes("SKL_03") ? "這孩子常常畫畫，可以參加小組。" : "這孩子可以試試畫畫小組。"),
-        say("爸爸", "多學點數數才實際。"),
+        say("爸爸", "多學數數，實際點。"),
         act("媽媽看著你。"),
         say("媽媽", name ? `你自己想怎樣，${name}？` : "你自己想怎樣？"),
       ];
@@ -476,7 +478,7 @@ function rawCard(id: string, state: State): RawCard {
       return { scene: "kindy", kicker: "1986 · 第一次選", title: "畫畫，還是數數？", lines };
     }
     case "EVT_1986_FAMILY_06": {
-      const lines: Line[] = ["本來約好今天去公園。", "爸爸不是不想去。他的外套摺好，跟著又拆開。", say("爸爸", "今天要回去上班。"), act("他靜了一陣。"), say("爸爸", "下次吧。")];
+      const lines: Line[] = ["本來約好今天去公園。", "爸爸不是不想去。他的外套摺好，跟著又拆開。", say("爸爸", "今日要返工。"), act("他靜了一陣。"), say("爸爸", "下次吧。")];
       if (state.counter.NPC_MOM_STRESS >= 26) lines.push("媽媽沒有出聲幫你。她自己也還沒鬆下來。");
       else if (state.counter.NPC_MOM_STRESS < 20) lines.push(act("媽媽看你一眼，低聲說。"), say("媽媽", "下星期也可以。"));
       const mom = picked(state, "MEM_MOM_TIRED");
@@ -491,6 +493,38 @@ function rawCard(id: string, state: State): RawCard {
       lines.push(...selectSpoken(spoken, ECHO_CAP).map(spokenLine));
       return { scene: "home", kicker: "1986 · 星期日", title: "爸爸說要上班", lines };
     }
+    case "EVT_1986_DAD_NIGHT": {
+      // Dad arc, beat 3 of 5. Only after the park was cancelled (MEM_DAD_WORK); see dadArc() in content.ts.
+      const dad = picked(state, "MEM_DAD_WORK");
+      const lines: Line[] = [
+        dad === "A" ? "你玩回來的時候，他還沒回家。" : dad === "C" ? "早上你們留在家。他出門之前，摸過你的頭。" : "公園去不成。你說過「知道了」。",
+        "那天晚上，爸爸很晚才回來。",
+        act("他坐在門口脫鞋，脫了很久。", "家裡 · 門口"),
+      ];
+      const spoken: Spoken[] = [];
+      if (picked(state, "MEM_DAD_HOME")) spoken.push({ priority: 0, text: "四歲那年，他也是這樣回來。", theme: "dad" });
+      lines.push(...selectSpoken(spoken, ECHO_CAP).map(spokenLine));
+      lines.push(say("爸爸", "還沒睡？"));
+      return { scene: "home", kicker: "1986 · 那天晚上", title: "門口的鞋", lines };
+    }
+    case "EVT_1988_DAD_SIGN": {
+      // Dad arc, beat 4 of 5. Needs the park (MEM_DAD_WORK) and a written paper (MEM_EXAM_PAPER).
+      const paper = picked(state, "MEM_EXAM_PAPER");
+      const night = picked(state, "MEM_DAD_LATE");
+      const lines: Line[] = [
+        "測驗卷要家長簽名。媽媽說，等爸爸回來才簽。",
+        act("十點多，門開了。爸爸坐在門口脫鞋。", "家裡 · 晚上"),
+        paper.includes("perfect") || paper.includes("win") ? "他看了分數，點一下頭。" : "他看了分數，沒有出聲。",
+        act("他在最下面簽名，寫得很慢。"),
+        say("爸爸", "寫完就好。"),
+      ];
+      const spoken: Spoken[] = [];
+      if (night === "B") spoken.push({ priority: 0, text: "你記得他說過，等公司請到人。兩年了。", theme: "dad" });
+      else if (night === "C") spoken.push({ priority: 0, text: "門口那對鞋換過了。新的那對，鞋底也開始薄了。", theme: "dad" });
+      else if (night === "A") spoken.push({ priority: 0, text: "你又聽見他在門口坐了很久。", theme: "dad" });
+      lines.splice(2, 0, ...selectSpoken(spoken, ECHO_CAP).map(spokenLine));
+      return { scene: "home", kicker: "1988 · 晚上", title: "要家長簽名", lines };
+    }
     case "EVT_1986_MARKET_07": {
       const orange = picked(state, "MEM_ORANGE");
       const remembered = echoOpen(ENC_ORANGES, "1y");
@@ -499,13 +533,13 @@ function rawCard(id: string, state: State): RawCard {
           ? ["阿姨看見你，手停了一下。", "那條多出來的菜，她沒有放進來。", "她記得的不是一顆圓橙。她記得有個孩子拿了東西。"]
           : variantOf1986Market(state) === "first_meet"
             ? ["你跟著媽媽站了很久。這檔你還不熟。", "阿姨和媽媽說話，然後多塞一條菜進袋子。", "沒有人向你解釋，也沒有多收一毫子。"]
-            : [say("阿姨", "又是你呀？長高了。"), say("媽媽", "謝謝。"), "阿姨偷偷多塞一條菜進袋子。沒有人提錢。"];
+            : [say("阿姨", "又係你呀？高咗好多喎。"), say("媽媽", "多謝。"), "阿姨偷偷多塞一條菜進袋子。沒有人提錢。"];
       const spoken: Spoken[] = [];
-      if (orange === "A" && remembered) spoken.push({ priority: 0, speaker: "阿姨", text: "去年那些橙滾到你腳邊。", theme: "aunt" });
+      if (orange === "A" && remembered) spoken.push({ priority: 0, speaker: "阿姨", text: "舊年啲橙滾到你腳邊㗎。", theme: "aunt" });
       if (orange === "B" && remembered) spoken.push({ priority: 0, text: "阿姨沒有先看你。菜交到媽媽手上。", theme: "aunt" });
       if (picked(state, "MEM_NEIGHBOR") === "A") spoken.push({ priority: 1, text: "媽媽以為你不喜歡跟著來。你只是拉過她的衣袖。", theme: "mom" });
       if (state.skills.includes("SKL_03") || state.counter.ART_PROGRESS >= 3) spoken.push({ priority: 1, text: "你手指上有顏色。阿姨問你畫過這條菜沒有。", theme: "skill" });
-      else if (state.skills.includes("SKL_12") || state.counter.MIND_PROGRESS >= 3) spoken.push({ priority: 1, speaker: "阿姨", text: "你會數嗎？幫我數三條。", theme: "skill" });
+      else if (state.skills.includes("SKL_12") || state.counter.MIND_PROGRESS >= 3) spoken.push({ priority: 1, speaker: "阿姨", text: "識唔識數呀？幫我數三條。", theme: "skill" });
       else if (state.skills.includes("SKL_10")) spoken.push({ priority: 1, text: "你看一看，兩邊檔都想看。時間不夠。", theme: "skill" });
       if (state.personalityTags.includes("TAG_RESPONSIBILITY") || state.primary.STAT_STR >= 6) spoken.push({ priority: 2, text: "你的手自己伸出去接袋子。", theme: "carry" });
       if (state.flags.includes("FLAG_HELPED_MOM_01")) spoken.push({ priority: 2, text: "媽媽不用叫你。三歲那年你自己收過玩具。", theme: "carry" });
@@ -1035,6 +1069,32 @@ export function choicesFor(id: string, state: State): Choice[] {
           mem("MEM_DAD_WORK", "EVT_1986_FAMILY_06", "C", "NPC_DAD_01", "stay", "公園取消，你也懂得留下來陪人。", 2),
         ),
       ];
+    case "EVT_1986_DAD_NIGHT":
+      return [
+        choice("A", "裝睡", "dream", { derived: { STATE_PEACE: 1 } }, "你閉上眼。他在門口又坐了一陣，才進房。", mem("MEM_DAD_LATE", "EVT_1986_DAD_NIGHT", "A", "NPC_DAD_01", "heard", "那晚他很晚回來。你裝睡，聽見他脫鞋。")),
+        choice(
+          "B",
+          "問他下次是幾時",
+          "think",
+          { derived: { INDEPENDENT_THOUGHT: 1 }, npc: { NPC_DAD_01: { trust: 1 } } },
+          "他想了一下。「等公司請到人。」他沒有說是哪一天。",
+          mem("MEM_DAD_LATE", "EVT_1986_DAD_NIGHT", "B", "NPC_DAD_01", "ask", "你問過下次是幾時。他說，等公司請到人。", 2),
+        ),
+        choice("C", "幫他把鞋擺好", "reality", { derived: { STATE_FAMILY_HARMONY: 1 }, npc: { NPC_DAD_01: { relation: 1 } } }, "你把兩隻鞋擺齊。他看著你，沒有說話。鞋底很薄了。", mem("MEM_DAD_LATE", "EVT_1986_DAD_NIGHT", "C", "NPC_DAD_01", "shoes", "你替他把鞋擺好。鞋底很薄。")),
+      ];
+    case "EVT_1988_DAD_SIGN":
+      return [
+        choice("A", "等他簽完才睡", "reality", { derived: { STATE_FAMILY_HARMONY: 1 } }, "你站在旁邊等。他把卷交回給你，叫你去睡。", mem("MEM_DAD_SIGN", "EVT_1988_DAD_SIGN", "A", "NPC_DAD_01", "wait", "你等爸爸簽完卷才睡。")),
+        choice("B", "先睡，卷放在桌上", "balance", { derived: { STATE_STRESS: -1 } }, "你先睡了。第二天早上，卷在書包旁邊，簽好了。", mem("MEM_DAD_SIGN", "EVT_1988_DAD_SIGN", "B", "NPC_DAD_01", "sleep", "你先睡了。卷第二天已經簽好。")),
+        choice(
+          "C",
+          "問他為什麼這麼晚",
+          "think",
+          { derived: { INDEPENDENT_THOUGHT: 1 }, npc: { NPC_DAD_01: { trust: 2 } } },
+          "他停了一下筆。「有個同事移民了。他那份，我先做著。」他沒有再說。",
+          mem("MEM_DAD_SIGN", "EVT_1988_DAD_SIGN", "C", "NPC_DAD_01", "ask", "你問過他為什麼這麼晚。同事移民了，他替人做。", 2),
+        ),
+      ];
     case "EVT_1986_MARKET_07":
       return [
         choice(
@@ -1056,7 +1116,7 @@ export function choicesFor(id: string, state: State): Choice[] {
             skills: ["SKL_11"],
           },
           state.primary.STAT_SPEECH >= 6
-            ? "阿姨頓了頓：「街坊就是這樣，不必立刻還。」你問到一句實在的回答。你記住，人情不是一筆數。"
+            ? "阿姨頓了頓：「街坊嚟㗎，唔使即刻還。」你問到一句實在的回答。你記住，人情不是一筆數。"
             : "阿姨笑了，沒有答實。你沒有多認識到人。你記住，人情是不是一定要還。",
           mem("MEM_MARKET_01", "EVT_1986_MARKET_07", "B", "NPC_AUNT_01", "question", "你會問，一份好意是不是一定要還。", 2),
         ),

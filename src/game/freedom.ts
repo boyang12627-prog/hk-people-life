@@ -55,7 +55,7 @@ export function produce1985(spent: readonly string[], seed?: number) {
 }
 
 export function produce1986(spent: readonly string[]) {
-  const queue = ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06"];
+  const queue = ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_DAD_NIGHT"];
   const missed: string[] = [];
   pushUnique(queue, collide("sat", spent[0] ?? "", WORLD_1986, null));
   pushUnique(queue, collide("sun", spent[1] ?? "", WORLD_1986, null));

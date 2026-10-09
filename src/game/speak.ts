@@ -1,8 +1,8 @@
 import type { State } from "./types";
-import type { Speaker } from "./scene";
+import type { Register, Speaker } from "./scene";
 
 /** `speaker` set means the text is that person's words, without quote marks. `theme` groups lines that remember the same thing. */
-export type Spoken = { text: string; priority: 0 | 1 | 2; speaker?: Speaker; theme?: string };
+export type Spoken = { text: string; priority: 0 | 1 | 2; speaker?: Speaker; register?: Register; theme?: string };
 
 /** P0 first, then up to two P1 lines, then P2. The budget is a hard cap, P0 included (V3.3). There is no P3. */
 export function selectByPriority(lines: Spoken[], budget: number): string[] {

@@ -18,11 +18,11 @@ export function isBeat(value: string | null): value is BeatId {
 }
 
 /** What Mom saw on the way up. One sentence about how long he stayed, never two that disagree. */
-function missedHeard(state: State) {
+function missedHeard(state: State): SceneLine {
   const mood = state.npcDays.NPC_FRIEND_01?.mood;
-  if (mood === "content") return "他自己踢球，玩了很久，也玩得很起勁。";
-  if (mood === "left") return "他玩了一陣就走了。";
-  return "他玩到天黑，後來坐在石凳上。";
+  if (mood === "content") return say("媽媽", "他自己踢波，玩了好久，玩得好起勁。");
+  if (mood === "left") return say("媽媽", "他玩了一陣就走了。");
+  return say("媽媽", "他玩到天黑，後來坐在石凳上。");
 }
 
 function satNight(state: State): SceneLine[] {
@@ -31,7 +31,7 @@ function satNight(state: State): SceneLine[] {
   const seq: SceneLine[] = [];
   if (ball?.emotion === "share") {
     seq.push(act("你的鞋底有泥。媽媽看了一眼。", "家裡 · 門口"));
-    seq.push(say("媽媽", "今天去了平台？"));
+    seq.push(say("媽媽", "今日去了平台？"));
     seq.push(narrate("你說跟一個孩子輪流玩球。她說不要出街口。"));
   } else if (ball?.emotion === "hold") {
     seq.push(narrate("你回來的時候還抓著那種不肯放的感覺。"));
@@ -61,9 +61,9 @@ function satNight(state: State): SceneLine[] {
     const withMom = state.spent[0] === "ACT_MARKET";
     seq.push(act(withMom ? "你們拎著塑膠袋走上來。經過平台的時候，媽媽看了一眼。" : "媽媽拎著塑膠袋走上來。", "屋邨走廊 · 傍晚"));
     seq.push(act("媽媽把塑膠袋放下。", "家裡 · 門口"));
-    seq.push(say("媽媽", "樓下那個抱紅球的孩子，今天一個人在平台。"));
+    seq.push(say("媽媽", "樓下那個抱紅波的孩子，今日一個人在平台。"));
     seq.push(act(withMom ? "她把鞋脫在門口。你今天沒有到平台。" : "她把鞋脫在門口。你今天沒有下過樓。"));
-    seq.push(say("媽媽", missedHeard(state)));
+    seq.push(missedHeard(state));
   } else if (!news) seq.push(narrate(lifeMissed("NPC_MOM_01", "sat")));
   seq.push(narrate("袋子仍然在門口。明天還不是上學。"));
   return seq;
@@ -110,7 +110,7 @@ export function beat1985(id: BeatId, state: State): StoryPage {
         act("媽媽把袋子放在門口。", "家裡 · 早上"),
         say("媽媽", "星期一開始上學。"),
         act("爸爸在電視前面穿鞋。", "電視前面"),
-        say("爸爸", "我去上班。"),
+        say("爸爸", "我返工了。"),
         say("媽媽", "今晚早點睡。"),
         narrate("你看著那個門口。星期六還沒有過。"),
       ],

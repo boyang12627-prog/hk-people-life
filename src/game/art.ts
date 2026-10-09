@@ -15,6 +15,8 @@ const EVENT_PLATE: Record<string, string> = {
   EVT_1986_FAMILY_06: "tv",
   EVT_1986_ECHO_08: "corridor",
   MINI_85_ALONE_PODIUM: "rain",
+  EVT_1986_DAD_NIGHT: "shoes",
+  EVT_1988_DAD_SIGN: "shoes",
 };
 
 const BEAT_PLATE: Record<string, string> = {

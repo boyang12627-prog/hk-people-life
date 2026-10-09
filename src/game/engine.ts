@@ -1,4 +1,4 @@
-import { ACTIVITIES, activityBlurb, battleStory, buildQueue, examStory, fifteenAct, knownEventIds, knownMemoryChoice, marketWithMom, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
+import { ACTIVITIES, activityBlurb, EVENT_GATES, battleStory, buildQueue, examStory, fifteenAct, knownEventIds, knownMemoryChoice, marketWithMom, SKILL_NAME, variantOf, YEARS, yearOf, type Choice } from "./content";
 import { MISSED_IDS, MISS_86_ESTATE, produce1985, produce1986, advanceChain, afternoonTags, freshChain, knowsKit, reconcileMissed } from "./freedom";
 import { beat1985, isBeat } from "./story";
 import { resolveWorldAt, worldTick } from "./world";
@@ -554,6 +554,7 @@ function openNext(state: State): State {
       continue;
     }
     queue.shift();
+    if (EVENT_GATES[id] && !EVENT_GATES[id](state)) continue;
     return { ...state, phase: "event", queue, eventId: id, result: null, note: null, noteScene: null };
   }
   return after1985(state);
