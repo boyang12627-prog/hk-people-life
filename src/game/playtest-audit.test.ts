@@ -252,7 +252,7 @@ describe("playtest fixes v3.3 — P0", () => {
 describe("playtest fixes v3.3 — P1", () => {
   it("timeline: school starts on Monday, and 1986 does not call 1984 last year", () => {
     const open = beat1985("open", freshState()).sequence.map(lineText).join("");
-    assert.ok(open.includes("星期一開始上學"));
+    assert.ok(open.includes("禮拜一開始返學"));
     assert.equal(open.includes("明天開始上學"), false);
     const wrong = ["去年你自己收過玩具", "去年你走過去聽", "去年「九七」", "去年你也是這樣坐", "去年你跟著吃飯"];
     for (const page of pagesOf(1986)) for (const bit of wrong) assert.equal(page.text.includes(bit), false, page.text);
@@ -300,7 +300,7 @@ describe("playtest fixes v3.3 — P1", () => {
   it("a named child is called by name, and nobody is called 女孩子 or 男孩子", () => {
     for (const life of LIVES) for (const page of life.pages) assert.equal(/女孩子|男孩子/.test(page.text), false, page.text);
     const named = drive({ seed: 19860, name: "嘉欣", acts: MARKET });
-    assert.ok(named.pages.some((page) => page.text.includes("你自己想怎樣，嘉欣？")));
+    assert.ok(named.pages.some((page) => page.text.includes("你自己想點呀，嘉欣？")));
   });
 
   it("the year-end and ending sentences follow what the child did", () => {
@@ -398,22 +398,22 @@ describe("playtest fixes v3.3 / voice v3.4 — 書面中文 in narration, HK voi
     for (const line of new Set(warnings)) t.diagnostic(`VOICE WARNING ${line}`);
     // Dialogue keeps Hong Kong words on purpose. These are the V3.3 conversions that were reverted.
     const said = scanned.dialogue.map((item) => item.text).join("\n");
-    for (const word of ["拿去用啦", "今次", "踢波", "個波", "唔使錢", "你琴日冇落嚟。", "你去年冇落嚟。"]) assert.ok(said.includes(word), `dialogue keeps ${word}`);
+    for (const word of ["攞去用啦", "今次", "踢波", "個波", "唔使錢", "你琴日冇落嚟。", "你去年冇落嚟。"]) assert.ok(said.includes(word), `dialogue keeps ${word}`);
   });
 
   it("speech quoted inside narration is dialogue, not narration", () => {
-    assert.deepEqual(cantoneseHits("他說這支是多出來的。「你拿去用啦。」寫出來的顏色有一點深。"), []);
-    assert.ok(cantoneseHits("你拿去用啦。").length > 0);
+    assert.deepEqual(cantoneseHits("他說這支是多出來的。「你攞去用啦。」寫出來的顏色有一點深。"), []);
+    assert.ok(cantoneseHits("你攞去用啦。").length > 0);
     assert.equal(quotedSpeaker("媽媽看爸爸一眼。「大人有時也會擔心。」", "大人有時也會擔心。"), "媽媽");
     assert.equal(quotedSpeaker("阿姨說：「呢個唔使錢。」", "呢個唔使錢。"), "阿姨");
     const voice = dialogueWarnings("阿傑", "這個球是我先拿到的！");
     assert.ok(voice.length > 0 && voice.every((w) => w.register === "colloquial"));
     assert.deepEqual(dialogueWarnings("老師", "不用怕，進去和其他小朋友玩。"), []);
-    assert.ok(dialogueWarnings("老師", "唔使驚。").length > 0);
+    assert.ok(dialogueWarnings("老師", "唔使驚。", "formal").length > 0);
   });
 
   it("the list itself catches what the playtest found", () => {
-    for (const bad of ["紅波", "踢波", "今次不是搶", "同阿傑一組", "一隻雀", "這個不必錢", "你拿去用啦。", "走近少少", "他還沒去沖涼", "收進雪櫃", "拎著膠袋", "車仔", "出街沒有你的份"]) {
+    for (const bad of ["紅波", "踢波", "今次不是搶", "同阿傑一組", "一隻雀", "這個不必錢", "你攞去用啦。", "走近少少", "他還沒去沖涼", "收進雪櫃", "拎著膠袋", "車仔", "出街沒有你的份"]) {
       assert.ok(cantoneseHits(bad).length > 0, bad);
     }
     for (const ok of ["一隻麻雀飛過", "不要出街口", "塑膠袋太重", "和阿傑一組", "士多", "默書"]) assert.deepEqual(cantoneseHits(ok), [], ok);
@@ -669,7 +669,7 @@ describe("live playtest fixes (2026-10-09)", () => {
     ]);
     assert.deepEqual(splitSpokenNarration("嫲嫲笑：「以前邊有咁多掣㗎。」你記住「以前」兩個字。").map((line) => line.text), ["嫲嫲笑。", "以前邊有咁多掣㗎。", "你記住「以前」兩個字。"]);
     assert.deepEqual(splitSpokenNarration("你不知道「將來」是什麼。"), [{ type: "narration", text: "你不知道「將來」是什麼。" }], "a quoted word is not speech");
-    assert.deepEqual(expandSpokenNarration([say("媽媽", "看完要走。")]), [say("媽媽", "看完要走。")], "dialogue lines pass through");
+    assert.deepEqual(expandSpokenNarration([say("媽媽", "睇完就要走。")]), [say("媽媽", "睇完就要走。")], "dialogue lines pass through");
     assert.match(app, /sceneTurns\(expandSpokenNarration\(/, "every page splits before drawing");
     // Nothing left: every 「 that follows a speaker's lead-in in the data is listed.
     for (const m of sources.matchAll(/(媽媽|爸爸|嫲嫲|阿傑|老師|阿姨)[^。！？「"]{0,6}：(「[^」]+」)/g)) {

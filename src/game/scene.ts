@@ -21,12 +21,12 @@ export type SceneLine =
 
 /** The register a speaker uses when a line does not say. Matches docs/VOICE.md. */
 export const DEFAULT_REGISTER: Record<Speaker, Register> = {
-  媽媽: "narrative",
-  爸爸: "narrative",
+  媽媽: "colloquial",
+  爸爸: "colloquial",
   嫲嫲: "colloquial",
   阿傑: "colloquial",
   阿姨: "colloquial",
-  老師: "formal",
+  老師: "colloquial",
 };
 
 export function registerOf(line: Extract<SceneLine, { type: "dialogue" }>): Register {

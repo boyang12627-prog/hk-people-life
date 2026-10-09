@@ -61,7 +61,7 @@ export function beatPlate(beat: string, gender: Gender | null) {
 
 /**
  * A year opening's own picture when its text is about the TV: 1984 (飯桌旁那部電視開著, the handshake) and
- * 1986 (電視裡有個戴帽子的女人下船, 「女皇來了。」). Other years use their scene painting.
+ * 1986 (電視裡有個戴帽子的女人下船, 「女皇嚟咗。」). Other years use their scene painting.
  */
 const YEAR_PLATE: Record<number, string> = { 1984: "tv", 1986: "tv" };
 
@@ -74,7 +74,7 @@ export function yearPlate(year: number, gender: Gender | null): string | null {
  * TV pictures are painted into the scene (no text on screens): a year whose news has a picture gets its
  * own copy of a TV painting with that picture composited onto the glass (scripts/tv-composite.py).
  * 1984 the Joint Declaration handshake, 1985 the first Legislative Council vote, 1986 the Queen's visit
- * (「女皇來了。」) on the TV room set; 1988 an airport farewell (emigration) on the nap set. 1996 has its
+ * (「女皇嚟咗。」) on the TV room set; 1988 an airport farewell (emigration) on the nap set. 1996 has its
  * own home painting with the handover countdown (fifteenPlate).
  */
 export const ERA_TV: Record<number, readonly string[]> = { 1984: ["tv"], 1985: ["tv"], 1986: ["tv"], 1988: ["rest"] };

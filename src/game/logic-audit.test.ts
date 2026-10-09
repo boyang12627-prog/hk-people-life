@@ -824,7 +824,7 @@ describe("logic audit v3.2", () => {
       turns.map((turn) => turn.name),
       ["旁白", "旁白", "媽媽", "旁白", "爸爸"],
     );
-    assert.equal(turns[2].text.startsWith("先吃飯"), true);
+    assert.equal(turns[2].text.startsWith("食飯先"), true);
     assert.equal(turns[3].text, "爸爸低聲說。");
     assert.equal(turns[4].text.includes("一家人安穩"), true);
     assert.equal(eventPlate("MINI_84_TOY", "boy"), "/art/q/toy-boy.webp");
@@ -835,7 +835,7 @@ describe("logic audit v3.2", () => {
     assert.equal(eventPlate("EVT_1985_FRIEND_04", "boy", "estate"), null);
     assert.equal(beatPlate("sun-night", "boy"), "/art/q/bag-boy.webp");
     assert.equal(eventPlate("EVT_1984_FAMILY_02", "girl"), "/art/q/home-girl.webp");
-    // The 1984 and 1986 openings talk about the TV (the handshake, 「女皇來了。」), so they open on the TV room.
+    // The 1984 and 1986 openings talk about the TV (the handshake, 「女皇嚟咗。」), so they open on the TV room.
     assert.equal(yearPlate(1984, "girl"), "/art/q/tv-girl.webp");
     assert.equal(yearPlate(1986, "boy"), "/art/q/tv-boy.webp");
     assert.equal(yearPlate(1985, "boy"), null);
@@ -958,7 +958,7 @@ describe("logic audit v3.2", () => {
     assert.ok(shared.includes("鞋底有泥"));
     assert.ok(held.includes("不肯放"));
     assert.equal(held.includes("鞋底有泥"), false);
-    assert.ok(stayed.includes("一個人在平台"));
+    assert.ok(stayed.includes("一個人喺平台"));
     assert.equal(stayed.includes("自己玩了一整天"), false);
     assert.equal(beat1985("sat-night", { ...freshState(), spent: ["ACT_REST"] }).sequence.filter((line) => line.type === "dialogue" && line.speaker === "媽媽").length, 2);
     const sharedBall = { id: "MEM_RED_BALL", eventId: "EVT_1985_FRIEND_04", choiceId: "B", variant: "podium", year: 1985, age: 4, npc: "NPC_FRIEND_01", emotion: "share", weight: 2, echo: "" };
@@ -1011,7 +1011,7 @@ describe("logic audit v3.2", () => {
     assert.equal(board.phase, "activities");
     assert.equal(board.spent.length, 0);
     assert.ok(beat1985("monday", atHome).sequence.some((line) => line.type === "action" && line.where === "幼稚園門口"));
-    assert.ok(beat1985("sun-night", atHome).sequence.some((line) => line.type === "dialogue" && line.speaker === "媽媽" && line.text === "明天真的要去。"));
+    assert.ok(beat1985("sun-night", atHome).sequence.some((line) => line.type === "dialogue" && line.speaker === "媽媽" && line.text === "聽日真係要去。"));
     assert.equal(worldTick(atPodium, { year: 1985, day: "sat" }).npcDays.NPC_FRIEND_01?.nextPlan, "seek");
   });
 
@@ -1048,7 +1048,7 @@ describe("logic audit v3.2", () => {
     assert.equal(produce1985(["ACT_ESTATE", "ACT_REST"], noSpill).missed.includes(MISS_85_ORANGE), false);
     assert.equal(ENCOUNTERS.length >= 4, true);
     assert.equal(cardFor("MINI_QUIET", { ...freshState(3), yearIndex: 1, spent: ["ACT_MARKET"] }).title, "走了一圈");
-    assert.equal(choicesFor("MINI_85_ORANGE", freshState()).some((item) => item.label === "我要一顆"), true);
+    assert.equal(choicesFor("MINI_85_ORANGE", freshState()).some((item) => item.label === "我要一個"), true);
     const alone = worldTick({ ...freshState(orangeSeed), spent: ["ACT_ESTATE"] }, { year: 1985, day: "sat" });
     assert.equal(alone.npcDays.NPC_MOM_01?.nextPlan, "carry");
     assert.equal(alone.npcDays.NPC_AUNT_01?.nextPlan, "alone");

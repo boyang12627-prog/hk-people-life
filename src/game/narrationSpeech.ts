@@ -8,23 +8,23 @@ import { quotedSpeech } from "./wording";
  * speaker tag; any other lead-in (嫲嫲笑：, 爸爸答得很短：) stays as narration, ending in 。.
  *
  * Quotes not listed here stay inside the narration on purpose: they are words or remembered phrases,
- * not someone speaking now (「將來」「以前」「知道了」「下次吧」, the 1996 recollection of 「最要緊是一家人安穩。」).
+ * not someone speaking now (「將來」「以前」「知道了」「下次啦」, the 1996 recollection of 「最要緊是一家人安穩。」).
  */
 /** Keyed by the quote with its brackets, exactly as it appears in the narration string. */
 export const SPOKEN_IN_NARRATION: Readonly<Record<string, Speaker>> = {
-  "「看完要走。」": "媽媽",
+  "「睇完就要走。」": "媽媽",
   "「呢個唔使錢。」": "阿姨",
   "「以前邊有咁多掣㗎。」": "嫲嫲",
   "「唱歌。」": "爸爸",
-  "「你拿去用啦。」": "阿傑",
-  "「將來就是你長大以後。」": "爸爸",
-  "「我們剛才談過將來。大人有時也會擔心。你先吃甜品。」": "媽媽",
-  "「大人有時也會擔心。你先吃甜品。」": "媽媽",
-  "「等公司請到人。」": "爸爸",
-  "「有個同事移民了。他那份，我先做著。」": "爸爸",
+  "「你攞去用啦。」": "阿傑",
+  "「將來即係你大個之後。」": "爸爸",
+  "「我哋啱啱傾緊將來。大人有時都會擔心。你食甜品先。」": "媽媽",
+  "「大人有時都會擔心。你食甜品先。」": "媽媽",
+  "「等公司請到人先。」": "爸爸",
+  "「有個同事移民咗。佢嗰份，我做住先。」": "爸爸",
   "「街坊嚟㗎，唔使即刻還。」": "阿姨",
-  "「不准走出那條街。」": "媽媽",
-  "「女皇來了。」": "爸爸",
+  "「唔准行出嗰條街。」": "媽媽",
+  "「女皇嚟咗。」": "爸爸",
   "「還有五分鐘。」": "老師",
 };
 

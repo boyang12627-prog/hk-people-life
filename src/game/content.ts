@@ -100,7 +100,7 @@ export const YEARS: YearDef[] = [
     title: "電視",
     calendar: "childhood-afternoon",
     era: "屋邨還是那樣。十月，電視裡有個戴帽子的女人下船。",
-    open: "你五歲。爸爸說：「女皇來了。」你不知道女皇是誰。你也開始明白，大人不是不想陪你，而是他們也有必須做的事。",
+    open: "你五歲。爸爸說：「女皇嚟咗。」你不知道女皇是誰。你也開始明白，大人不是不想陪你，而是他們也有必須做的事。",
     events: ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_DAD_NIGHT", "EVT_1986_MARKET_07", "EVT_1986_ECHO_08", "EVT_1986_FRIEND_09"],
     dailies: ["MINI_86_ESTATE", "MINI_86_TV", "MINI_86_HELP"],
     activities: ["ACT_MARKET", "ACT_PLAY", "ACT_DRAW", "ACT_REST", "ACT_ESTATE"],
@@ -442,7 +442,7 @@ export function fifteenLines(state: State) {
 /**
  * Dad arc, beat 5 of 5, at fifteen. One line from childhood, gated by what the child saw and asked:
  * 1984 「最要緊是一家人安穩」 (MEM_NEWS_01, harmony variant) → 1985 slow shoes (MEM_DAD_HOME) →
- * 1986 「下次吧」 (MEM_DAD_WORK) → that night (MEM_DAD_LATE) → 1988 signing the paper (MEM_DAD_SIGN) → here.
+ * 1986 「下次啦」 (MEM_DAD_WORK) → that night (MEM_DAD_LATE) → 1988 signing the paper (MEM_DAD_SIGN) → here.
  * The reason (he stayed late for others) is only said if the child heard it: asked in 1986 or 1988, or saw the overtime Sunday.
  */
 export function dadArc(state: State): string[] {
@@ -460,7 +460,7 @@ export function dadArc(state: State): string[] {
     lines.push("你小時候見過他這樣脫鞋。你沒有問過為什麼。");
     return lines;
   }
-  lines.push("小時候你以為「下次吧」只是推你。");
+  lines.push("小時候你以為「下次啦」只是推你。");
   if (sign === "C") lines.push("那幾年同事一個一個移民，他替人留到最後。走不開的時候，他就說下次。");
   else if (night === "B") lines.push("公司一直沒有請到人。他替人留到最後。走不開的時候，他就說下次。");
   else lines.push("那個星期六他替人留到最後。當時你只知道，鞋子脫得很慢。");
