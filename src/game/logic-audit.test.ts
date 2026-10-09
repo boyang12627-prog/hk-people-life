@@ -70,7 +70,7 @@ describe("logic audit v3.2", () => {
     assert.equal(variantOf(state.eventId, state), "plain");
     const card = cardFor(state.eventId, state).sequence.map(lineText).join("");
     assert.ok(card.includes("繼續吃飯"));
-    assert.equal(card.includes("站過去聽"), false);
+    assert.equal(card.includes("走過去聽"), false);
     state = chooseId(state, "A");
     assert.equal(state.result?.text.includes("頭先講過將來"), false);
     assert.equal(state.memories.find((item) => item.id === "MEM_SILENT_NEWS_01")?.variant, "plain");
@@ -183,7 +183,7 @@ describe("logic audit v3.2", () => {
     assert.equal(stayed.counter.PLAYER_DAD_CHOICE_RESPONSE, 3);
     assert.notEqual(left.npc.NPC_DAD_01.relation, stayed.npc.NPC_DAD_01.relation);
     assert.ok(cardFor("EVT_1986_ECHO_08", left).sequence.map(lineText).join("").includes("裂開過"));
-    assert.ok(cardFor("EVT_1986_ECHO_08", stayed).sequence.map(lineText).join("").includes("留過"));
+    assert.ok(cardFor("EVT_1986_ECHO_08", stayed).sequence.map(lineText).join("").includes("留下來陪過"));
   });
 
   it("followed reading is stronger than an unpracticed attempt", () => {
@@ -210,7 +210,7 @@ describe("logic audit v3.2", () => {
       derived: { ...freshState().derived, VALUE_DREAM: 70, VALUE_REALITY: 50 },
       npc: { ...freshState().npc, NPC_FRIEND_01: { relation: 4, trust: 2, available: true } },
     };
-    assert.ok(cardFor("EVT_1986_SKILL_05", dreaming).sequence.map(lineText).join("").includes("看著顏色"));
+    assert.ok(cardFor("EVT_1986_SKILL_05", dreaming).sequence.map(lineText).join("").includes("看顏色"));
   });
 
   it("ending voice keeps one memory from each year", () => {
@@ -438,10 +438,10 @@ describe("logic audit v3.2", () => {
     assert.ok(cardFor("EVT_1986_MARKET_07", mom).sequence.map(lineText).join("").includes("收過玩具"));
     assert.ok(fifteenLines(mom).join("").includes("伸出去"));
     const ball = remember("MEM_RED_BALL", "B", { flags: ["FLAG_SHARED_BALL"] });
-    assert.ok(cardFor("EVT_1986_SKILL_05", ball).sequence.map(lineText).join("").includes("招你過去坐"));
+    assert.ok(cardFor("EVT_1986_SKILL_05", ball).sequence.map(lineText).join("").includes("招手叫你過去坐"));
     assert.ok(fifteenLines(ball).join("").includes("輪流"));
     const dad = remember("MEM_DAD_WORK", "B");
-    assert.ok(cardFor("EVT_1986_ECHO_08", dad).sequence.map(lineText).join("").includes("答應過他去上班"));
+    assert.ok(cardFor("EVT_1986_ECHO_08", dad).sequence.map(lineText).join("").includes("答應過讓他去上班"));
     assert.ok(fifteenLines(dad).join("").includes("應了一聲"));
   });
 
@@ -515,7 +515,7 @@ describe("logic audit v3.2", () => {
     assert.deepEqual(saved?.flags, ["FLAG_PARENT_EXPLAIN"]);
     assert.equal(saved?.memories.some((item) => item.id === "MEM_GHOST"), false);
     assert.equal(saved?.memories.filter((item) => item.memoryTypeId === "MEM_DAD_WORK").length, 2);
-    assert.ok(cardFor("EVT_1986_ECHO_08", saved!).sequence.map(lineText).join("").includes("答應過他去上班"));
+    assert.ok(cardFor("EVT_1986_ECHO_08", saved!).sequence.map(lineText).join("").includes("答應過讓他去上班"));
     const crowded = selectOverflow();
     assert.equal(crowded.includes("老師說得很慢"), false);
     assert.ok(crowded.includes("實際"));
@@ -1080,7 +1080,7 @@ describe("logic audit v3.2", () => {
       memories: [{ id: "MEM_ORANGE", eventId: "MINI_85_ORANGE", choiceId: "C", variant: "", year: 1985, age: 4, npc: "NPC_AUNT_01", emotion: "keep", weight: 1, echo: "" }],
     }).sequence.map(lineText).join("");
     assert.ok(helped.includes("橙"));
-    assert.ok(kept.includes("沒有放進來"));
+    assert.ok(kept.includes("沒有放進袋裡"));
     assert.equal(cardFor("EVT_1986_MARKET_07", { ...freshState(), yearIndex: 2 }).sequence.map(lineText).join("").includes("橙"), false);
     assert.equal(cardFor("MINI_85_ORANGE", freshState()).title, "橙散了");
   });

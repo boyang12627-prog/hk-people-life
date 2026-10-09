@@ -479,7 +479,7 @@ function Ending({ state, onRestart }: { state: State; onRestart: () => void }) {
   return (
     <Paper scene="estate" plate={endingPlate(state.gender)} kicker="十年後" title="同一個屋邨" dialogue={[narrate(lifeVoice(state.memories, state.name)), narrate(orientationSummary(state))]} actions={<Primary onClick={onRestart}>再來一次</Primary>}>
       {state.flags.includes("FLAG_REPAIR_TALK") ? <p className="mt-2 text-pretty text-base leading-7">你跟媽媽談過屋邨門口。家裡近了，但心裡緊過。</p> : null}
-      {state.flags.includes("FLAG_REPAIR_SILENT") ? <p className="mt-2 text-pretty text-base leading-7">你沒有說。少了一場責罵，家裡少了一句。</p> : null}
+      {state.flags.includes("FLAG_REPAIR_SILENT") ? <p className="mt-2 text-pretty text-base leading-7">你沒有說。少了一場責罵，家裡少了一句話。</p> : null}
       <details className="mt-3">
         <summary className="min-h-11 py-2 text-sm text-ink/75">其他你記住的句子</summary>
         <ul className="flex flex-col gap-2 pb-2">

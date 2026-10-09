@@ -239,7 +239,7 @@ describe("playtest fixes v3.3 — P0", () => {
       if (!walked) continue;
       for (const page of life.pages) {
         if ((page.year === 1986 && page.phase === "year-end") || (page.year === 1988 && page.phase === "year")) {
-          assert.equal(page.text.includes("沒有上平台"), false, page.text);
+          assert.equal(page.text.includes("沒有到平台"), false, page.text);
         }
       }
     }
@@ -254,7 +254,7 @@ describe("playtest fixes v3.3 — P1", () => {
     const open = beat1985("open", freshState()).sequence.map(lineText).join("");
     assert.ok(open.includes("星期一開始上學"));
     assert.equal(open.includes("明天開始上學"), false);
-    const wrong = ["去年你自己收過玩具", "去年你站過去聽", "去年「九七」", "去年你也是這樣坐", "去年你跟著吃飯"];
+    const wrong = ["去年你自己收過玩具", "去年你走過去聽", "去年「九七」", "去年你也是這樣坐", "去年你跟著吃飯"];
     for (const page of pagesOf(1986)) for (const bit of wrong) assert.equal(page.text.includes(bit), false, page.text);
     for (const page of pagesOf(1985, "story")) {
       if (page.state.note !== "monday") continue;
@@ -366,8 +366,8 @@ describe("playtest fixes v3.3 — P1", () => {
     const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
     assert.ok(app.includes('kicker="之後" title="你選了" dialogue={[narrate(state.result.text)]}'));
     assert.equal(app.includes("你下平台的次數還不夠"), false);
-    assert.ok(exploreOfferCopy({ counter: { ...freshState().counter, COUNTER_EXPLORE: 0 } }).includes("沒有下過平台"));
-    assert.ok(exploreOfferCopy({ counter: { ...freshState().counter, COUNTER_EXPLORE: 1 } }).includes("下過一次"));
+    assert.ok(exploreOfferCopy({ counter: { ...freshState().counter, COUNTER_EXPLORE: 0 } }).includes("沒有到過平台"));
+    assert.ok(exploreOfferCopy({ counter: { ...freshState().counter, COUNTER_EXPLORE: 1 } }).includes("到過一次"));
     const never = { counter: { ...freshState().counter, COUNTER_EXPLORE: 0 } };
     assert.ok(!exploreOfferTitle(never).includes("再") && !exploreOfferGo(never).includes("再"), "never went down: no 再 in title/button");
     for (const life of LIVES) assert.ok(life.pages.filter((page) => page.phase === "explore-offer").length <= 1);
@@ -402,7 +402,7 @@ describe("playtest fixes v3.3 / voice v3.4 — 書面中文 in narration, HK voi
   });
 
   it("speech quoted inside narration is dialogue, not narration", () => {
-    assert.deepEqual(cantoneseHits("他說這支是多出來的。「你拿去用啦。」筆芯有一點深。"), []);
+    assert.deepEqual(cantoneseHits("他說這支是多出來的。「你拿去用啦。」寫出來的顏色有一點深。"), []);
     assert.ok(cantoneseHits("你拿去用啦。").length > 0);
     assert.equal(quotedSpeaker("媽媽看爸爸一眼。「大人有時也會擔心。」", "大人有時也會擔心。"), "媽媽");
     assert.equal(quotedSpeaker("阿姨說：「呢個唔使錢。」", "呢個唔使錢。"), "阿姨");

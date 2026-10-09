@@ -427,7 +427,7 @@ function repair(state: State, talk: boolean): State {
   );
   const text = talk
     ? "你告訴媽媽。她拉了你一會兒，沒有再罵。家裡近了，但你心裡緊了。"
-    : "你不說，自己去睡。少了一場責罵，心靜下來，但家裡少了一句。";
+    : "你不說，自己去睡。少了一場責罵，心靜下來，但家裡少了一句話。";
   return {
     ...applied.state,
     phase: "result",
@@ -481,7 +481,7 @@ function exploreOffer(state: State, go: boolean): State {
     phase: "result",
     battleSpecId: null,
     result: {
-      text: before === 0 ? "你下了平台，一直走到屋邨門口。媽媽跟在後面。" : "你又下了一次平台。這次你一直走到屋邨門口。",
+      text: before === 0 ? "你到了平台，一直走到屋邨門口。媽媽跟在後面。" : "你又到平台去了一次。這次你一直走到屋邨門口。",
       deltas: applied.deltas,
       skills: [],
     },

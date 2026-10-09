@@ -26,7 +26,7 @@ export type ActionLine = {
 };
 
 const HEAVY = new Set([2, 4, 6, 7]);
-const LIGHT: Threat = { stress: 8, hp: 5, heavy: false, hint: "有人拉你的衣袖。聲音不大，但在拉。", landed: "有人拉住你的衣袖。" };
+const LIGHT: Threat = { stress: 8, hp: 5, heavy: false, hint: "有人拉你的衣袖。力氣不大，但一直在拉。", landed: "有人拉住你的衣袖。" };
 
 /** Loud on 2, 4, 6, and 7. Step 8 is the lit door; KINDY_DOOR.maxRounds must stay 8. */
 export const KINDY_SEPARATION: EnemyPattern = {
@@ -113,7 +113,7 @@ export const KINDY_DOOR: BattleSpec = {
   id: "BTL_KINDY_DOOR",
   scene: "kindy",
   label: "門口的聲音",
-  goalLabel: "入到課室",
+  goalLabel: "走進課室",
   hitLabel: "門口",
   nextLabel: "下一聲",
   skills: { stabilize: "SKL_07", see: "SKL_02", ask: "SKL_04", prepared: "SKL_01" },
@@ -127,14 +127,14 @@ export const KINDY_DOOR: BattleSpec = {
   settlement: "kindy",
   enemyPattern: KINDY_SEPARATION,
   voice: {
-    walk: { label: "向前行", detail: "不耗氣力，走近一步", hint: "你向前走一步。" },
+    walk: { label: "向前走", detail: "不耗氣力，走近一步", hint: "你向前走一步。" },
     guard: { label: "停下呼吸", detail: "這一聲小一半", hint: "你停下呼吸。" },
     read: {
       label: "跟著讀",
-      detail: "你跟得熟",
-      weakDetail: "還沒跟熟",
+      detail: "你讀得熟",
+      weakDetail: "還沒讀熟",
       hint: "你跟著老師教過的字。聲音細，但你有聲音。",
-      weakHint: "你還沒跟熟。只出到半個字，聲音小了一點。",
+      weakHint: "你還沒讀熟。只讀出半個字，聲音小了一點。",
     },
     see: { label: "看臉色", detail: "避開下一聲", hint: "你看一看。下一聲，你會避開。" },
     ask: { label: "問問題", detail: "走近一點", hint: "你問了一句。課室近了。" },
@@ -142,8 +142,8 @@ export const KINDY_DOOR: BattleSpec = {
     dodged: "你看得出哪一下會撞過來，避開了。",
     froze: "你站著。那一聲還是來了。",
     broke: "氣力不夠。可以向前走，或者先停下。",
-    noteReady: "你懂得跟著讀。跟著讀，壓力會落得多一些。",
-    noteWeak: "你還沒跟熟。跟著讀也可以，但聲音很細。",
+    noteReady: "你懂得跟著讀。跟著讀，壓力會降得多一些。",
+    noteWeak: "你還沒讀熟。跟著讀也可以，但聲音很小。",
     note: "先看這一聲大不大，再決定走還是停。今天進不去，可以再試，不會結束。",
     openings: {
       safe: "你仍然抓著媽媽。開頭沒有那麼害怕。",
@@ -187,11 +187,11 @@ export const PRIMARY_EXAM: BattleSpec = {
     walk: { label: "落筆", detail: "不耗氣力，做下一題", hint: "你做下一題。" },
     guard: { label: "停一停", detail: "這一分鐘沒那麼趕", hint: "你停一停。" },
     read: {
-      label: "想起默過的",
-      detail: "你默過，寫得比較穩",
-      weakDetail: "你還沒默過",
-      hint: "你想起默書那陣。這題沒有那麼陌生。",
-      weakHint: "你還沒默過。只是再讀一次題目。",
+      label: "想起默書",
+      detail: "你默過書，寫得比較穩",
+      weakDetail: "你還沒默過書",
+      hint: "你想起默書的時候。這題沒有那麼陌生。",
+      weakHint: "你還沒默過書。只是把題目再讀一次。",
     },
     see: { label: "先看哪題", detail: "這題可以放後", hint: "你先看哪題可以放後。" },
     ask: { label: "分配時間", detail: "把剩下的時間分好", hint: "你把剩下的時間分了一下。" },
@@ -199,8 +199,8 @@ export const PRIMARY_EXAM: BattleSpec = {
     dodged: "這題先放下。你去做會的。",
     froze: "你握著筆。時間還是在走。",
     broke: "氣力不夠。可以落筆，或者先停一停。",
-    noteReady: "你默過。想起默過的，壓力會落得多一些。",
-    noteWeak: "你還沒默過。重看一次也可以，但幫助很小。",
+    noteReady: "你默過書。想起默過的內容，壓力會降得多一些。",
+    noteWeak: "你還沒默過書。重看一次也可以，但幫助很小。",
     note: "先看這一題難不難，再決定做還是停。今天做不完，可以再試。",
     openings: {
       safe: "你看過一次範圍。開頭沒有那麼慌。",

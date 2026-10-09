@@ -48,7 +48,7 @@ function painted(name: string, gender: Gender | null) {
 
 export function eventPlate(eventId: string | null, gender: Gender | null, scene?: string | null, title?: string | null) {
   if (eventId === "EVT_1985_FRIEND_04" && scene === "kindy") return painted("inside", gender);
-  // 沒有人在 (你去了的地方沒有人): the empty wet podium, whichever place was empty. 走了一圈 (with mum at the market) keeps the market.
+  // 沒有人在 (你去的地方沒有人): the empty wet podium, whichever place was empty. 走了一圈 (with mum at the market) keeps the market.
   if (eventId === "MINI_QUIET" && (scene === "estate" || title === "沒有人在")) return painted("rain", gender);
   const name = eventId ? EVENT_PLATE[eventId] : null;
   return name ? painted(name, gender) : null;
@@ -60,7 +60,7 @@ export function beatPlate(beat: string, gender: Gender | null) {
 }
 
 /**
- * A year opening's own picture when its text is about the TV: 1984 (飯桌那部電視開著, the handshake) and
+ * A year opening's own picture when its text is about the TV: 1984 (飯桌旁那部電視開著, the handshake) and
  * 1986 (電視裡有個戴帽子的女人下船, 「女皇來了。」). Other years use their scene painting.
  */
 const YEAR_PLATE: Record<number, string> = { 1984: "tv", 1986: "tv" };

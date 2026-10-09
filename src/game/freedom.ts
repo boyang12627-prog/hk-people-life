@@ -89,7 +89,7 @@ export function reconcileMissed(state: Pick<State, "missed" | "memories" | "coun
 export function missed1986(missed: readonly string[], when: "now" | "later", kitKnown = true) {
   const bits: string[] = [];
   if (missed.includes(MISS_86_MARKET)) bits.push("星期六沒有跟媽媽去街市");
-  if (missed.includes(MISS_86_ESTATE)) bits.push("沒有上平台");
+  if (missed.includes(MISS_86_ESTATE)) bits.push("沒有到平台");
   if (missed.includes(MISS_86_TV)) bits.push("沒有留在家看那一次電視");
   if (missed.includes(MISS_86_FRIEND)) bits.push(kitKnown ? "沒有再碰到阿傑" : "沒有碰到平台上那個抱紅球的孩子");
   if (!bits.length) return "";
@@ -149,7 +149,7 @@ export function advanceChain(chain: ChainState, eventId: string | null, choiceId
 }
 
 export function chainEcho(choiceId: string | null) {
-  if (choiceId === "A") return "去年你在門口開了口。今年你還記得有人看過你。";
+  if (choiceId === "A") return "去年你在門口開了口。今年你還記得有人看了你一眼。";
   if (choiceId === "B") return "去年你拉著媽媽的手。今年你還記得那隻手。";
   if (choiceId === "C") return "去年你自己走向紅球。今年你還是會自己走近。";
   return "去年你走到了門口。";

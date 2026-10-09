@@ -65,7 +65,7 @@ function satNight(state: State): SceneLine[] {
     seq.push(act(withMom ? "她把鞋脫在門口。你今天沒有到平台。" : "她把鞋脫在門口。你今天沒有下過樓。"));
     seq.push(missedHeard(state));
   } else if (!news) seq.push(narrate(lifeMissed("NPC_MOM_01", "sat")));
-  seq.push(narrate("袋子仍然在門口。明天還不是上學。"));
+  seq.push(narrate("袋子仍然在門口。明天還不用上學。"));
   return seq;
 }
 
