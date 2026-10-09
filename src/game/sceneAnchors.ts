@@ -49,7 +49,7 @@ export const SCENE_ANCHORS: Record<string, SceneAnchors> = {
 
 /** "/hk-people-life/art/q/market-girl.webp" -> "market". Null for anything that is not a Q scene painting. */
 export function plateName(src: string | null | undefined): string | null {
-  const match = src ? /\/q\/([a-z]+)-(?:boy|girl)\.[a-z]+$/.exec(src) : null;
+  const match = src ? /\/q\/([a-z]+)(?:\d{4})?-(?:boy|girl)\.[a-z]+$/.exec(src) : null;
   return match ? match[1] : null;
 }
 

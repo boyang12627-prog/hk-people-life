@@ -1,7 +1,6 @@
 import { Children, Fragment, createContext, isValidElement, useContext, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { Battle } from "@/components/life/Battle";
 import { playRoom, playTone, unlockAudio } from "@/components/life/audio";
-import { newsHeadline } from "@/game/tvNews";
 import { ConfirmLink, Frame, LocationTag, PanelHeading, PanelPortrait, PaperPanel, ScrollCue, StatusContext, Tag, useAdvanceKeys, useReveal, useScrollCue, type Status } from "@/components/life/Stage";
 import { expandSpokenNarration } from "@/game/narrationSpeech";
 import { ACTION_LOCK_MS } from "@/game/reveal";
@@ -26,7 +25,7 @@ import {
   yearOf,
   yearSummary,
 } from "@/game/content";
-import { MEMORY_BALL, afternoonPlate, beatPlate, eventPlate, personFromSpeaker, personPortrait, protagonistPortrait, scenePlate, slicePlate, yearPlate, type Mood } from "@/game/art";
+import { MEMORY_BALL, afternoonPlate, beatPlate, eraPlate, eventPlate, personFromSpeaker, personPortrait, protagonistPortrait, scenePlate, slicePlate, yearPlate, type Mood } from "@/game/art";
 import { narrate, say, sceneTurns, type SceneLine, type Turn } from "@/game/scene";
 import { chainEcho, knowsKit, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
@@ -603,14 +602,11 @@ function PaperPage({ scene, plate, kicker, title, turns, overlay, actions, child
   const accent = speaking?.speaker ? SPEAKER_ACCENT[speaking.speaker] : "#6e4524";
   const person = speaking?.speaker ? personFromSpeaker(speaking.speaker) : null;
   const where = anchor && isOffscreen(anchor) ? anchor.label : null;
-  // A painted TV shows the year's headline, unless this page says the TV is off.
-  const news = newsHeadline(storyYear, turns.map((turn) => turn.text));
 
   return (
     <Frame
       label={`${kicker} · ${title}`}
-      picture={picture}
-      news={news}
+      picture={eraPlate(picture, storyYear)}
       overlay={overlay}
       onStageClick={reveal.done || log ? undefined : reveal.advance}
       panel={

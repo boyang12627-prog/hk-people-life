@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { isDone, isTyping, startReveal, stepReveal, type Reveal } from "@/game/reveal";
 import { placeLabel } from "@/game/scene";
-import { CANVAS_W, SOURCE_H, SOURCE_W, canvasHeight, quadMatrix, tvScreenFor } from "@/game/tvNews";
 
 /**
  * UI V4 layout pieces: a full-bleed 16:9 stage (scene painting), a round wooden status frame
@@ -15,69 +14,18 @@ export type Status = { label: string; portrait: string | null; afternoons: numbe
 export const StatusContext = createContext<Status>({ label: "", portrait: null, afternoons: null, year: null });
 
 /** Stage on top, panel below on narrow screens; panel laid over the painting's foot on wide ones. */
-export function Frame({ picture, overlay, stage, panel, onStageClick, label, news }: { picture: string; overlay?: ReactNode; stage?: ReactNode; panel: ReactNode; onStageClick?: () => void; label?: string; news?: string | null }) {
+export function Frame({ picture, overlay, stage, panel, onStageClick, label }: { picture: string; overlay?: ReactNode; stage?: ReactNode; panel: ReactNode; onStageClick?: () => void; label?: string }) {
   return (
     <section aria-label={label} className="ui-stage-frame relative flex h-full w-full flex-col md:aspect-video md:h-auto md:w-[min(calc(100vw-3rem),calc((100dvh-3rem)*16/9))] md:rounded-sm">
       <div className="ui-stage relative aspect-video w-full shrink-0 overflow-hidden bg-[#2a1d12] md:absolute md:inset-0 md:aspect-auto md:h-full md:rounded-sm" onClick={onStageClick}>
         <img src={picture} alt="" decoding="async" className="absolute inset-0 h-full w-full object-cover object-center" />
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_40%,transparent_55%,rgb(20_12_6/0.45))]" />
-        {news ? <TvNews picture={picture} headline={news} /> : null}
         {overlay}
         <StatusFrame />
         {stage}
       </div>
       <div className="relative flex min-h-0 flex-1 flex-col px-1.5 pb-1.5 pt-2 md:absolute md:inset-x-[2%] md:bottom-[2.5%] md:max-h-[48%] md:flex-none md:p-0">{panel}</div>
     </section>
-  );
-}
-
-/**
- * The year's headline on a painted TV, in the style of a period news caption: a dark strip, a small
- * red 新聞 tab, bold pale-yellow text. The caption is laid out flat on a CANVAS_W-wide canvas, then warped
- * onto the glass's four measured corners with a matrix3d homography, so it follows the set's angle.
- * The 1280x720 source space is scaled to the stage (always 16:9, like the paintings), so it holds at
- * any window size. A dark (off) screen gets a faint glow so it reads as switched on.
- */
-export function TvNews({ picture, headline }: { picture: string; headline: string }) {
-  const screen = tvScreenFor(picture);
-  const ref = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0);
-  useEffect(() => {
-    const stage = ref.current?.parentElement;
-    if (!stage) return;
-    const update = () => setScale(stage.clientWidth / SOURCE_W);
-    update();
-    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
-    resize?.observe(stage);
-    return () => resize?.disconnect();
-  }, []);
-  if (!screen) return null;
-  const height = canvasHeight(screen.quad);
-  const matrix = quadMatrix(screen.quad, CANVAS_W, height);
-  return (
-    <div
-      ref={ref}
-      role="img"
-      aria-label={`電視新聞：${headline}`}
-      data-tv-news={headline}
-      data-tv-lit={screen.lit ? "painted" : "overlay"}
-      className="pointer-events-none absolute left-0 top-0 origin-top-left"
-      style={{ width: SOURCE_W, height: SOURCE_H, transform: `scale(${scale})`, visibility: scale ? undefined : "hidden" }}
-    >
-      <div
-        data-tv-glass="true"
-        className="ui-tv-screen absolute left-0 top-0 origin-top-left overflow-hidden"
-        style={{ width: CANVAS_W, height, transform: `matrix3d(${matrix.map((n) => +n.toFixed(8)).join(",")})` }}
-      >
-        {screen.lit ? null : <div className="ui-tv-glow absolute inset-0" />}
-        <div className={`ui-tv-strip absolute inset-x-0 ${screen.strip === "top" ? "top-[8%]" : "bottom-[7%]"}`}>
-          <span className="ui-tv-tab">新聞</span>
-          <span className="ui-tv-headline" style={screen.headlinePx ? { fontSize: screen.headlinePx } : undefined}>{headline}</span>
-        </div>
-        <div className="ui-tv-scan absolute inset-0" />
-        <div className="ui-tv-sheen absolute inset-0" />
-      </div>
-    </div>
   );
 }
 

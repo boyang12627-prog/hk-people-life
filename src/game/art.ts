@@ -66,6 +66,19 @@ export function yearPlate(year: number, gender: Gender | null): string | null {
   return name && gender ? painted(name, gender) : null;
 }
 
+/**
+ * TV pictures are painted into the scene (no text on screens): a year whose news has a picture gets its
+ * own copy of a TV painting with that picture composited onto the glass (scripts/tv-composite.py).
+ * 1986: the Queen's visit (「女皇來了。」) on the TV room set.
+ */
+export const ERA_TV: Record<number, readonly string[]> = { 1986: ["tv"] };
+
+/** "/art/q/tv-boy.webp" in 1986 -> "/art/q/tv1986-boy.webp". Any other picture or year is unchanged. */
+export function eraPlate(src: string, year: number | null | undefined): string {
+  if (!year || !ERA_TV[year]) return src;
+  return src.replace(/\/q\/([a-z]+)-(boy|girl)\.(\w+)$/, (whole, name: string, who: string, ext: string) => (ERA_TV[year].includes(name) ? `/q/${name}${year}-${who}.${ext}` : whole));
+}
+
 export function scenePlate(scene: SceneId, gender: Gender | null) {
   return painted(scene, gender);
 }
@@ -211,6 +224,7 @@ export function imageManifest(): string[] {
     }
     for (const battle of ["door", "pressure", "inside"] as const) add(slicePlate({ year: 1985, scene: "kindy", gender, battle }));
     for (const id of Object.keys(EVENT_PLATE)) add(eventPlate(id, gender));
+    for (const [year, names] of Object.entries(ERA_TV)) for (const name of names) add(eraPlate(painted(name, gender), +year));
     add(eventPlate("EVT_1985_FRIEND_04", gender, "kindy"));
     add(eventPlate("MINI_QUIET", gender, "estate"));
     for (const beat of Object.keys(BEAT_PLATE)) add(beatPlate(beat, gender));

@@ -32,8 +32,6 @@ import { freshState, mergeDeltas, reducer } from "./engine.ts";
 import { lineText, placeLabel } from "./scene.ts";
 import { SPOKEN_IN_NARRATION, expandSpokenNarration, splitSpokenNarration } from "./narrationSpeech.ts";
 import { ACTION_LOCK_MS } from "./reveal.ts";
-import { CANVAS_W, NEWS_HEADLINE, SOURCE_H, SOURCE_W, TV_SCREENS, applyMatrix, canvasHeight, newsHeadline, paintingName, quadMatrix, tvIsOff, tvScreenFor } from "./tvNews.ts";
-import { beatPlate as tvBeatPlate, eventPlate as tvEventPlate, imageManifest as tvManifest, yearPlate as tvYearPlate } from "./art.ts";
 import { existsSync } from "node:fs";
 import { picked, selectSpoken } from "./speak.ts";
 import { KINDY_DOOR, PRIMARY_EXAM, playtestTools } from "./battleSpec.ts";
@@ -42,7 +40,7 @@ import { scanSources } from "../../scripts/voice-scan.ts";
 import type { Gender, State } from "./types.ts";
 import { isDone, lineAt, skipReveal, startReveal, stepReveal } from "./reveal.ts";
 import { SCENE_ANCHORS, SPEAKER_ACCENT, isOffscreen, plateName } from "./sceneAnchors.ts";
-import { beatPlate, eventPlate, scenePlate } from "./art.ts";
+import { beatPlate, eraPlate, eventPlate, imageManifest, scenePlate, yearPlate } from "./art.ts";
 import { say, type SceneLine } from "./scene.ts";
 
 type Page = { year: number; phase: string; known: boolean; text: string; state: State };
@@ -678,110 +676,25 @@ describe("live playtest fixes (2026-10-09)", () => {
   });
 });
 
-describe("TV news headlines (2026-10-09)", () => {
-  const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
-  const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
-  const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
-
-  it("every painting with a TV has its screen measured, for both genders, inside the picture", () => {
-    assert.deepEqual(Object.keys(TV_SCREENS).sort(), ["bag", "draw", "play", "rest", "tv"]);
-    for (const [name, screen] of Object.entries(TV_SCREENS)) {
-      for (const gender of ["boy", "girl"]) assert.ok(existsSync(new URL(`../../public/art/q/${name}-${gender}.webp`, import.meta.url)), `${name}-${gender}.webp exists`);
-      const [tl, tr, br, bl] = screen.quad;
-      for (const [x, y] of screen.quad) assert.ok(x > 0 && x < SOURCE_W && y > 0 && y < SOURCE_H, `${name} corner is inside the picture`);
-      assert.ok(tl[0] < tr[0] && bl[0] < br[0] && tl[1] < bl[1] && tr[1] < br[1], `${name} corners run TL, TR, BR, BL`);
-      assert.ok(tr[0] - tl[0] > 50 && bl[1] - tl[1] > 50, `${name} screen has a size`);
-    }
-    // The TV room, the redrawn drawing afternoon (a picture) and nap (static) are painted with the set on;
-    // the morning door and the blocks afternoon get a lit glass from the overlay.
-    for (const name of ["tv", "draw", "rest"]) assert.equal(TV_SCREENS[name].lit, true, `${name} is painted on`);
-    for (const name of ["bag", "play"]) assert.equal(TV_SCREENS[name].lit, false, `${name} is painted dark`);
-    // Redrawn 2026-10-09: bag, rest and draw have their own sets now; draw no longer shares play's glass.
-    assert.notDeepEqual(TV_SCREENS.draw.quad, TV_SCREENS.play.quad);
-    // The drawing afternoon's wide, painted-on glass gets a one-line headline so the picture still shows.
-    assert.ok(TV_SCREENS.draw.headlinePx && TV_SCREENS.draw.headlinePx * 9 * 1.02 <= CANVAS_W - 40, "longest headline fits one line on the draw set");
-    assert.ok(stage.includes("screen.headlinePx ? { fontSize: screen.headlinePx }"), "the per-set size reaches the headline");
-    assert.ok(TV_SCREENS.bag.quad[0][0] > 1060 && TV_SCREENS.rest.quad[0][0] > 1040 && TV_SCREENS.draw.quad[0][0] > 850, "screens moved to the new sets");
-    for (const name of ["bag", "rest"]) {
-      const [a, b, c, d] = TV_SCREENS[name].quad;
-      assert.ok(c[1] - b[1] > d[1] - a[1], `${name} glass is a little taller on the right (seen from the left)`);
-    }
-    // The TV room set is seen at an angle: its glass is taller on the right than the left.
-    const [tl, tr, br, bl] = TV_SCREENS.tv.quad;
-    assert.ok(br[1] - tr[1] - (bl[1] - tl[1]) >= 10, "TV room glass narrows to the left");
-    // The TV room screen sits low; its strip goes at the top of the glass so the panel never covers it.
-    assert.equal(TV_SCREENS.tv.strip, "top");
-  });
-
-  it("the caption is warped onto the four corners of the glass (homography), not pasted flat", () => {
-    for (const [name, screen] of Object.entries(TV_SCREENS)) {
-      const h = canvasHeight(screen.quad);
-      const m = quadMatrix(screen.quad, CANVAS_W, h);
-      const corners = [[0, 0], [CANVAS_W, 0], [CANVAS_W, h], [0, h]].map(([x, y]) => applyMatrix(m, x, y));
-      corners.forEach(([x, y], i) => {
-        assert.ok(Math.abs(x - screen.quad[i][0]) < 1e-6 && Math.abs(y - screen.quad[i][1]) < 1e-6, `${name} corner ${i} lands on the glass`);
-      });
-      assert.ok(h > 100 && h < 1000, `${name} canvas keeps the glass's shape`);
-    }
-    // A true perspective term on the angled set; a flat paste would have none.
-    const tv = quadMatrix(TV_SCREENS.tv.quad, CANVAS_W, canvasHeight(TV_SCREENS.tv.quad));
-    assert.ok(Math.abs(tv[3]) > 1e-7 || Math.abs(tv[7]) > 1e-7);
-    // An exact rectangle maps with no perspective term.
-    const flat = quadMatrix([[10, 10], [110, 10], [110, 60], [10, 60]], 100, 50);
-    assert.deepEqual(flat.map((n) => +n.toFixed(9)), [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 10, 0, 1]);
-  });
-
-  it("the headline is factual and one per year", () => {
-    assert.deepEqual(NEWS_HEADLINE, { 1984: "中英聯合聲明簽署", 1985: "立法局首次間接選舉", 1986: "英女皇訪港", 1988: "移民潮持續", 1996: "香港回歸倒數" });
-    assert.equal(newsHeadline(1986), "英女皇訪港");
-    assert.equal(newsHeadline(null), null);
-    assert.equal(newsHeadline(1990), null);
-  });
-
-  it("the headline agrees with what the story says is on TV", () => {
-    assert.match(yearOf({ ...freshState(), yearIndex: 0 }).era, /握手/);
-    assert.match(yearOf({ ...freshState(), yearIndex: 2 }).era + yearOf({ ...freshState(), yearIndex: 2 }).open, /女皇/);
-    const events = readFileSync(new URL("./data/events.ts", import.meta.url), "utf8");
-    assert.match(events, /有個同事移民了/);
-    assert.match(fifteenLines({ ...freshState(), gender: "girl", phase: "fifteen" }).join(""), /電視/);
-  });
-
-  it("a page that says the TV is off keeps the screen dark", () => {
-    assert.equal(tvIsOff(["媽媽晚上還是很靜。電視已經關了。她沒有再提街市。"]), true);
-    assert.equal(newsHeadline(1985, ["電視已經關了。"]), null);
-    assert.equal(tvIsOff(["電視又開著。", "家裡的電視還開著。"]), false);
-  });
-
-  it("screens are found from the picture path, whatever the base URL", () => {
-    assert.equal(paintingName("/hk-people-life/art/q/tv-girl.webp"), "tv");
-    assert.equal(tvScreenFor("/art/q/rest-boy.webp"), TV_SCREENS.rest);
-    assert.equal(tvScreenFor("/art/q/home-boy.webp"), null);
-    assert.equal(tvScreenFor("/art/1985/memory.jpg"), null);
-  });
-
-  it("text that talks about the TV is shown on a painting with a TV", () => {
+describe("TV pictures painted into the art, no text on screens (2026-10-09)", () => {
+  it("1986 TV room pages show the Queen's visit composited into the glass; other years keep the plain set", () => {
     for (const gender of ["boy", "girl"] as const) {
-      assert.equal(tvYearPlate(1984, gender), `/art/q/tv-${gender}.webp`, "1984: 飯桌那部電視開著");
-      assert.equal(tvYearPlate(1986, gender), `/art/q/tv-${gender}.webp`, "1986: 電視裡有個戴帽子的女人下船");
-      for (const id of ["EVT_1984_NEWS_01", "MINI_85_TV", "MINI_86_TV"]) assert.ok(tvScreenFor(tvEventPlate(id, gender) ?? ""), `${id} has a TV`);
-      assert.ok(tvScreenFor(tvBeatPlate("sat-night", gender) ?? ""), "the fifteen page (家裡的電視還開著) uses the TV room");
+      assert.equal(eraPlate(`/art/q/tv-${gender}.webp`, 1986), `/art/q/tv1986-${gender}.webp`);
+      assert.ok(existsSync(new URL(`../../public/art/q/tv1986-${gender}.webp`, import.meta.url)));
+      assert.ok(imageManifest().includes(`/art/q/tv1986-${gender}.webp`));
     }
-    assert.ok(tvManifest().includes("/art/q/tv-boy.webp"));
+    for (const year of [1984, 1985, 1988, 1996]) assert.equal(eraPlate("/art/q/tv-boy.webp", year), "/art/q/tv-boy.webp");
+    assert.equal(eraPlate("/art/q/home-girl.webp", 1986), "/art/q/home-girl.webp", "only TV paintings swap");
+    assert.equal(plateName("/art/q/tv1986-boy.webp"), "tv", "speaker anchors still apply");
+    for (const id of ["MINI_86_TV", "EVT_1986_FAMILY_06"]) assert.equal(eventPlate(id, "girl"), "/art/q/tv-girl.webp");
+    assert.equal(yearPlate(1986, "boy"), "/art/q/tv-boy.webp");
   });
-
-  it("the stage draws the headline over the screen; nothing is baked into the art", () => {
-    assert.match(stage, /\{news \? <TvNews picture=\{picture\} headline=\{news\} \/> : null\}/);
-    assert.match(stage, /data-tv-news=\{headline\}/);
-    assert.match(stage, /aria-label=\{`電視新聞：\$\{headline\}`\}/);
-    assert.match(app, /const news = newsHeadline\(storyYear, turns\.map\(\(turn\) => turn\.text\)\)/);
-    assert.match(app, /news=\{news\}/);
-    assert.match(app, /state\.phase === "fifteen" \? 1996 : year\?\.year \?\? null/);
-    assert.match(stage, /transform: `matrix3d\(\$\{matrix/);
-    assert.match(stage, /transform: `scale\(\$\{scale\}\)`/);
-    assert.match(stage, /setScale\(stage\.clientWidth \/ SOURCE_W\)/, "source pixels follow the stage width");
-    assert.match(css, /\.ui-tv-strip \{/);
-    assert.match(css, /\.ui-tv-scan \{[^}]*mix-blend-mode: multiply/);
-    assert.match(css, /\.ui-tv-sheen \{[^}]*mix-blend-mode: screen/);
-    assert.match(css, /\.ui-tv-screen \{[^}]*border-radius/, "rounded CRT corners");
+  it("the code headline overlay is gone", () => {
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+    assert.equal(/TvNews|data-tv-news|newsHeadline|ui-tv-/.test(stage + app + css), false);
+    assert.equal(existsSync(new URL("./tvNews.ts", import.meta.url)), false);
+    assert.ok(app.includes("picture={eraPlate(picture, storyYear)}"));
   });
 });
