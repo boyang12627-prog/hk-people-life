@@ -7,10 +7,10 @@ into the glass, and the original glass highlight is screened back over it.
 Measured glass quads (1280x720 sources, boy = girl):
   tv   1018,314,1100,310,1100,444,1018,434   (1986 -> tv1986-*.webp, picture centred at 0.52)
   bag  1069,171,1171,173,1170,313,1071,306
-  rest 1051,153,1191,150,1191,289,1051,285
+  rest 1052,154,1191,151,1192,291,1052,293   (rest-girl redraw; boy same spot)
   draw 860,82,1049,82,1049,220,860,218
   play 633,155,776,151,774,255,635,257
-  home1996 933,321,1103,319,1103,490,933,478   (new 1996 home art; replaces its painted newsreader)
+  home1996 363,219,518,219,520,337,362,337   (redrawn 1996 home, TV on the LEFT; boy+girl same spot; picture = countdown with digits painted out)
 Made with: tv1984/tv1985/tvoff on the tv quad grown 1.5px (1016.5,312.5,1101.5,308.5,1101.5,445.5,1016.5,435.5) so no lit rim shows; tv1984/tv1985 HL=0.2 cx 0.5; tvoff = a dark glass gradient with a soft diagonal reflection,
 HL=0.12 BLUR=0.5; rest1988 HL=0 cx 0.42; home1996 HL=0 cx 0.48 (countdown board digits painted out first).
 """
