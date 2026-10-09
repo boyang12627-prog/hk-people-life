@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { actBattle, actionCost, ATTACK_GOAL, BATTLE_COST, battleSpeed, createBattle, initiativeFor, resolveTurn } from "./battleSim.ts";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { judgeBalance, provePerfect, resolveAuto, runGateSample } from "./battleBalance.ts";
-import { beatPlate, eventPlate, readLine, slicePlate, yearPlate } from "./art.ts";
+import { beatPlate, eventPlate, imageManifest, slicePlate, yearPlate } from "./art.ts";
+import { lineText, sceneTurns, SPEAKERS, type SceneLine } from "./scene.ts";
 import { produce1985, produce1986, missed1986, missedLine, chainEcho, CHAIN_85_STAGES, friendFollow, MISS_85_FRIEND, MISS_85_MOM, MISS_85_ORANGE, MISS_85_RAIN, REPLAY_MATRIX } from "./freedom.ts";
-import { runChildhood } from "./lifeSim.ts";
+import { runChildhood, simulateLife } from "./lifeSim.ts";
 import { WORLD_1985 } from "./world.ts";
 import { BATTLE_NARRATIVE, battleNarrative } from "./battleNarrative.ts";
 import { BATTLE_SPECS, KINDY_DOOR, PRIMARY_EXAM } from "./battleSpec.ts";
@@ -13,7 +14,7 @@ import { EQUIPMENT_CATALOG, questOf } from "./catalog.ts";
 import { FLAG_LEDGER, INDEX_LEDGER, MEMORY_LEDGER, ledgerSummary, RETIRED_FLAGS, SKILL_LEDGER, TAG_LEDGER } from "./ledger.ts";
 import { battleStory, cardFor, choicesFor, fifteenAct, fifteenLines, isLastYear, knownEventIds, lifeVoice, sceneFor, variantOf, yearLean, yearOf, YEARS } from "./content.ts";
 import { ARC_AH_KIT, ENC_ORANGES, echoOpen } from "./narrative.ts";
-import { beat1985 } from "./story.ts";
+import { beat1985, BEAT_IDS, isBeat } from "./story.ts";
 import { bagSplits, dadStayedLate, resolveWorldAt, worldTick } from "./world.ts";
 import { ENCOUNTERS, factSplits, pickEncounter } from "./encounter.ts";
 import { CHILDHOOD_EVENT_IDS, DAILY_STATIC_IDS, renderStatic, STATIC_EVENTS } from "./data/events.ts";
@@ -43,7 +44,7 @@ function chooseId(state: State, id: string) {
   return reducer(state, { type: "choose", choice });
 }
 
-describe("logic audit v3.1", () => {
+describe("logic audit v3.2", () => {
   it("news C is not remembered as heard", () => {
     let state = run(freshState(0), [{ type: "gender", gender: "girl", name: "阿澄" }]);
     state = spend(state, ["ACT_REST", "ACT_MARKET"]);
@@ -59,7 +60,7 @@ describe("logic audit v3.1", () => {
     assert.equal(state.eventId, "EVT_1984_FAMILY_02");
     assert.equal(state.counter.NPC_MOM_STRESS < 20, true);
     assert.equal(variantOf(state.eventId, state), "low_pressure");
-    assert.ok(cardFor(state.eventId, state).lines.join("").includes("早"));
+    assert.ok(cardFor(state.eventId, state).sequence.map(lineText).join("").includes("早"));
     state = chooseId(state, "C");
     state = reducer(state, { type: "ack" });
     assert.equal(state.phase, "year-end");
@@ -67,7 +68,7 @@ describe("logic audit v3.1", () => {
     state = spend(state, ["ACT_MARKET"]);
     assert.equal(state.eventId, "EVT_1985_FAMILY_03");
     assert.equal(variantOf(state.eventId, state), "plain");
-    const card = cardFor(state.eventId, state).lines.join("");
+    const card = cardFor(state.eventId, state).sequence.map(lineText).join("");
     assert.ok(card.includes("繼續吃飯"));
     assert.equal(card.includes("站過去聽"), false);
     state = chooseId(state, "A");
@@ -84,14 +85,14 @@ describe("logic audit v3.1", () => {
     while (state.phase === "story" && state.note !== "monday") state = reducer(state, { type: "ack" });
     if (state.note === "monday") state = reducer(state, { type: "ack" });
     assert.equal(state.eventId, "EVT_1985_SCHOOL_01");
-    assert.ok(cardFor(state.eventId, state).lines.join("").includes("還有力氣"));
+    assert.ok(cardFor(state.eventId, state).sequence.map(lineText).join("").includes("還有力氣"));
   });
 
   it("playing alone both afternoons makes the news cold", () => {
     let state = run(freshState(1), [{ type: "gender", gender: "boy", name: "" }]);
     state = spend(state, ["ACT_PLAY", "ACT_DRAW"]);
     assert.equal(variantOf("EVT_1984_NEWS_01", state), "cold");
-    assert.ok(cardFor("EVT_1984_NEWS_01", state).lines.join("").includes("玩了一整個下午"));
+    assert.ok(cardFor("EVT_1984_NEWS_01", state).sequence.map(lineText).join("").includes("玩了一整個下午"));
     assert.ok(state.derived.STATE_FAMILY_HARMONY < 70);
   });
 
@@ -172,7 +173,7 @@ describe("logic audit v3.1", () => {
     assert.equal(state.counter.WORLD_DAD_WORK_OCCURRENCES, 1);
     state = reducer(state, { type: "nextYear" });
     assert.equal(state.counter.WORLD_DAD_WORK_OCCURRENCES, 2);
-    const before = cardFor("EVT_1986_FAMILY_06", state).lines.join("");
+    const before = cardFor("EVT_1986_FAMILY_06", state).sequence.map(lineText).join("");
     assert.ok(before.includes("不是第一次"));
     state = { ...state, phase: "event", eventId: "EVT_1986_FAMILY_06" };
     const left = chooseId(state, "A");
@@ -181,8 +182,8 @@ describe("logic audit v3.1", () => {
     assert.equal(left.counter.PLAYER_DAD_CHOICE_RESPONSE, 1);
     assert.equal(stayed.counter.PLAYER_DAD_CHOICE_RESPONSE, 3);
     assert.notEqual(left.npc.NPC_DAD_01.relation, stayed.npc.NPC_DAD_01.relation);
-    assert.ok(cardFor("EVT_1986_ECHO_08", left).lines.join("").includes("裂開過"));
-    assert.ok(cardFor("EVT_1986_ECHO_08", stayed).lines.join("").includes("留過"));
+    assert.ok(cardFor("EVT_1986_ECHO_08", left).sequence.map(lineText).join("").includes("裂開過"));
+    assert.ok(cardFor("EVT_1986_ECHO_08", stayed).sequence.map(lineText).join("").includes("留過"));
   });
 
   it("followed reading is stronger than an unpracticed attempt", () => {
@@ -199,7 +200,7 @@ describe("logic audit v3.1", () => {
       skills: ["SKL_03"],
       counter: { ...freshState().counter, ART_PROGRESS: 3 },
     };
-    assert.ok(cardFor("EVT_1986_MARKET_07", painted).lines.join("").includes("顏色"));
+    assert.ok(cardFor("EVT_1986_MARKET_07", painted).sequence.map(lineText).join("").includes("顏色"));
     const loud = choicesFor("EVT_1986_MARKET_07", { ...freshState(), primary: { ...freshState().primary, STAT_SPEECH: 6 } }).find((item) => item.id === "B");
     assert.ok(loud?.result.includes("不必立刻還"));
     const quiet = choicesFor("EVT_1986_MARKET_07", { ...freshState(), primary: { ...freshState().primary, STAT_SPEECH: 5 } }).find((item) => item.id === "B");
@@ -209,7 +210,7 @@ describe("logic audit v3.1", () => {
       derived: { ...freshState().derived, VALUE_DREAM: 70, VALUE_REALITY: 50 },
       npc: { ...freshState().npc, NPC_FRIEND_01: { relation: 4, trust: 2, available: true } },
     };
-    assert.ok(cardFor("EVT_1986_SKILL_05", dreaming).lines.join("").includes("看著顏色"));
+    assert.ok(cardFor("EVT_1986_SKILL_05", dreaming).sequence.map(lineText).join("").includes("看著顏色"));
   });
 
   it("ending voice keeps one memory from each year", () => {
@@ -386,7 +387,7 @@ describe("logic audit v3.1", () => {
     assert.ok(moved.state.personalityTags.includes("TAG_RESPONSIBILITY"));
     assert.ok(moved.state.personalityTags.includes("TAG_EMPATHY"));
     const market = { ...freshState(), personalityTags: ["TAG_RESPONSIBILITY"], counter: { ...freshState().counter, REL_LOCAL_MARKET: 30 } };
-    assert.ok(cardFor("EVT_1986_MARKET_07", market).lines.join("").includes("伸出去接袋"));
+    assert.ok(cardFor("EVT_1986_MARKET_07", market).sequence.map(lineText).join("").includes("伸出去接袋"));
     const share = { ...freshState(), skills: ["SKL_05"] };
     assert.equal(choicesFor("EVT_1986_SKILL_05", share).some((item) => item.id === "E"), true);
     assert.equal(choicesFor("EVT_1986_SKILL_05", freshState()).some((item) => item.id === "E"), false);
@@ -425,22 +426,22 @@ describe("logic audit v3.1", () => {
 
   it("core choices come back the next year and again at fifteen", () => {
     const ask = remember("MEM_NEWS_01", "B", { flags: ["FLAG_PARENT_EXPLAIN"] });
-    assert.ok(cardFor("EVT_1985_FAMILY_03", ask).lines.join("").includes("問過"));
-    assert.ok(cardFor("EVT_1986_SKILL_05", ask).lines.join("").includes("實際"));
+    assert.ok(cardFor("EVT_1985_FAMILY_03", ask).sequence.map(lineText).join("").includes("問過"));
+    assert.ok(cardFor("EVT_1986_SKILL_05", ask).sequence.map(lineText).join("").includes("實際"));
     assert.ok(fifteenLines(ask).join("").includes("自己先開口問"));
     const eat = remember("MEM_NEWS_01", "C", { personalityTags: ["TAG_NEWS_ENGAGEMENT_LOW"] });
-    assert.ok(cardFor("EVT_1985_FAMILY_03", eat).lines.join("").includes("繼續吃飯"));
-    assert.ok(cardFor("EVT_1986_SKILL_05", eat).lines.join("").includes("不急著選"));
+    assert.ok(cardFor("EVT_1985_FAMILY_03", eat).sequence.map(lineText).join("").includes("繼續吃飯"));
+    assert.ok(cardFor("EVT_1986_SKILL_05", eat).sequence.map(lineText).join("").includes("不急著選"));
     assert.ok(fifteenLines(eat).join("").includes("不急著問"));
     const mom = remember("MEM_MOM_TIRED", "A", { flags: ["FLAG_HELPED_MOM_01"] });
-    assert.ok(cardFor("EVT_1985_SCHOOL_01", mom).lines.join("").includes("收過玩具"));
-    assert.ok(cardFor("EVT_1986_MARKET_07", mom).lines.join("").includes("收過玩具"));
+    assert.ok(cardFor("EVT_1985_SCHOOL_01", mom).sequence.map(lineText).join("").includes("收過玩具"));
+    assert.ok(cardFor("EVT_1986_MARKET_07", mom).sequence.map(lineText).join("").includes("收過玩具"));
     assert.ok(fifteenLines(mom).join("").includes("伸出去"));
     const ball = remember("MEM_RED_BALL", "B", { flags: ["FLAG_SHARED_BALL"] });
-    assert.ok(cardFor("EVT_1986_SKILL_05", ball).lines.join("").includes("招你過去坐"));
+    assert.ok(cardFor("EVT_1986_SKILL_05", ball).sequence.map(lineText).join("").includes("招你過去坐"));
     assert.ok(fifteenLines(ball).join("").includes("輪流"));
     const dad = remember("MEM_DAD_WORK", "B");
-    assert.ok(cardFor("EVT_1986_ECHO_08", dad).lines.join("").includes("答應過他去上班"));
+    assert.ok(cardFor("EVT_1986_ECHO_08", dad).sequence.map(lineText).join("").includes("答應過他去上班"));
     assert.ok(fifteenLines(dad).join("").includes("應了一聲"));
   });
 
@@ -514,7 +515,7 @@ describe("logic audit v3.1", () => {
     assert.deepEqual(saved?.flags, ["FLAG_PARENT_EXPLAIN"]);
     assert.equal(saved?.memories.some((item) => item.id === "MEM_GHOST"), false);
     assert.equal(saved?.memories.filter((item) => item.memoryTypeId === "MEM_DAD_WORK").length, 2);
-    assert.ok(cardFor("EVT_1986_ECHO_08", saved!).lines.join("").includes("答應過他去上班"));
+    assert.ok(cardFor("EVT_1986_ECHO_08", saved!).sequence.map(lineText).join("").includes("答應過他去上班"));
     const crowded = selectOverflow();
     assert.equal(crowded.includes("老師說得很慢"), false);
     assert.ok(crowded.includes("實際"));
@@ -812,29 +813,28 @@ describe("logic audit v3.1", () => {
     const engineSrc = readFileSync(new URL("./engine.ts", import.meta.url), "utf8");
     assert.equal(engineSrc.includes('id === "BTL_PRIMARY_EXAM"'), false);
     assert.match(engineSrc, /settlement === "exam"/);
-    for (const name of ["cast.jpg", "door-girl.jpg", "door-boy.jpg", "pressure-girl.jpg", "pressure-boy.jpg", "inside-girl.jpg", "inside-boy.jpg", "later-girl.jpg", "later-boy.jpg", "memory.jpg"]) {
-      assert.equal(existsSync(new URL(`../../public/art/1985/${name}`, import.meta.url)), true, name);
-    }
-    assert.equal(slicePlate({ year: 1985, scene: "kindy", gender: "girl" }), "/art/q/kindy-girl.jpg");
-    assert.equal(slicePlate({ year: 1986, scene: "estate", gender: "boy" }), "/art/q/estate-boy.jpg");
-    assert.equal(slicePlate({ year: 1984, scene: "home", gender: "girl" }), "/art/q/home-girl.jpg");
-    assert.equal(slicePlate({ year: 1988, scene: "study", gender: "girl" }), "/art/q/study-girl.jpg");
+    assert.equal(slicePlate({ year: 1985, scene: "kindy", gender: "girl" }), "/art/q/kindy-girl.webp");
+    assert.equal(slicePlate({ year: 1986, scene: "estate", gender: "boy" }), "/art/q/estate-boy.webp");
+    assert.equal(slicePlate({ year: 1984, scene: "home", gender: "girl" }), "/art/q/home-girl.webp");
+    assert.equal(slicePlate({ year: 1988, scene: "study", gender: "girl" }), "/art/q/study-girl.webp");
     const news = cardFor("EVT_1984_NEWS_01", freshState());
-    const turns = news.lines.map((line) => readLine(line, "dad"));
+    const turns = sceneTurns(news.sequence);
     assert.deepEqual(
       turns.map((turn) => turn.name),
-      ["旁白", "旁白", "媽媽", "爸爸"],
+      ["旁白", "旁白", "媽媽", "旁白", "爸爸"],
     );
     assert.equal(turns[2].text.startsWith("先吃飯"), true);
-    assert.equal(turns[3].text.includes("一家人安穩"), true);
-    assert.equal(eventPlate("MINI_84_TOY", "boy"), "/art/q/toy-boy.jpg");
-    assert.equal(eventPlate("MINI_85_RAIN", "girl"), "/art/q/rain-girl.jpg");
-    assert.equal(eventPlate("EVT_1988_PEN_01", "boy"), "/art/q/pen-boy.jpg");
-    assert.equal(eventPlate("MINI_85_ALONE_PODIUM", "boy", "estate"), "/art/q/rain-boy.jpg");
-    assert.equal(eventPlate("EVT_1985_FRIEND_04", "girl", "kindy"), "/art/q/inside-girl.jpg");
+    assert.equal(turns[3].text, "爸爸低聲說。");
+    assert.equal(turns[4].text.includes("一家人安穩"), true);
+    assert.equal(eventPlate("MINI_84_TOY", "boy"), "/art/q/toy-boy.webp");
+    assert.equal(eventPlate("MINI_85_RAIN", "girl"), "/art/q/rain-girl.webp");
+    assert.equal(eventPlate("EVT_1988_PEN_01", "boy"), "/art/q/pen-boy.webp");
+    assert.equal(eventPlate("MINI_85_ALONE_PODIUM", "boy", "estate"), "/art/q/rain-boy.webp");
+    assert.equal(eventPlate("EVT_1985_FRIEND_04", "girl", "kindy"), "/art/q/inside-girl.webp");
     assert.equal(eventPlate("EVT_1985_FRIEND_04", "boy", "estate"), null);
-    assert.equal(beatPlate("sun-night", "boy"), "/art/q/bag-boy.jpg");
-    assert.equal(yearPlate(1986, "girl"), "/art/q/tv-girl.jpg");
+    assert.equal(beatPlate("sun-night", "boy"), "/art/q/bag-boy.webp");
+    assert.equal(eventPlate("EVT_1984_FAMILY_02", "girl"), "/art/q/home-girl.webp");
+    assert.equal(yearPlate(1986, "girl"), "/art/q/tv-girl.webp");
     assert.equal(eventPlate("EVT_1984_NEWS_01", "boy"), null);
     const played = produce1985(["ACT_PLAY", "ACT_DRAW"]);
     assert.deepEqual(played.queue, ["EVT_1985_SCHOOL_01", "MINI_85_GRANDMA", "MINI_85_TV", "MINI_85_DAD"]);
@@ -863,7 +863,7 @@ describe("logic audit v3.1", () => {
       assert.equal(Boolean(year), row.playable, String(row.year));
       if (year) assert.equal(year.calendar, row.calendar);
     }
-    assert.ok(cardFor("EVT_1986_FAMILY_06", remember("MEM_DAD_HOME", "A")).lines.join("").includes("回來過"));
+    assert.ok(cardFor("EVT_1986_FAMILY_06", remember("MEM_DAD_HOME", "A")).sequence.map(lineText).join("").includes("回來過"));
     const out = produce1986(["ACT_MARKET", "ACT_ESTATE"]);
     assert.deepEqual(out.queue, ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_MARKET_07", "MINI_86_HELP", "MINI_QUIET", "EVT_1986_ECHO_08"]);
     assert.equal(out.missed.includes("MISS_86_FRIEND"), true);
@@ -876,13 +876,13 @@ describe("logic audit v3.1", () => {
     assert.equal(home.queue.at(-1), "EVT_1986_ECHO_08");
     const missedHim = { ...freshState(), missed: ["MISS_85_FRIEND"], spent: ["ACT_ESTATE"] };
     assert.equal(friendFollow(missedHim), "ask");
-    assert.ok(cardFor("EVT_1986_FRIEND_09", missedHim).lines.join("").includes("見過"));
+    assert.ok(cardFor("EVT_1986_FRIEND_09", missedHim).sequence.map(lineText).join("").includes("見過"));
     const shared = { ...freshState(), flags: ["FLAG_SHARED_BALL"], spent: ["ACT_PLAY"], npc: { ...freshState().npc, NPC_FRIEND_01: { relation: 5, trust: 5, available: true } } };
     assert.equal(friendFollow(shared), "invite");
-    assert.ok(cardFor("EVT_1986_FRIEND_09", shared).lines.join("").includes("不是搶"));
+    assert.ok(cardFor("EVT_1986_FRIEND_09", shared).sequence.map(lineText).join("").includes("不是搶"));
     const grabbed = { ...freshState(), flags: ["FLAG_TOY_MONOPOLY"], spent: ["ACT_ESTATE"] };
     assert.equal(friendFollow(grabbed), "wary");
-    assert.ok(cardFor("EVT_1986_FRIEND_09", grabbed).lines.join("").includes("抱緊"));
+    assert.ok(cardFor("EVT_1986_FRIEND_09", grabbed).sequence.map(lineText).join("").includes("抱緊"));
     const podium = cardFor("EVT_1985_FRIEND_04", { ...freshState(), spent: ["ACT_ESTATE", "ACT_PLAY"] });
     assert.equal(podium.title, "平台上的紅波");
     assert.equal(podium.scene, "estate");
@@ -890,8 +890,8 @@ describe("logic audit v3.1", () => {
     assert.equal(sundayPodium.missed.includes("MISS_86_ESTATE"), false);
     assert.equal(sundayPodium.missed.includes("MISS_86_FRIEND"), true);
     const bothEmpty = cardFor("MINI_QUIET", { ...freshState(), yearIndex: 2, spent: ["ACT_PLAY", "ACT_MARKET"] });
-    assert.ok(bothEmpty.lines.join("").includes("這兩個下午"));
-    assert.equal(cardFor("MINI_85_DAD", freshState()).lines.join("").includes("兩個下午你都在家"), false);
+    assert.ok(bothEmpty.sequence.map(lineText).join("").includes("這兩個下午"));
+    assert.equal(cardFor("MINI_85_DAD", freshState()).sequence.map(lineText).join("").includes("兩個下午你都在家"), false);
     assert.ok(missed1986(home.missed, "later").includes("一九八六年"));
     assert.ok(missedLine(played.missed, "later").includes("去年"));
     assert.equal(CHAIN_85_STAGES.length, 5);
@@ -945,15 +945,15 @@ describe("logic audit v3.1", () => {
       weight: 2,
       echo: "",
     };
-    const shared = beat1985("sat-night", { ...freshState(), spent: ["ACT_ESTATE"], memories: [ball] }).lines.join("");
-    const held = beat1985("sat-night", { ...freshState(), spent: ["ACT_ESTATE"], memories: [{ ...ball, choiceId: "A", emotion: "hold" }] }).lines.join("");
-    const stayed = beat1985("sat-night", { ...freshState(), spent: ["ACT_REST"] }).lines.join("");
+    const shared = beat1985("sat-night", { ...freshState(), spent: ["ACT_ESTATE"], memories: [ball] }).sequence.map(lineText).join("");
+    const held = beat1985("sat-night", { ...freshState(), spent: ["ACT_ESTATE"], memories: [{ ...ball, choiceId: "A", emotion: "hold" }] }).sequence.map(lineText).join("");
+    const stayed = beat1985("sat-night", { ...freshState(), spent: ["ACT_REST"] }).sequence.map(lineText).join("");
     assert.ok(shared.includes("鞋底有泥"));
     assert.ok(held.includes("不肯放"));
     assert.equal(held.includes("鞋底有泥"), false);
     assert.ok(stayed.includes("自己玩了很久"));
     assert.equal(stayed.includes("自己玩了一整天"), false);
-    assert.equal(beat1985("sat-night", { ...freshState(), spent: ["ACT_REST"] }).shots.length, 2);
+    assert.equal(beat1985("sat-night", { ...freshState(), spent: ["ACT_REST"] }).sequence.filter((line) => line.type === "dialogue" && line.speaker === "媽媽").length, 2);
     const sharedBall = { id: "MEM_RED_BALL", eventId: "EVT_1985_FRIEND_04", choiceId: "B", variant: "podium", year: 1985, age: 4, npc: "NPC_FRIEND_01", emotion: "share", weight: 2, echo: "" };
     const done = { text: "過了。", deltas: [], skills: [] };
     const saturday = (spent: string, seed: number, memories: (typeof sharedBall)[]) =>
@@ -967,10 +967,10 @@ describe("logic audit v3.1", () => {
     assert.equal(atPodium.npc.NPC_FRIEND_01.relation, 0);
     assert.equal(withMom.npcDays.NPC_FRIEND_01?.nextPlan, "return");
     assert.equal(withMom.npcDays.NPC_FRIEND_01?.missedPlayer, true);
-    assert.ok(beat1985("sat-night", withMom).lines.join("").includes("踢波"));
+    assert.ok(beat1985("sat-night", withMom).sequence.map(lineText).join("").includes("踢波"));
     assert.equal(atHome.npcDays.NPC_FRIEND_01?.nextPlan, "withdraw");
     assert.equal(atHome.npcDays.NPC_FRIEND_01?.mood, "disappointed");
-    assert.ok(beat1985("sat-night", atHome).lines.join("").includes("石凳"));
+    assert.ok(beat1985("sat-night", atHome).sequence.map(lineText).join("").includes("石凳"));
     assert.equal(atHome.npc.NPC_FRIEND_01.relation, freshState().npc.NPC_FRIEND_01.relation);
     const sunday = (state: State, activity: string) =>
       reducer({ ...state, phase: "note", apLeft: 0, spent: [...state.spent, activity], result: done }, { type: "ack" });
@@ -978,33 +978,33 @@ describe("logic audit v3.1", () => {
     const found = sunday(withMom, "ACT_ESTATE");
     const rain = sunday(atHome, "ACT_ESTATE");
     assert.equal(visit.eventId, "MINI_85_KIT_WAIT");
-    assert.equal(cardFor("MINI_85_KIT_WAIT", visit).lines.join("").includes("昨天沒有下來"), false);
+    assert.equal(cardFor("MINI_85_KIT_WAIT", visit).sequence.map(lineText).join("").includes("昨天沒有下來"), false);
     assert.equal(found.eventId, "MINI_85_KIT_WAIT");
-    assert.ok(cardFor("MINI_85_KIT_WAIT", found).lines.join("").includes("昨天沒有下來"));
+    assert.ok(cardFor("MINI_85_KIT_WAIT", found).sequence.map(lineText).join("").includes("昨天沒有下來"));
     assert.equal(rain.eventId, "MINI_85_ALONE_PODIUM");
-    assert.ok(cardFor(rain.eventId, rain).lines.join("").includes("不認識"));
+    assert.ok(cardFor(rain.eventId, rain).sequence.map(lineText).join("").includes("不認識"));
     assert.ok(resolveWorldAt(1985, "sun", "ACT_ESTATE", withMom).includes("MINI_85_KIT_WAIT"));
     assert.equal(resolveWorldAt(1985, "sun", "ACT_HOME", atHome).includes("MINI_85_KIT_WAIT"), false);
-    const later = cardFor("EVT_1986_FRIEND_09", { ...withMom, yearIndex: 2 }).lines.join("");
-    const bench = cardFor("EVT_1986_FRIEND_09", { ...atHome, yearIndex: 2 }).lines.join("");
+    const later = cardFor("EVT_1986_FRIEND_09", { ...withMom, yearIndex: 2 }).sequence.map(lineText).join("");
+    const bench = cardFor("EVT_1986_FRIEND_09", { ...atHome, yearIndex: 2 }).sequence.map(lineText).join("");
     assert.ok(later.includes("去年你沒有下來"));
     assert.ok(later.includes("踢波"));
     assert.ok(bench.includes("石凳"));
     assert.equal(bench.includes("踢波"), false);
     assert.equal(echoOpen(ARC_AH_KIT, "next-day"), true);
     assert.equal(echoOpen(ARC_AH_KIT, "1y"), true);
-    assert.ok(beat1985("open", freshState()).lines.join("").includes("袋子"));
+    assert.ok(beat1985("open", freshState()).sequence.map(lineText).join("").includes("袋子"));
     const morning = reducer({ ...freshState(), phase: "year", yearIndex: 1 }, { type: "toActivities" });
     assert.equal(morning.note, "open");
     const downstairs = reducer(morning, { type: "ack" });
     assert.equal(downstairs.note, "downstairs");
     assert.equal(downstairs.eventId, null);
-    assert.ok(beat1985("downstairs", downstairs).lines.join("").includes("紅球"));
+    assert.ok(beat1985("downstairs", downstairs).sequence.map(lineText).join("").includes("紅球"));
     const board = reducer(downstairs, { type: "ack" });
     assert.equal(board.phase, "activities");
     assert.equal(board.spent.length, 0);
-    assert.ok(beat1985("monday", atHome).shots.some((shot) => shot.where === "幼稚園門口"));
-    assert.ok(beat1985("sun-night", atHome).shots.some((shot) => shot.line === "明天真的要去。"));
+    assert.ok(beat1985("monday", atHome).sequence.some((line) => line.type === "action" && line.where === "幼稚園門口"));
+    assert.ok(beat1985("sun-night", atHome).sequence.some((line) => line.type === "dialogue" && line.speaker === "媽媽" && line.text === "明天真的要去。"));
     assert.equal(worldTick(atPodium, { year: 1985, day: "sat" }).npcDays.NPC_FRIEND_01?.nextPlan, "seek");
   });
 
@@ -1051,8 +1051,8 @@ describe("logic audit v3.1", () => {
     const late = worldTick({ ...freshState(lateSeed), spent: ["ACT_ESTATE"] }, { year: 1985, day: "sat" });
     assert.equal(late.npcDays.NPC_DAD_01?.todayOutcome, "overtime");
     assert.ok(resolveWorldAt(1985, "sun", "ACT_REST", alone).includes("MINI_85_MOM_ALONE"));
-    assert.ok(cardFor("MINI_85_GRANDMA", alone).lines.join("").includes("湯已經涼了"));
-    assert.ok(cardFor("MINI_85_DAD", late).lines[0].includes("晚"));
+    assert.ok(cardFor("MINI_85_GRANDMA", alone).sequence.map(lineText).join("").includes("湯已經涼了"));
+    assert.ok(lineText(cardFor("MINI_85_DAD", late).sequence[0]).includes("晚"));
     const withHer = worldTick(
       {
         ...freshState(0),
@@ -1066,15 +1066,15 @@ describe("logic audit v3.1", () => {
       ...freshState(),
       yearIndex: 2,
       memories: [{ id: "MEM_ORANGE", eventId: "MINI_85_ORANGE", choiceId: "A", variant: "", year: 1985, age: 4, npc: "NPC_AUNT_01", emotion: "help", weight: 1, echo: "" }],
-    }).lines.join("");
+    }).sequence.map(lineText).join("");
     const kept = cardFor("EVT_1986_MARKET_07", {
       ...freshState(),
       yearIndex: 2,
       memories: [{ id: "MEM_ORANGE", eventId: "MINI_85_ORANGE", choiceId: "C", variant: "", year: 1985, age: 4, npc: "NPC_AUNT_01", emotion: "keep", weight: 1, echo: "" }],
-    }).lines.join("");
+    }).sequence.map(lineText).join("");
     assert.ok(helped.includes("橙"));
     assert.ok(kept.includes("沒有放進來"));
-    assert.equal(cardFor("EVT_1986_MARKET_07", { ...freshState(), yearIndex: 2 }).lines.join("").includes("橙"), false);
+    assert.equal(cardFor("EVT_1986_MARKET_07", { ...freshState(), yearIndex: 2 }).sequence.map(lineText).join("").includes("橙"), false);
     assert.equal(cardFor("MINI_85_ORANGE", freshState()).title, "橙散了");
   });
 
@@ -1089,6 +1089,104 @@ describe("logic audit v3.1", () => {
     assert.equal(lives[2].seen.some((line) => line.startsWith("EVT_1985_FRIEND_04:B")), true);
     assert.equal(lives[3].seen.some((line) => line.startsWith("EVT_1985_FRIEND_04:A")), true);
   });
+
+  it("every story and event line has one row on screen, and no lines/shots split remains", () => {
+    const pages: { where: string; story: boolean; page: Record<string, unknown> & { sequence: SceneLine[] } }[] = [];
+    const beatsSeen = new Set<string>();
+    const eventsSeen = new Set<string>();
+    const observe = (state: State) => {
+      if (state.phase === "story" && isBeat(state.note)) {
+        beatsSeen.add(state.note);
+        pages.push({ where: `beat ${state.note}`, story: true, page: beat1985(state.note, state) });
+      }
+      if (state.phase === "event" && state.eventId) {
+        eventsSeen.add(state.eventId);
+        pages.push({ where: `event ${state.eventId}`, story: false, page: cardFor(state.eventId, state) });
+      }
+    };
+    const policies = ["first", "last", "mix"] as const;
+    for (let seed = 1; seed <= 240; seed += 1) simulateLife(seed, policies[seed % 3], observe);
+    const ball = (emotion: string, choiceId: string) => ({ id: "MEM_RED_BALL", eventId: "EVT_1985_FRIEND_04", choiceId, variant: "podium", year: 1985, age: 4, npc: "NPC_FRIEND_01", emotion, weight: 2, echo: "" });
+    const crafted: State[] = [
+      freshState(),
+      ...["share", "hold", "leave", "watch"].map((emotion, i) => ({ ...freshState(), spent: ["ACT_ESTATE"], memories: [ball(emotion, "ABCD"[i])] })),
+      ...["ACT_DRAW", "ACT_PLAY", "ACT_REST", "ACT_MARKET"].map((id) => ({ ...freshState(), spent: [id, "ACT_ESTATE"] })),
+    ];
+    for (const seed of [0, 1, 2, 3, 4, 5, 6, 7]) {
+      crafted.push(worldTick({ ...freshState(seed), spent: ["ACT_REST"] }, { year: 1985, day: "sat" }));
+      crafted.push(worldTick({ ...freshState(seed), spent: ["ACT_ESTATE"], memories: [ball(["share", "hold", "leave", "watch"][seed % 4], "ABCD"[seed % 4])] }, { year: 1985, day: "sat" }));
+    }
+    crafted.push({ ...freshState(), counter: { ...freshState().counter, ART_PROGRESS: 3, NPC_MOM_STRESS: 10 }, skills: ["SKL_12"] });
+    crafted.push({ ...freshState(), counter: { ...freshState().counter, MIND_PROGRESS: 3, NPC_MOM_STRESS: 30 }, skills: ["SKL_12"], derived: { ...freshState().derived, STATE_FAMILY_HARMONY: 20 } });
+    for (const state of crafted) {
+      for (const beat of BEAT_IDS) pages.push({ where: `crafted ${beat}`, story: true, page: beat1985(beat, state) });
+      for (const id of CHILDHOOD_EVENT_IDS) pages.push({ where: `crafted ${id}`, story: false, page: cardFor(id, { ...state, yearIndex: id.includes("1986") || id.includes("86") ? 2 : 1 }) });
+    }
+    assert.deepEqual([...beatsSeen].sort(), [...BEAT_IDS].sort());
+    assert.ok(eventsSeen.size >= 15, `only ${eventsSeen.size} events reached`);
+    for (const { where, story, page } of pages) {
+      assert.deepEqual(Object.keys(page).sort(), ["kicker", "scene", "sequence", "title"], where);
+      assert.ok(page.sequence.length > 0, where);
+      const turns = sceneTurns(page.sequence);
+      assert.equal(turns.length, page.sequence.length, where);
+      page.sequence.forEach((line, i) => {
+        assert.ok(line.text.length > 0, where);
+        assert.equal(turns[i].text, line.text, where);
+        assert.equal(turns[i].kind, line.type, where);
+        assert.ok(turns[i].name.length > 0, where);
+        if (line.type === "dialogue") {
+          assert.ok(SPEAKERS.includes(line.speaker), `${where} ${line.speaker}`);
+          assert.equal(/[「」]/.test(line.text), false, `${where} quote marks inside dialogue: ${line.text}`);
+        } else {
+          assert.equal(line.text.includes("：「"), false, `${where} speech hidden in ${line.type}: ${line.text}`);
+          assert.equal(line.text.startsWith("「"), false, `${where} speech hidden in ${line.type}: ${line.text}`);
+          assert.equal(/[。！？]「[^」]+」/.test(line.text), false, `${where} speech hidden in ${line.type}: ${line.text}`);
+          if (story) assert.equal(/[「」]/.test(line.text), false, `${where} quote in story ${line.type}: ${line.text}`);
+        }
+      });
+    }
+    const storySrc = readFileSync(new URL("./story.ts", import.meta.url), "utf8");
+    assert.equal(/\bshots?\b|\blines\b/.test(storySrc), false, "story.ts still has a lines/shots split");
+    const appSrc = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    assert.match(appSrc, /dialogue=\{page\.sequence\}/);
+    assert.match(appSrc, /dialogue=\{card\.sequence\}/);
+    assert.equal(/page\.(lines|shots)|readLine|spokenLine|roomOf/.test(appSrc), false);
+    assert.equal(/readLine|spokenLine/.test(readFileSync(new URL("./art.ts", import.meta.url), "utf8")), false);
+    for (const id of Object.keys(STATIC_EVENTS)) {
+      for (const text of STATIC_EVENTS[id].lines) assert.equal(/：「|^「|[。！？]「/.test(text), false, `${id} static narration hides speech: ${text}`);
+    }
+  });
+
+  it("every image the screens ask for exists, and screens do not hardcode art paths", () => {
+    const manifest = imageManifest();
+    assert.ok(manifest.length >= 50, `manifest has ${manifest.length}`);
+    for (const path of manifest) {
+      assert.ok(path.startsWith("/art/"), path);
+      assert.equal(existsSync(new URL(`../../public${path}`, import.meta.url)), true, path);
+    }
+    for (const path of manifest.filter((item) => item.startsWith("/art/q/"))) {
+      assert.match(path, /^\/art\/q\/[a-z]+-(boy|girl)\.webp$/, `${path} should be a WebP scene painting`);
+      const bytes = readFileSync(new URL(`../../public${path}`, import.meta.url));
+      assert.equal(bytes.subarray(0, 4).toString("latin1"), "RIFF", path);
+      assert.equal(bytes.subarray(8, 12).toString("latin1"), "WEBP", path);
+      assert.ok(bytes.length < 400_000, `${path} is ${bytes.length} bytes`);
+    }
+    for (const want of ["/art/q/pressure-boy.webp", "/art/q/inside-girl.webp", "/art/q/draw-girl.webp", "/art/1985/memory.jpg", "/art/1985/people/mom-sit.png", "/art/1985/people/teacher.png", "/art/1985/people/auntie.png"]) {
+      assert.ok(manifest.includes(want), want);
+    }
+    const onDisk: string[] = [];
+    const walk = (dir: URL, prefix: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (entry.isDirectory()) walk(new URL(`${entry.name}/`, dir), `${prefix}${entry.name}/`);
+        else onDisk.push(`${prefix}${entry.name}`);
+      }
+    };
+    walk(new URL("../../public/art/", import.meta.url), "/art/");
+    assert.deepEqual(onDisk.filter((path) => !manifest.includes(path)).sort(), [], "public/art has files the game never asks for");
+    for (const file of ["../components/life/LifeApp.tsx", "../components/life/Battle.tsx"]) {
+      assert.equal(readFileSync(new URL(file, import.meta.url), "utf8").includes("/art/"), false, `${file} builds an art path outside art.ts`);
+    }
+  });
 });
 
 function selectOverflow() {
@@ -1099,7 +1197,7 @@ function selectOverflow() {
     derived: { ...freshState().derived, VALUE_DREAM: 70, VALUE_REALITY: 50 },
     npc: { ...freshState().npc, NPC_FRIEND_01: { relation: 1, trust: 6, available: true } },
   };
-  return cardFor("EVT_1986_SKILL_05", state).lines.join("");
+  return cardFor("EVT_1986_SKILL_05", state).sequence.map(lineText).join("");
 }
 
 function remember(id: string, choiceId: string, extra: Partial<State> = {}) {

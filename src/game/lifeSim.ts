@@ -77,12 +77,13 @@ function stepLife(state: State, seed: number, step: number, policy: LifePolicy, 
   return state;
 }
 
-/** One childhood, from the first year through 1996. Battles use the steady auto policy. */
-export function simulateLife(seed: number, policy: LifePolicy = "mix") {
+/** One childhood, from the first year through 1996. Battles use the steady auto policy. `observe` sees every state before it moves. */
+export function simulateLife(seed: number, policy: LifePolicy = "mix", observe?: (state: State) => void) {
   let state = reducer(freshState(seed), { type: "gender", gender: seed % 2 === 0 ? "girl" : "boy", name: "" });
   const seen: string[] = [];
   let steps = 0;
   while (state.phase !== "ending" && steps < 220) {
+    observe?.(state);
     const next = stepLife(state, seed, steps, policy, seen);
     if (next === state) break;
     state = next;

@@ -16,7 +16,8 @@ import {
   yearLean,
   yearOf,
 } from "@/game/content";
-import { MEMORY_BALL, beatPlate, eventPlate, personFromName, personSrc, readLine, roomOf, scenePlate, slicePlate, spokenLine, yearPlate, type Mood, type PersonId, type Pose } from "@/game/art";
+import { MEMORY_BALL, afternoonPlate, beatPlate, eventPlate, personFromSpeaker, personSrc, scenePlate, slicePlate, yearPlate, type Mood, type PersonId, type Pose } from "@/game/art";
+import { narrate, say, sceneTurns, type SceneLine, type Turn } from "@/game/scene";
 import { chainEcho, missed1986, missedLine } from "@/game/freedom";
 import { beat1985, isBeat } from "@/game/story";
 import { battleNarrative } from "@/game/battleNarrative";
@@ -52,6 +53,18 @@ export function LifeApp() {
     playRoom(sceneOf(state));
   }, [state.phase, state.eventId, state.noteScene, state.yearIndex]);
 
+  // Warm the cache for the next event's painting so it is ready when the card opens.
+  const nextId = state.queue[0];
+  useEffect(() => {
+    if (!nextId || typeof Image === "undefined") return;
+    const scene = cardFor(nextId, state).scene;
+    const src = eventPlate(nextId, state.gender, scene) ?? slicePlate({ year: yearOf(state).year, scene, gender: state.gender });
+    if (!src) return;
+    const img = new Image();
+    img.decoding = "async";
+    img.src = src;
+  }, [nextId, state.gender]);
+
   const tap = (kind: "tap" | "soft" | "good" | "hit" = "tap") => {
     unlockAudio();
     playTone(kind);
@@ -83,7 +96,7 @@ export function LifeApp() {
         />
       ) : null}
       {state.phase === "note" && state.result ? (
-        <Paper scene={state.noteScene ?? "home"} plate={afternoonPlate(state)} kicker="這個下午" title="用了一個下午" dialogue={state.result ? [state.result.text] : undefined}>
+        <Paper scene={state.noteScene ?? "home"} plate={afternoonPlate(state.spent[state.spent.length - 1], state.gender)} kicker="這個下午" title="用了一個下午" dialogue={[narrate(state.result.text)]}>
           <ResultBody result={state.result} hideText />
           <Primary onClick={() => { tap(); dispatch({ type: "ack" }); }}>{state.apLeft > 0 ? "還有一個下午" : "接著是今年的事"}</Primary>
         </Paper>
@@ -129,7 +142,7 @@ export function LifeApp() {
         </Paper>
       ) : null}
       {state.phase === "repair" && state.result ? (
-        <Paper scene="home" plate={beatPlate("sat-night", state.gender)} kicker="1986 · 夜晚" title="媽媽問你" cast={{ present: ["mom", "child"], speaker: "mom", line: "為什麼走到門口？" }} mood="think">
+        <Paper scene="home" plate={beatPlate("sat-night", state.gender)} kicker="1986 · 夜晚" title="媽媽問你" dialogue={[say("媽媽", "為什麼走到門口？")]} mood="think">
           <p className="text-pretty text-base leading-7">{state.result.text}</p>
           <p className="mt-3 text-pretty text-base leading-7">
             {state.skills.includes("SKL_09")
@@ -253,13 +266,8 @@ function YearOpen({ state, onNext, onRestart }: { state: State; onNext: () => vo
 
 function StoryBeat({ state, beat, onNext }: { state: State; beat: Parameters<typeof beat1985>[0]; onNext: () => void }) {
   const page = beat1985(beat, state);
-  const speakers = page.shots.map((shot) => personFromName(shot.speaker)).filter((id): id is PersonId => !!id);
-  const cast = speakers.length ? { present: [...new Set<PersonId>([...speakers, "child"])], speaker: speakers[0], line: page.shots.find((shot) => shot.speaker)?.line ?? page.title } : null;
-  const dialogue = page.shots.length
-    ? page.shots.map((shot) => (shot.speaker ? `${shot.speaker}：「${shot.line}」` : shot.line))
-    : page.lines;
   return (
-    <Paper scene={page.scene} plate={beatPlate(beat, state.gender)} kicker={page.kicker} title={page.title} cast={cast} dialogue={dialogue}>
+    <Paper scene={page.scene} plate={beatPlate(beat, state.gender)} kicker={page.kicker} title={page.title} dialogue={page.sequence}>
       <Primary onClick={onNext}>{beat === "aftermath" ? "這一年就這樣" : "繼續"}</Primary>
     </Paper>
   );
@@ -270,7 +278,7 @@ function Activities({ state, onPick }: { state: State; onPick: (id: string) => v
   const timed = year.year === 1985 || year.year === 1986;
   const choosing = year.year === 1985 && state.spent.length === 0 ? beatPlate("downstairs", state.gender) : scenePlate("home", state.gender);
   return (
-    <Paper scene="home" plate={choosing} kicker="今年" title={year.year === 1985 ? (state.spent.length ? "星期日下午" : "星期六下午") : timed ? "這兩個下午" : "今天怎麼過"} mood="think" dialogue={[
+    <Paper scene="home" plate={choosing} kicker="今年" title={year.year === 1985 ? (state.spent.length ? "星期日下午" : "星期六下午") : timed ? "這兩個下午" : "今天怎麼過"} mood="think" dialogue={[narrate(
       year.year === 1985
         ? state.spent.length
           ? "昨天已經過了。今天再過一個下午。"
@@ -278,7 +286,7 @@ function Activities({ state, onPick }: { state: State; onPick: (id: string) => v
         : timed
           ? "先過星期六，再過星期日。兩天不要做同一件事。"
           : "兩個下午要不同。選完，其他事才來。",
-    ]}>
+    )]}>
       <div className="mt-3 grid grid-cols-2 gap-2">
         {(timed ? ["星期六下午", "星期日下午"] : ["第一個下午", "第二個下午"]).map((label, slot) => {
           const id = state.spent[slot];
@@ -319,16 +327,14 @@ function EventCard({ state, onChoose }: { state: State; onChoose: (choice: Retur
   const choices = choicesFor(state.eventId ?? "", state);
   const year = yearOf(state);
   const plate = eventPlate(state.eventId, state.gender, card.scene) ?? slicePlate({ year: year.year, scene: card.scene, gender: state.gender });
-  const room = roomOf(state.eventId ?? "");
   return (
     <Paper
       scene={card.scene}
       plate={plate}
       kicker={card.kicker}
       title={card.title}
-      cast={room ? { present: room.present, speaker: room.speaker, line: spokenLine(card.lines) } : null}
       mood="think"
-      dialogue={card.lines}
+      dialogue={card.sequence}
     >
       <div className="mt-1 flex flex-col gap-2">
         {choices.map((choice) => (
@@ -348,7 +354,7 @@ function BattleResult({ state, onRetry, onSettle }: { state: State; onRetry: () 
   const retry = canRetry(state);
   const plate = copy.scene === "kindy" ? slicePlate({ year: 1985, scene: "kindy", gender: state.gender, battle: retry ? "door" : "inside" }) : null;
   return (
-    <Paper scene={copy.scene} plate={plate} kicker={copy.kicker} title={retry ? copy.retryTitle : copy.title} dialogue={[copy.text(state.battle?.kind ?? "fail", state.approach ?? "safe"), ...(retry ? [copy.retryNote] : [])]}>
+    <Paper scene={copy.scene} plate={plate} kicker={copy.kicker} title={retry ? copy.retryTitle : copy.title} dialogue={[narrate(copy.text(state.battle?.kind ?? "fail", state.approach ?? "safe")), ...(retry ? [narrate(copy.retryNote)] : [])]}>
       {retry ? <Primary onClick={onRetry}>再試一次</Primary> : null}
       <button type="button" onClick={onSettle} className="mt-2 min-h-12 w-full rounded-md border border-[#c4a574] bg-[#fff8ea] text-base text-ink">
         {retry ? copy.homeLabel : copy.continueLabel}
@@ -390,7 +396,7 @@ function Fifteen({ state, onAct }: { state: State; onAct: () => void }) {
   return (
     <Paper scene="home" plate={beatPlate("sat-night", state.gender)} kicker="1996 · 十五歲" title="自己回家">
       <div className="relative">
-        {echo ? <img src={MEMORY_BALL} alt="" className="pointer-events-none float-right mb-2 ml-3 h-24 w-24 rounded-lg object-cover opacity-50" /> : null}
+        {echo ? <img src={MEMORY_BALL} alt="" loading="lazy" decoding="async" className="pointer-events-none float-right mb-2 ml-3 h-24 w-24 rounded-lg object-cover opacity-50" /> : null}
         {fifteenLines(state).map((line) => (
           <p key={line} className="mt-2 text-pretty text-base leading-7 first:mt-0">
             {line}
@@ -469,33 +475,36 @@ const SENSE: Record<SceneId, string> = {
   study: "課室的風扇響著。卷子已經翻開，時鐘在黑板旁邊。",
 };
 
-function Dialogue({ turns, face }: { turns: ReturnType<typeof readLine>[]; face: (id: PersonId) => string }) {
+/** One row per scene entry. Narration, action, and dialogue are all drawn; none is dropped. */
+function Dialogue({ turns, face }: { turns: Turn[]; face: (id: PersonId) => string }) {
   return (
     <div className="max-h-40 shrink-0 overflow-y-auto border-b-2 border-[#8a6232] bg-[#fffaf0] px-3 py-2 text-ink">
-      {turns.map((turn, index) => (
-        <div key={`${index}-${turn.text}`} className="mt-2 flex items-start gap-2 first:mt-0">
-          {turn.speaker ? <img src={face(turn.speaker)} alt="" className="h-8 w-8 shrink-0 rounded-full border border-[#c4a574] object-cover object-[center_18%]" /> : <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#c4a574] text-xs text-[#6e4524]">{turn.name.slice(0, 1)}</span>}
-          <div className="min-w-0">
-            <p className="font-serif text-sm tracking-wide text-[#6e4524]">{turn.name}</p>
-            <p className="text-pretty text-base leading-7">{turn.text}</p>
+      {turns.map((turn, index) => {
+        const person = turn.speaker ? personFromSpeaker(turn.speaker) : null;
+        return (
+          <div key={`${index}-${turn.text}`} className="mt-2 flex items-start gap-2 first:mt-0" data-kind={turn.kind}>
+            {person ? <img src={face(person)} alt="" loading="lazy" decoding="async" className="h-8 w-8 shrink-0 rounded-full border border-[#c4a574] object-cover object-[center_18%]" /> : <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#c4a574] text-xs text-[#6e4524]">{turn.name.slice(0, 1)}</span>}
+            <div className="min-w-0">
+              <p className={turn.kind === "action" ? "text-xs tracking-wide text-ink/50" : "font-serif text-sm tracking-wide text-[#6e4524]"}>{turn.name}</p>
+              <p className={turn.kind === "dialogue" ? "text-pretty text-base leading-7" : "text-pretty text-base leading-7 text-ink/80"}>{turn.text}</p>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-function Paper({ scene, plate, kicker, title, cast, mood = "idle", dialogue, children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; cast?: { present: PersonId[]; speaker: PersonId; line: string } | null; mood?: Mood; dialogue?: string[]; children: ReactNode }) {
+function Paper({ scene, plate, kicker, title, mood = "idle", dialogue, children }: { scene: SceneId; plate?: string | null; kicker: string; title: string; mood?: Mood; dialogue?: SceneLine[]; children: ReactNode }) {
   const gender = useContext(Face);
-  const line = cast?.line || SENSE[scene];
   const pose: Pose = scene === "home" || scene === "study" ? "sit" : "stand";
   const face = (id: PersonId) => personSrc(id, gender, id === "child" ? mood : "idle", pose);
-  const turns = (dialogue?.length ? dialogue : [line]).map((text) => readLine(text, cast?.speaker ?? null));
+  const turns = sceneTurns(dialogue?.length ? dialogue : [narrate(SENSE[scene])]);
   const picture = plate ?? scenePlate(scene, gender);
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border-4 border-[#6e4524] bg-[#f4efe4] shadow-[inset_0_0_0_2px_#e8d7a8]">
       <div className="relative h-[34%] min-h-32 shrink-0">
-        <img src={picture} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
+        <img src={picture} alt="" decoding="async" className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1c140c]/25 to-transparent" />
       </div>
       <Dialogue turns={turns} face={face} />
@@ -547,15 +556,6 @@ function Primary({ children, onClick }: { children: string; onClick: () => void 
       {children}
     </button>
   );
-}
-
-function afternoonPlate(state: State) {
-  const id = state.spent[state.spent.length - 1];
-  const who = state.gender === "girl" ? "girl" : "boy";
-  if (id === "ACT_DRAW") return `/art/q/draw-${who}.jpg`;
-  if (id === "ACT_PLAY") return `/art/q/play-${who}.jpg`;
-  if (id === "ACT_REST") return `/art/q/rest-${who}.jpg`;
-  return null;
 }
 
 function sceneOf(state: State): SceneId {

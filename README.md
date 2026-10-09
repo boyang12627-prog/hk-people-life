@@ -1,13 +1,22 @@
 # 人生・香港
 
-Current Slice: V3.1
+Current Slice: V3.2 — Narrative & Visual Integrity
 Status: Vertical Slice
 Human Playtest: NOT DONE
 Automation: content audit is part of `npm run audit:content`. Balance audit is `npm run audit:balance` and is not claimed here unless you just ran it.
 
 1984–1986 仍然是幼年主線，一年兩個下午。1988 的日曆是 `prototype-slice`：它借用兩個下午，只為了跑通筆、招式和測驗。這不是小學正式時間。正式小學尚未做，到時是一學期、3 AP。不要把 1988 這年抄去 1989。
 
-## 這一版真正接上的
+## V3.2 改了什麼
+
+- 故事頁和事件卡只有一條 `sequence`：`SceneLine` 是 `narration`、`action`（可帶 `where`）或 `dialogue`（帶 `speaker`）。型別在 `src/game/scene.ts`。
+- 1985 的故事頁不再分 `lines` 和 `shots`。以前有 shots 時，lines 和 where/action 會被丟掉；現在每一條都畫出來，順序就是資料的順序。
+- 對白由資料寫明誰說，不再用正則從「媽媽：「……」」猜。純字串一律是旁白。`readLine`、`spokenLine` 已移除。
+- 審計檢查：每一條 scene line 都有一行畫面；旁白和動作裡不能藏著整句對白；`story.ts` 不再有 lines/shots。
+- 圖檔：`imageManifest()` 列出程式真正會用的每一張圖，審計逐張檢查存在。畫面元件不再自己拼 `/art/` 路徑。舊的 `public/art/1985` 場景圖不再是關卡。
+- 美術規格只剩一套 Q 版，舊比例和舊句子移到 [docs/ART_BIBLE.md](docs/ART_BIBLE.md) 的〈已廢棄〉。
+
+## V3.1 接上的（仍然有效）
 
 - 同速：孩子先動，不顯示「你先」。快了 5 點才顯示誰先。這條沒有放寬。
 - 1988 測驗的壓力速度是 10。機靈 5 的孩子會被試卷搶先。塑膠錶的速度 +1 讓孩子先落筆。這不是「你先」的橫額。
@@ -44,7 +53,7 @@ Automation: content audit is part of `npm run audit:content`. Balance audit is `
 
 星期六去街市仍是抽一件，同一條人生固定。第一次開局是走了一圈。星期日如果阿傑不在平台，你又下了樓，會見到另一個沒有名字的孩子。下一年見不回他。十五歲仍然不知道名字。爸爸那個星期六如果留到最後，十五歲才說他是替人留下的。當時只知道鞋子脫得慢。拿過橙的，阿姨記得的是「有個孩子拿了東西」。這幾句是內容，不是新系統。
 
-人類試玩未做。GitHub Actions 在 `ee6012c` 通過了內容審計和戰鬥審計。這一句只對那一次提交。
+人類試玩未做。CI 狀態只看該提交的 GitHub Actions 結果，這裡不代寫。
 
 ## 未做
 
@@ -62,11 +71,13 @@ Gate 1 要求量度「寫一個事件要幾耐」。人類坐下來寫對白的�
 
 ## 美術
 
-方向在 [docs/ART_BIBLE.md](docs/ART_BIBLE.md)。1985 的門口、兩種主角、戰鬥變擠、進去之後、1986 同一扇門，和 1996 的一小塊記憶，在 `public/art/1985/`。程式只在幼稚園和 1986 的屋邨用這些圖。其他年份仍是原來的空房間細條，不是這套標準。
+方向在 [docs/ART_BIBLE.md](docs/ART_BIBLE.md)。現行只有 Q 版一套：每個地方一張 Q 版全圖，男女各一張，在 `public/art/q/`，1984 到 1988 和戰鬥（門口、變擠、進去之後、1988 書桌）都用這一套。對話框頭像在 `public/art/1985/people/`。1996 疊的那一小塊記憶是 `public/art/1985/memory.jpg`。頭身比、線和眼睛以現有圖為準，寫在 Art Bible 裡。
+
+程式真正用到的圖由 `src/game/art.ts` 的 `imageManifest()` 列出，`public/art/` 裡沒有清單以外的檔。舊的 `public/art/1984/dinner-*.jpg` 和 `public/art/1985/` 的 `cast`、`door-*`、`pressure-*`、`inside-*`、`later-*` 已刪，只留在 git 歷史。頭像 PNG 已縮到長邊 320px（畫面只用 32px）。場景圖是 1280×720 WebP（quality 80），整套由約 30 MB 減到約 5.5 MB。
 
 ## 檢查
 
-倉庫根目錄的 `package.json` 只登記下面兩條。遊戲邏輯審計只用 Node 內建模組，不必先安裝其他套件。
+倉庫根目錄的 `package.json` 只登記下面兩條。遊戲邏輯審計只用 Node 內建模組，不必先安裝其他套件。需要 Node 22 或以上（用到 `--experimental-strip-types`；Node 20 會直接報錯）。
 
 ```bash
 npm run audit:content

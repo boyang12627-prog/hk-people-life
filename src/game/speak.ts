@@ -1,9 +1,16 @@
 import type { State } from "./types";
+import type { Speaker } from "./scene";
 
-export type Spoken = { text: string; priority: 0 | 1 | 2 };
+/** `speaker` set means the text is that person's words, without quote marks. */
+export type Spoken = { text: string; priority: 0 | 1 | 2; speaker?: Speaker };
 
 /** P0 always. Then up to two P1 lines. P2 fills whatever budget is left. There is no P3. */
 export function selectByPriority(lines: Spoken[], budget: number): string[] {
+  return selectSpoken(lines, budget).map((line) => (line.speaker ? `${line.speaker}：「${line.text}」` : line.text));
+}
+
+/** Same rule as selectByPriority, keeping who says each line. */
+export function selectSpoken(lines: Spoken[], budget: number): Spoken[] {
   const kept = lines.filter((line) => line.priority === 0);
   let important = 0;
   for (const line of lines) {
@@ -15,7 +22,7 @@ export function selectByPriority(lines: Spoken[], budget: number): string[] {
     if (line.priority < 2 || kept.length >= budget) continue;
     kept.push(line);
   }
-  return kept.map((line) => line.text);
+  return kept;
 }
 
 export function picked(state: State, id: string) {

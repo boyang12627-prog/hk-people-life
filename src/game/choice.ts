@@ -1,4 +1,5 @@
 import type { Approach, Effect, SceneId, Tendency } from "./types";
+import type { SceneLine } from "./scene";
 
 export type Choice = {
   id: string;
@@ -26,7 +27,8 @@ export type Card = {
   scene: SceneId;
   kicker: string;
   title: string;
-  lines: string[];
+  /** Every entry is drawn, in order. Dialogue carries its speaker. */
+  sequence: SceneLine[];
 };
 
 export function choice(
