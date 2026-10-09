@@ -1163,7 +1163,7 @@ describe("logic audit v3.2", () => {
       assert.ok(path.startsWith("/art/"), path);
       assert.equal(existsSync(new URL(`../../public${path}`, import.meta.url)), true, path);
     }
-    for (const want of ["/art/q/pressure-boy.jpg", "/art/q/inside-girl.jpg", "/art/q/draw-girl.jpg", "/art/1985/memory.jpg", "/art/1985/people/mom-sit.png"]) {
+    for (const want of ["/art/q/pressure-boy.jpg", "/art/q/inside-girl.jpg", "/art/q/draw-girl.jpg", "/art/1985/memory.jpg", "/art/1985/people/mom-sit.png", "/art/1985/people/teacher.png", "/art/1985/people/auntie.png"]) {
       assert.ok(manifest.includes(want), want);
     }
     const onDisk: string[] = [];

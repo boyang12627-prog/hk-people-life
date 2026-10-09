@@ -68,13 +68,15 @@ export function dinnerPlate(gender: Gender | null) {
 
 export const MEMORY_BALL = "/art/1985/memory.jpg";
 
-export type PersonId = "mom" | "dad" | "grandma" | "kit" | "child";
+export type PersonId = "mom" | "dad" | "grandma" | "kit" | "teacher" | "auntie" | "child";
 
 const FILE: Record<Exclude<PersonId, "child">, string> = {
   mom: "mom",
   dad: "dad",
   grandma: "grandma",
   kit: "kit",
+  teacher: "teacher",
+  auntie: "auntie",
 };
 
 export type Mood = "idle" | "think";
@@ -101,15 +103,19 @@ export function personName(id: PersonId) {
   if (id === "dad") return "爸爸";
   if (id === "grandma") return "嫲嫲";
   if (id === "kit") return "阿傑";
+  if (id === "teacher") return "老師";
+  if (id === "auntie") return "阿姨";
   return "你";
 }
 
-/** Face for a speaker in the dialogue box. 老師 and 阿姨 have no portrait yet. */
+/** Face for a speaker in the dialogue box. Every speaker has a portrait. */
 export function personFromSpeaker(name: string): PersonId | null {
   if (name === "媽媽") return "mom";
   if (name === "爸爸") return "dad";
   if (name === "嫲嫲") return "grandma";
   if (name === "阿傑") return "kit";
+  if (name === "老師") return "teacher";
+  if (name === "阿姨") return "auntie";
   return null;
 }
 
@@ -131,7 +137,7 @@ export function battlePlate(scene: SceneId, gender: Gender | null, state: { ente
 
 const SCENES: readonly SceneId[] = ["home", "kindy", "corridor", "market", "estate", "study"];
 const GENDERS: readonly Gender[] = ["boy", "girl"];
-const PEOPLE: readonly PersonId[] = ["mom", "dad", "grandma", "kit", "child"];
+const PEOPLE: readonly PersonId[] = ["mom", "dad", "grandma", "kit", "teacher", "auntie", "child"];
 
 /**
  * Every image path the game can ask for, built from the same functions the screens call.
