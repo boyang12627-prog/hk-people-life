@@ -686,7 +686,7 @@ describe("panel portrait without a name plate (2026-10-09)", () => {
     assert.equal(/ui-nameplate/.test(stage + css), false, "no name plate under the portrait");
     const portrait = stage.slice(stage.indexOf("export function PanelPortrait"), stage.indexOf("const TYPE_MS"));
     assert.match(portrait, /role="img" aria-label=\{name\}/);
-    assert.match(portrait, /md:w-\[6\.75rem\]/, "the bust is sized to fit inside the panel");
+    assert.match(portrait, /md:h-full md:w-auto/, "the bust is sized by the fixed panel height, so it fits inside the panel");
     // The portrait sits in its own padded slot (counted in the panel's height), never hanging below it.
     assert.match(stage, /data-portrait-slot="true" className="flex shrink-0 self-start py-3 pl-3 md:h-full md:items-center md:self-stretch md:py-0 md:pl-5"/);
     assert.match(stage, /ui-portrait-frame[^"]*md:h-\[82%\]/);
