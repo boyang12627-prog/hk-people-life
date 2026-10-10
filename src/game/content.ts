@@ -75,7 +75,7 @@ export const YEARS: YearDef[] = [
     scene: "home",
     title: "飯桌",
     calendar: "childhood-afternoon",
-    era: "十二月。飯桌那部電視開著。畫面裡很遠的人在握手，大人沒有告訴你那是什麼。",
+    era: "十二月。飯桌旁那部電視開著。畫面裡很遠的人在握手，大人沒有告訴你那是什麼。",
     open: "你三歲。碗裡有魚。大人低聲說話。",
     events: ["EVT_1984_NEWS_01", "EVT_1984_FAMILY_02"],
     dailies: ["MINI_84_TOY"],
@@ -97,10 +97,10 @@ export const YEARS: YearDef[] = [
     year: 1986,
     age: 5,
     scene: "corridor",
-    title: "走廊",
+    title: "電視",
     calendar: "childhood-afternoon",
     era: "屋邨還是那樣。十月，電視裡有個戴帽子的女人下船。",
-    open: "你五歲。爸爸說：「女皇來了。」你不知道女皇是誰。你也開始明白，大人不是不想陪你，是他們也有必須做的事。",
+    open: "你五歲。爸爸說：「女皇嚟咗。」你不知道女皇是誰。你也開始明白，大人不是不想陪你，而是他們也有必須做的事。",
     events: ["EVT_1986_SKILL_05", "EVT_1986_FAMILY_06", "EVT_1986_DAD_NIGHT", "EVT_1986_MARKET_07", "EVT_1986_ECHO_08", "EVT_1986_FRIEND_09"],
     dailies: ["MINI_86_ESTATE", "MINI_86_TV", "MINI_86_HELP"],
     activities: ["ACT_MARKET", "ACT_PLAY", "ACT_DRAW", "ACT_REST", "ACT_ESTATE"],
@@ -156,7 +156,7 @@ export const ACTIVITIES: Record<string, { id: string; label: string; detail: str
     id: "ACT_ESTATE",
     label: "去平台",
     detail: "下樓到平台。不要出街口。",
-    blurb: "你下了樓，到了平台。你沒有出到街上。",
+    blurb: "你下了樓，到了平台。你沒有走到街上。",
     scene: "estate",
     effect: { counter: { COUNTER_EXPLORE: 1 }, derived: { STATE_MOOD: 2, STATE_STRESS: 1 }, primary: { STAT_VIT: 1 } },
   },
@@ -194,17 +194,17 @@ export function activityBlurb(id: string, state: Pick<State, "yearIndex" | "spen
 
 /** End-of-1986 offer. Says how many times you really went down; offered once. */
 export function exploreOfferTitle(state: Pick<State, "counter">) {
-  return state.counter.COUNTER_EXPLORE <= 0 ? "要不要下一次平台" : "要不要再下一次平台";
+  return state.counter.COUNTER_EXPLORE <= 0 ? "要不要到平台去一次" : "要不要再到平台去一次";
 }
 
 export function exploreOfferGo(state: Pick<State, "counter">) {
-  return state.counter.COUNTER_EXPLORE <= 0 ? "下平台" : "再下一次平台";
+  return state.counter.COUNTER_EXPLORE <= 0 ? "去平台" : "再去一次平台";
 }
 
 export function exploreOfferCopy(state: Pick<State, "counter">) {
   return state.counter.COUNTER_EXPLORE <= 0
-    ? "這一年你沒有下過平台。屋邨門口在平台再過去一點。要不要下去一次？你也可以留在家裡。"
-    : "這一年你下過一次平台。再下去一次，會一直走到屋邨門口。你也可以留在家裡。";
+    ? "這一年你沒有到過平台。屋邨門口就在平台再過去一點。要不要去一次？你也可以留在家裡。"
+    : "這一年你到過一次平台。再去一次，就會一直走到屋邨門口。你也可以留在家裡。";
 }
 
 const EVENT_SCENE: Record<string, SceneId> = {
@@ -275,7 +275,7 @@ export function variantOf(id: string, state: State) {
 
 export function battleStory(kind: BattleKind, approach: Approach) {
   const approachLine =
-    approach === "social" ? "你本來已經打過招呼。" : approach === "safe" ? "你本來拉著媽媽。" : "你本來走近那個紅球。";
+    approach === "social" ? "你剛才已經打過招呼。" : approach === "safe" ? "你剛才拉著媽媽。" : "你剛才走近了那個紅球。";
   if (kind === "perfect") {
     return {
       text: `${approachLine}接著你自己走進課室。媽媽站在門口，你沒有回頭。`,
@@ -300,7 +300,7 @@ export function battleStory(kind: BattleKind, approach: Approach) {
         ? "十年後你記得門口。你進去了，但你拉著一個人很久。"
         : approach === "social"
           ? "十年後你記得門口。你進去了，不過你走得很慢。"
-          : "十年後你記得門口。你是自己走近去的。";
+          : "十年後你記得門口。你是自己走過去的。";
     return {
       text,
       echo,
@@ -373,8 +373,8 @@ export function examStory(kind: BattleKind) {
 export function yearLean(dream: number, reality: number) {
   const gap = dream - reality;
   if (gap >= 8) return "這一年，你似乎越來越想自己決定。";
-  if (gap <= -8) return "這一年，你似乎越來越先做該做的事。";
-  return "這一年，想做的和該做的，你還沒分出哪一樣先。";
+  if (gap <= -8) return "這一年，你似乎越來越習慣先做該做的事。";
+  return "這一年，想做的和該做的，你還分不出哪一樣優先。";
 }
 
 /**
@@ -391,25 +391,25 @@ export function yearSummary(state: Pick<State, "derived" | "yearStart">) {
   if (gap <= -3) return "這一年，你多數先做該做的事。";
   if (think >= 3) return "這一年，你常常先問一句，才決定。";
   if (dream + reality >= 4) return "這一年，想做的和該做的，你兩邊都做了一點。";
-  return "這一年，想做的和該做的，你還沒分出哪一樣先。";
+  return "這一年，想做的和該做的，你還分不出哪一樣優先。";
 }
 
 /** The ending sentence. Same idea over the whole childhood. */
 export function orientationSummary(state: Pick<State, "derived">) {
   const gap = state.derived.VALUE_DREAM - state.derived.VALUE_REALITY;
   if (gap >= 8) return "過了這幾年，你似乎越來越想自己決定。";
-  if (gap <= -8) return "過了這幾年，你似乎越來越先做該做的事。";
+  if (gap <= -8) return "過了這幾年，你似乎越來越習慣先做該做的事。";
   if (state.derived.INDEPENDENT_THOUGHT >= 48) return "過了這幾年，你習慣先問一句為什麼，才決定。";
   if (gap >= 6) return "過了這幾年，你多數先做想做的事，該做的也沒有放下。";
   if (gap <= -6) return "過了這幾年，你多數先做該做的事，想做的也沒有放下。";
-  return "過了這幾年，想做的和該做的，你都放在心上，還沒分出哪一樣先。";
+  return "過了這幾年，想做的和該做的，你都放在心上，還分不出哪一樣優先。";
 }
 
 export function orientationLine(dream: number, reality: number) {
   const gap = dream - reality;
   if (gap >= 8) return "過了這幾年，你似乎越來越想自己決定。";
-  if (gap <= -8) return "過了這幾年，你似乎越來越先做該做的事。";
-  return "過了這幾年，想做的和該做的，你還沒分出哪一樣先。";
+  if (gap <= -8) return "過了這幾年，你似乎越來越習慣先做該做的事。";
+  return "過了這幾年，想做的和該做的，你還分不出哪一樣優先。";
 }
 
 export function fifteenLines(state: State) {
@@ -426,7 +426,7 @@ export function fifteenLines(state: State) {
   const dadPick = picked(state, "MEM_DAD_WORK");
   const response = state.counter.PLAYER_DAD_CHOICE_RESPONSE || (dadPick === "A" ? 1 : dadPick === "B" ? 2 : dadPick === "C" ? 3 : 0);
   if (response === 1) lines.push("你小時候把約定放下，自己去玩了。這天你沒有再等誰。");
-  else if (response === 2) lines.push("你答應過他去上班。這天回家，你只應了一聲。");
+  else if (response === 2) lines.push("你答應過讓他去上班。這天回家，你只應了一聲。");
   else if (response === 3) lines.push("你留下來陪過。這天你也先坐下，再答。");
   lines.push(...dadArc(state));
   const again = picked(state, "MEM_FRIEND_AGAIN");
@@ -442,7 +442,7 @@ export function fifteenLines(state: State) {
 /**
  * Dad arc, beat 5 of 5, at fifteen. One line from childhood, gated by what the child saw and asked:
  * 1984 「最要緊是一家人安穩」 (MEM_NEWS_01, harmony variant) → 1985 slow shoes (MEM_DAD_HOME) →
- * 1986 「下次吧」 (MEM_DAD_WORK) → that night (MEM_DAD_LATE) → 1988 signing the paper (MEM_DAD_SIGN) → here.
+ * 1986 「下次啦」 (MEM_DAD_WORK) → that night (MEM_DAD_LATE) → 1988 signing the paper (MEM_DAD_SIGN) → here.
  * The reason (he stayed late for others) is only said if the child heard it: asked in 1986 or 1988, or saw the overtime Sunday.
  */
 export function dadArc(state: State): string[] {
@@ -460,7 +460,7 @@ export function dadArc(state: State): string[] {
     lines.push("你小時候見過他這樣脫鞋。你沒有問過為什麼。");
     return lines;
   }
-  lines.push("小時候你以為「下次吧」只是推你。");
+  lines.push("小時候你以為「下次啦」只是推你。");
   if (sign === "C") lines.push("那幾年同事一個一個移民，他替人留到最後。走不開的時候，他就說下次。");
   else if (night === "B") lines.push("公司一直沒有請到人。他替人留到最後。走不開的時候，他就說下次。");
   else lines.push("那個星期六他替人留到最後。當時你只知道，鞋子脫得很慢。");
@@ -478,7 +478,7 @@ export function fifteenAct(state: State): { id: FifteenActId; label: string; lin
   const ball = picked(state, "MEM_RED_BALL");
   const step = picked(state, "MEM_FIRST_INDEPENDENCE");
   if (state.skills.includes("SKL_09") || step === "C") {
-    return { id: "walk", label: "自己走回去", line: "你沒有再解釋。你自己走回去，像小時候走出的那一步。" };
+    return { id: "walk", label: "自己走回去", line: "你沒有再解釋。你自己走回去，像小時候踏出的那一步。" };
   }
   if (state.skills.includes("SKL_08") || state.skills.includes("SKL_07") || state.personalityTags.includes("TAG_RESPONSIBILITY")) {
     return { id: "bag", label: "先把袋子放下", line: "你進門先把袋子放下。這個動作，你小時候做過。" };
@@ -504,7 +504,7 @@ function thirdHop(state: State) {
   else if (mom === "B") spoken.push({ priority: 0, text: "你還是想有人陪。想完，你懂得自己把話收回來。" });
   const ball = picked(state, "MEM_RED_BALL");
   if (ball === "B") spoken.push({ priority: 1, text: "朋友叫你。你會說輪流，不會一個人霸佔。" });
-  else if (ball === "A") spoken.push({ priority: 1, text: "你記得自己霸過那個球。今天你不再搶先。" });
+  else if (ball === "A") spoken.push({ priority: 1, text: "你記得自己霸佔過那個球。今天你不再搶先。" });
   else if (ball === "C") spoken.push({ priority: 1, text: "有人叫你。你站了一陣才走過去。" });
   // MEM_DAD_WORK is said once, by fifteenLines. Saying it here too gave two 約定 lines on one page.
   const market = picked(state, "MEM_MARKET_01");
@@ -527,7 +527,7 @@ function rememberedPeople(state: State) {
 
 const RECALL: Record<string, Record<string, string>> = {
   MEM_NEWS_01: {
-    A: "你站過去聽過電視。你還不明白，但你聽過。",
+    A: "你走過去聽過電視。你還不明白，但你聽過。",
     B: "你問過將來是什麼。爸爸答到一半就停了。",
     C: "你選了繼續吃飯。將來那兩個字，你留給大人。",
   },
@@ -548,10 +548,10 @@ const RECALL: Record<string, Record<string, string>> = {
   },
   MEM_FIRST_INTEREST: {
     A: "你選了畫畫。數數那一組沒有你。",
-    B: "你選了數數。畫畫今天過了你。",
+    B: "你選了數數。畫畫那一組今天沒有你。",
     C: "你兩樣都想要。兩邊都只做到一半。",
     D: "你問為什麼一定要選一樣。你記得自己問過。",
-    E: "你叫過阿傑一組。你還沒自己選畫畫還是數數。",
+    E: "你叫過阿傑和你一組。你還沒自己選畫畫還是數數。",
   },
   MEM_DAD_WORK: {
     A: "公園去不成。你自己去玩，約定裂了。",
@@ -574,10 +574,10 @@ const RECALL: Record<string, Record<string, string>> = {
     C: "你幫媽媽提過袋子。你少了自己走開的時間。",
   },
   MEM_FIRST_INDEPENDENCE: {
-    A: "屋邨門口，你回去拉住人。",
+    A: "在屋邨門口，你回去拉住了媽媽。",
     B: "你走到門口，然後自己停。",
     C: "你踏出過一步。媽媽叫你回去，你沒有走到馬路。",
-    skip: "你本來可以下平台。你選了留在家裡。",
+    skip: "你本來可以到平台去。你選了留在家裡。",
   },
 };
 
@@ -586,7 +586,7 @@ function schoolRecall(choiceId: string) {
   if (choiceId.includes("bad")) return "那天太吵。你回了家，第二天再試。";
   if (!choiceId.includes("win")) return "你哭過。幼稚園第二天仍然在。";
   if (choiceId.startsWith("social")) return "你進去了，不過你走得很慢。";
-  if (choiceId.startsWith("curious")) return "你進去了，你沒有拉住誰。";
+  if (choiceId.startsWith("curious")) return "你進去了，沒有拉住誰。";
   return "你進去了，但你拉著媽媽很久。";
 }
 
@@ -595,7 +595,7 @@ function schoolVoice(choiceId: string) {
   if (choiceId.includes("bad")) return "那天太吵，你回了家";
   if (!choiceId.includes("win")) return "你哭過，幼稚園第二天仍然在";
   if (choiceId.startsWith("social")) return "你進去了，不過你走得很慢";
-  if (choiceId.startsWith("curious")) return "你進去了，你沒有拉住誰";
+  if (choiceId.startsWith("curious")) return "你進去了，沒有拉住誰";
   return "你進去了，但你拉著媽媽很久";
 }
 
@@ -606,9 +606,9 @@ export function recallLine(memory: { id: string; choiceId: string; echo: string 
 
 const VOICE_BIT: Record<string, Record<string, string>> = {
   MEM_NEWS_01: {
-    A: "三歲你站過去聽電視",
-    B: "三歲你問過將來",
-    C: "三歲你選了繼續吃飯",
+    A: "三歲時你走過去聽電視",
+    B: "三歲時你問過將來",
+    C: "三歲時你選了繼續吃飯",
   },
   MEM_MOM_TIRED: {
     A: "媽媽累的那天你收了玩具",
@@ -626,11 +626,11 @@ const VOICE_BIT: Record<string, Record<string, string>> = {
     C: "你走開，球留在別人那裡",
   },
   MEM_FIRST_INTEREST: {
-    A: "五歲你選了畫畫",
-    B: "五歲你選了數數",
-    C: "五歲你兩樣都想要，兩邊都沒做完",
-    D: "五歲你問為什麼一定要選",
-    E: "五歲你叫阿傑一組",
+    A: "五歲時你選了畫畫",
+    B: "五歲時你選了數數",
+    C: "五歲時你兩樣都想要，兩邊都沒做完",
+    D: "五歲時你問為什麼一定要選",
+    E: "五歲時你叫阿傑和你一組",
   },
   MEM_DAD_WORK: {
     A: "公園去不成，你自己去玩",
@@ -653,10 +653,10 @@ const VOICE_BIT: Record<string, Record<string, string>> = {
     C: "你幫媽媽提過袋子",
   },
   MEM_FIRST_INDEPENDENCE: {
-    A: "屋邨門口你回去拉住人",
+    A: "在屋邨門口，你回去拉住媽媽",
     B: "你走到門口就自己停",
     C: "你踏出過屋邨門口一步，然後被人叫回去",
-    skip: "你本來可以下平台，你選了留在家裡",
+    skip: "你本來可以到平台去，你選了留在家裡",
   },
 };
 

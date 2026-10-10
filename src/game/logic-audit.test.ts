@@ -70,7 +70,7 @@ describe("logic audit v3.2", () => {
     assert.equal(variantOf(state.eventId, state), "plain");
     const card = cardFor(state.eventId, state).sequence.map(lineText).join("");
     assert.ok(card.includes("繼續吃飯"));
-    assert.equal(card.includes("站過去聽"), false);
+    assert.equal(card.includes("走過去聽"), false);
     state = chooseId(state, "A");
     assert.equal(state.result?.text.includes("頭先講過將來"), false);
     assert.equal(state.memories.find((item) => item.id === "MEM_SILENT_NEWS_01")?.variant, "plain");
@@ -183,7 +183,7 @@ describe("logic audit v3.2", () => {
     assert.equal(stayed.counter.PLAYER_DAD_CHOICE_RESPONSE, 3);
     assert.notEqual(left.npc.NPC_DAD_01.relation, stayed.npc.NPC_DAD_01.relation);
     assert.ok(cardFor("EVT_1986_ECHO_08", left).sequence.map(lineText).join("").includes("裂開過"));
-    assert.ok(cardFor("EVT_1986_ECHO_08", stayed).sequence.map(lineText).join("").includes("留過"));
+    assert.ok(cardFor("EVT_1986_ECHO_08", stayed).sequence.map(lineText).join("").includes("留下來陪過"));
   });
 
   it("followed reading is stronger than an unpracticed attempt", () => {
@@ -210,7 +210,7 @@ describe("logic audit v3.2", () => {
       derived: { ...freshState().derived, VALUE_DREAM: 70, VALUE_REALITY: 50 },
       npc: { ...freshState().npc, NPC_FRIEND_01: { relation: 4, trust: 2, available: true } },
     };
-    assert.ok(cardFor("EVT_1986_SKILL_05", dreaming).sequence.map(lineText).join("").includes("看著顏色"));
+    assert.ok(cardFor("EVT_1986_SKILL_05", dreaming).sequence.map(lineText).join("").includes("看顏色"));
   });
 
   it("ending voice keeps one memory from each year", () => {
@@ -438,10 +438,10 @@ describe("logic audit v3.2", () => {
     assert.ok(cardFor("EVT_1986_MARKET_07", mom).sequence.map(lineText).join("").includes("收過玩具"));
     assert.ok(fifteenLines(mom).join("").includes("伸出去"));
     const ball = remember("MEM_RED_BALL", "B", { flags: ["FLAG_SHARED_BALL"] });
-    assert.ok(cardFor("EVT_1986_SKILL_05", ball).sequence.map(lineText).join("").includes("招你過去坐"));
+    assert.ok(cardFor("EVT_1986_SKILL_05", ball).sequence.map(lineText).join("").includes("招手叫你過去坐"));
     assert.ok(fifteenLines(ball).join("").includes("輪流"));
     const dad = remember("MEM_DAD_WORK", "B");
-    assert.ok(cardFor("EVT_1986_ECHO_08", dad).sequence.map(lineText).join("").includes("答應過他去上班"));
+    assert.ok(cardFor("EVT_1986_ECHO_08", dad).sequence.map(lineText).join("").includes("答應過讓他去上班"));
     assert.ok(fifteenLines(dad).join("").includes("應了一聲"));
   });
 
@@ -515,7 +515,7 @@ describe("logic audit v3.2", () => {
     assert.deepEqual(saved?.flags, ["FLAG_PARENT_EXPLAIN"]);
     assert.equal(saved?.memories.some((item) => item.id === "MEM_GHOST"), false);
     assert.equal(saved?.memories.filter((item) => item.memoryTypeId === "MEM_DAD_WORK").length, 2);
-    assert.ok(cardFor("EVT_1986_ECHO_08", saved!).sequence.map(lineText).join("").includes("答應過他去上班"));
+    assert.ok(cardFor("EVT_1986_ECHO_08", saved!).sequence.map(lineText).join("").includes("答應過讓他去上班"));
     const crowded = selectOverflow();
     assert.equal(crowded.includes("老師說得很慢"), false);
     assert.ok(crowded.includes("實際"));
@@ -772,7 +772,7 @@ describe("logic audit v3.2", () => {
   it("a failed exam does not talk about kindergarten, and 1986 is not the last year", () => {
     assert.equal(isLastYear(2), false);
     assert.equal(isLastYear(YEARS.length - 1), true);
-    assert.equal(yearOf({ yearIndex: 2 }).title, "走廊");
+    assert.equal(yearOf({ yearIndex: 2 }).title, "電視");
     assert.equal(yearOf({ yearIndex: 3 }).title, "書桌");
     const examChoice = choicesFor("EVT_1988_EXAM_01", freshState()).find((item) => item.id === "A");
     assert.equal(examChoice?.specId, "BTL_PRIMARY_EXAM");
@@ -824,7 +824,7 @@ describe("logic audit v3.2", () => {
       turns.map((turn) => turn.name),
       ["旁白", "旁白", "媽媽", "旁白", "爸爸"],
     );
-    assert.equal(turns[2].text.startsWith("先吃飯"), true);
+    assert.equal(turns[2].text.startsWith("食飯先"), true);
     assert.equal(turns[3].text, "爸爸低聲說。");
     assert.equal(turns[4].text.includes("一家人安穩"), true);
     assert.equal(eventPlate("MINI_84_TOY", "boy"), "/art/q/toy-boy.webp");
@@ -835,8 +835,14 @@ describe("logic audit v3.2", () => {
     assert.equal(eventPlate("EVT_1985_FRIEND_04", "boy", "estate"), null);
     assert.equal(beatPlate("sun-night", "boy"), "/art/q/bag-boy.webp");
     assert.equal(eventPlate("EVT_1984_FAMILY_02", "girl"), "/art/q/home-girl.webp");
-    assert.equal(yearPlate(1986, "girl"), "/art/q/tv-girl.webp");
-    assert.equal(eventPlate("EVT_1984_NEWS_01", "boy"), null);
+    // The 1984 and 1986 openings talk about the TV (the handshake, 「女皇嚟咗。」), so they open on the TV room.
+    assert.equal(yearPlate(1984, "girl"), "/art/q/tv-girl.webp");
+    assert.equal(yearPlate(1986, "boy"), "/art/q/tv-boy.webp");
+    assert.equal(yearPlate(1985, "boy"), null);
+    assert.equal(yearPlate(1988, "girl"), null);
+    assert.equal(slicePlate({ year: 1986, scene: "corridor", gender: "girl" }), "/art/q/corridor-girl.webp");
+    // 電視裡講著很遠的事: the 1984 news dinner is the room with the TV.
+    assert.equal(eventPlate("EVT_1984_NEWS_01", "boy"), "/art/q/tv-boy.webp");
     const played = produce1985(["ACT_PLAY", "ACT_DRAW"]);
     assert.deepEqual(played.queue, ["EVT_1985_SCHOOL_01", "MINI_85_GRANDMA", "MINI_85_TV", "MINI_85_DAD"]);
     assert.ok(played.missed.includes(MISS_85_MOM));
@@ -952,7 +958,7 @@ describe("logic audit v3.2", () => {
     assert.ok(shared.includes("鞋底有泥"));
     assert.ok(held.includes("不肯放"));
     assert.equal(held.includes("鞋底有泥"), false);
-    assert.ok(stayed.includes("一個人在平台"));
+    assert.ok(stayed.includes("一個人喺平台"));
     assert.equal(stayed.includes("自己玩了一整天"), false);
     assert.equal(beat1985("sat-night", { ...freshState(), spent: ["ACT_REST"] }).sequence.filter((line) => line.type === "dialogue" && line.speaker === "媽媽").length, 2);
     const sharedBall = { id: "MEM_RED_BALL", eventId: "EVT_1985_FRIEND_04", choiceId: "B", variant: "podium", year: 1985, age: 4, npc: "NPC_FRIEND_01", emotion: "share", weight: 2, echo: "" };
@@ -1005,7 +1011,7 @@ describe("logic audit v3.2", () => {
     assert.equal(board.phase, "activities");
     assert.equal(board.spent.length, 0);
     assert.ok(beat1985("monday", atHome).sequence.some((line) => line.type === "action" && line.where === "幼稚園門口"));
-    assert.ok(beat1985("sun-night", atHome).sequence.some((line) => line.type === "dialogue" && line.speaker === "媽媽" && line.text === "明天真的要去。"));
+    assert.ok(beat1985("sun-night", atHome).sequence.some((line) => line.type === "dialogue" && line.speaker === "媽媽" && line.text === "聽日真係要去。"));
     assert.equal(worldTick(atPodium, { year: 1985, day: "sat" }).npcDays.NPC_FRIEND_01?.nextPlan, "seek");
   });
 
@@ -1042,7 +1048,7 @@ describe("logic audit v3.2", () => {
     assert.equal(produce1985(["ACT_ESTATE", "ACT_REST"], noSpill).missed.includes(MISS_85_ORANGE), false);
     assert.equal(ENCOUNTERS.length >= 4, true);
     assert.equal(cardFor("MINI_QUIET", { ...freshState(3), yearIndex: 1, spent: ["ACT_MARKET"] }).title, "走了一圈");
-    assert.equal(choicesFor("MINI_85_ORANGE", freshState()).some((item) => item.label === "我要一顆"), true);
+    assert.equal(choicesFor("MINI_85_ORANGE", freshState()).some((item) => item.label === "我要一個"), true);
     const alone = worldTick({ ...freshState(orangeSeed), spent: ["ACT_ESTATE"] }, { year: 1985, day: "sat" });
     assert.equal(alone.npcDays.NPC_MOM_01?.nextPlan, "carry");
     assert.equal(alone.npcDays.NPC_AUNT_01?.nextPlan, "alone");
@@ -1074,7 +1080,7 @@ describe("logic audit v3.2", () => {
       memories: [{ id: "MEM_ORANGE", eventId: "MINI_85_ORANGE", choiceId: "C", variant: "", year: 1985, age: 4, npc: "NPC_AUNT_01", emotion: "keep", weight: 1, echo: "" }],
     }).sequence.map(lineText).join("");
     assert.ok(helped.includes("橙"));
-    assert.ok(kept.includes("沒有放進來"));
+    assert.ok(kept.includes("沒有放進袋裡"));
     assert.equal(cardFor("EVT_1986_MARKET_07", { ...freshState(), yearIndex: 2 }).sequence.map(lineText).join("").includes("橙"), false);
     assert.equal(cardFor("MINI_85_ORANGE", freshState()).title, "橙散了");
   });
@@ -1166,7 +1172,7 @@ describe("logic audit v3.2", () => {
       assert.equal(existsSync(new URL(`../../public${path}`, import.meta.url)), true, path);
     }
     for (const path of manifest.filter((item) => item.startsWith("/art/q/"))) {
-      assert.match(path, /^\/art\/q\/[a-z]+-(boy|girl)\.webp$/, `${path} should be a WebP scene painting`);
+      assert.match(path, /^\/art\/q\/[a-z]+(\d{4}|off)?-(boy|girl)\.webp$/, `${path} should be a WebP scene painting`);
       const bytes = readFileSync(new URL(`../../public${path}`, import.meta.url));
       assert.equal(bytes.subarray(0, 4).toString("latin1"), "RIFF", path);
       assert.equal(bytes.subarray(8, 12).toString("latin1"), "WEBP", path);

@@ -259,7 +259,7 @@ export function quietCopy(spent: readonly string[], year: number): { scene: Plac
   if (!places.length) return null;
   const lines =
     places.length >= 2
-      ? ["這兩個下午，你去了的地方都沒有人。", "你坐了一陣。一隻麻雀飛過。然後你回家。"]
-      : ["這個下午，你去了的地方沒有人。", "你坐了一陣。一隻麻雀飛過。然後你回家。"];
+      ? ["這兩個下午，你去的地方都沒有人。", "你坐了一陣。一隻麻雀飛過。然後你回家。"]
+      : ["這個下午，你去的地方沒有人。", "你坐了一陣。一隻麻雀飛過。然後你回家。"];
   return { scene: places[0], lines };
 }

@@ -20,9 +20,9 @@ export function isBeat(value: string | null): value is BeatId {
 /** What Mom saw on the way up. One sentence about how long he stayed, never two that disagree. */
 function missedHeard(state: State): SceneLine {
   const mood = state.npcDays.NPC_FRIEND_01?.mood;
-  if (mood === "content") return say("媽媽", "他自己踢波，玩了好久，玩得好起勁。");
-  if (mood === "left") return say("媽媽", "他玩了一陣就走了。");
-  return say("媽媽", "他玩到天黑，後來坐在石凳上。");
+  if (mood === "content") return say("媽媽", "佢自己踢波，玩咗好耐，玩得好起勁。");
+  if (mood === "left") return say("媽媽", "佢玩咗一陣就走咗。");
+  return say("媽媽", "佢玩到天黑，後尾坐喺石凳度。");
 }
 
 function satNight(state: State): SceneLine[] {
@@ -61,11 +61,11 @@ function satNight(state: State): SceneLine[] {
     const withMom = state.spent[0] === "ACT_MARKET";
     seq.push(act(withMom ? "你們拎著塑膠袋走上來。經過平台的時候，媽媽看了一眼。" : "媽媽拎著塑膠袋走上來。", "屋邨走廊 · 傍晚"));
     seq.push(act("媽媽把塑膠袋放下。", "家裡 · 門口"));
-    seq.push(say("媽媽", "樓下那個抱紅波的孩子，今日一個人在平台。"));
+    seq.push(say("媽媽", "樓下嗰個抱紅波嘅細路，今日一個人喺平台。"));
     seq.push(act(withMom ? "她把鞋脫在門口。你今天沒有到平台。" : "她把鞋脫在門口。你今天沒有下過樓。"));
     seq.push(missedHeard(state));
   } else if (!news) seq.push(narrate(lifeMissed("NPC_MOM_01", "sat")));
-  seq.push(narrate("袋子仍然在門口。明天還不是上學。"));
+  seq.push(narrate("袋子仍然在門口。明天還不用上學。"));
   return seq;
 }
 
@@ -88,7 +88,7 @@ function sunNight(state: State): SceneLine[] {
   else if (sun === "ACT_MARKET") heard = lifeMissed("NPC_MOM_01", "sun");
   const seq: SceneLine[] = [
     act("媽媽把袋子再放到門口。", "家裡 · 門口"),
-    say("媽媽", "明天真的要去。"),
+    say("媽媽", "聽日真係要去。"),
     act("燈還開著。袋子沒有收。", "家裡 · 晚上"),
     narrate(heard),
   ];
@@ -108,10 +108,10 @@ export function beat1985(id: BeatId, state: State): StoryPage {
       title: "袋子在門口",
       sequence: [
         act("媽媽把袋子放在門口。", "家裡 · 早上"),
-        say("媽媽", "星期一開始上學。"),
+        say("媽媽", "禮拜一開始返學。"),
         act("爸爸在電視前面穿鞋。", "電視前面"),
-        say("爸爸", "我返工了。"),
-        say("媽媽", "今晚早點睡。"),
+        say("爸爸", "我返工喇。"),
+        say("媽媽", "今晚早啲瞓。"),
         narrate("你看著那個門口。星期六還沒有過。"),
       ],
     };
@@ -123,7 +123,7 @@ export function beat1985(id: BeatId, state: State): StoryPage {
       title: "樓下",
       sequence: [
         act("你跟媽媽走到樓梯口。", "屋邨走廊"),
-        say("媽媽", "不要自己跑出去。"),
+        say("媽媽", "唔好自己走出去。"),
         act("平台在下面。有個孩子抱著紅球。", "平台"),
         narrate("他沒有看見你。"),
         narrate("你沒有下去。下午還沒有開始。"),
@@ -148,8 +148,8 @@ export function beat1985(id: BeatId, state: State): StoryPage {
       kicker: "1985 · 星期一早上",
       title: "門開著",
       sequence: [
-        act("媽媽牽著你。袋子在你手上，有一點重。", "屋邨路"),
-        say("媽媽", "到了就進去。"),
+        act("媽媽牽著你。袋子在你手上，有一點重。", "幼稚園門口"),
+        say("媽媽", "到咗就入去。"),
         act("幼稚園的門開著。裡面有聲音。", "幼稚園門口"),
         narrate(door),
       ],

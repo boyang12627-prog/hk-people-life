@@ -6,24 +6,29 @@ const EVENT_PLATE: Record<string, string> = {
   MINI_85_RAIN: "rain",
   MINI_85_GRANDMA: "soup",
   MINI_85_DAD: "shoes",
-  MINI_85_TV: "tv",
-  MINI_86_TV: "tv",
+  // 你留在家。電視開著，沒有人在看: the child alone in the room with the set on (no adults watching).
+  MINI_85_TV: "draw",
+  // 電視裡有人唱歌: the TV room with its own painted screen (a singer), not the 1986 Queen picture (see PLAIN_TV_EVENTS).
+  MINI_86_TV: "tvsing",
   MINI_85_ORANGE: "orange",
   MINI_86_HELP: "bags",
   EVT_1988_PEN_01: "pen",
+  EVT_1984_NEWS_01: "tv",
   EVT_1984_FAMILY_02: "home",
   EVT_1986_FAMILY_06: "tv",
   EVT_1986_ECHO_08: "corridor",
   MINI_85_ALONE_PODIUM: "rain",
   EVT_1986_DAD_NIGHT: "shoes",
-  EVT_1988_DAD_SIGN: "shoes",
+  // 1988: the boy/girl is 7 and in school uniform, holding the paper to sign (the 1988 doorway style standard).
+  EVT_1988_DAD_SIGN: "shoes1988",
 };
 
 const BEAT_PLATE: Record<string, string> = {
   open: "bag",
   downstairs: "stair",
   "sun-night": "bag",
-  "sat-night": "tv",
+  // 1985 Saturday night: 電視已經關了. The TV room with the set switched off (dark glass).
+  "sat-night": "tvoff",
   aftermath: "tv",
 };
 
@@ -42,9 +47,11 @@ function painted(name: string, gender: Gender | null) {
   return `${ART}/q/${name}-${who}.${SCENE_EXT}`;
 }
 
-export function eventPlate(eventId: string | null, gender: Gender | null, scene?: string | null) {
+export function eventPlate(eventId: string | null, gender: Gender | null, scene?: string | null, title?: string | null) {
   if (eventId === "EVT_1985_FRIEND_04" && scene === "kindy") return painted("inside", gender);
-  if (eventId === "MINI_QUIET" && scene === "estate") return painted("rain", gender);
+  // 沒有人在 (你去的地方沒有人): the EMPTY wet podium (rainempty: nobody else), whichever place was empty. `rain` has the
+  // bottle-cap child for heavy rain and the podium without 阿傑. 走了一圈 (with mum at the market) keeps the market.
+  if (eventId === "MINI_QUIET" && (scene === "estate" || title === "沒有人在")) return painted("rainempty", gender);
   const name = eventId ? EVENT_PLATE[eventId] : null;
   return name ? painted(name, gender) : null;
 }
@@ -54,9 +61,35 @@ export function beatPlate(beat: string, gender: Gender | null) {
   return name ? painted(name, gender) : null;
 }
 
-export function yearPlate(year: number, gender: Gender | null) {
-  if (year === 1986) return painted("tv", gender);
-  return null;
+/**
+ * A year opening's own picture when its text is about the TV: 1984 (飯桌旁那部電視開著, the handshake) and
+ * 1986 (電視裡有個戴帽子的女人下船, 「女皇嚟咗。」). Other years use their scene painting.
+ */
+const YEAR_PLATE: Record<number, string> = { 1984: "tv", 1986: "tv" };
+
+export function yearPlate(year: number, gender: Gender | null): string | null {
+  const name = YEAR_PLATE[year];
+  return name && gender ? painted(name, gender) : null;
+}
+
+/**
+ * TV pictures are painted into the scene (no text on screens): a year whose news has a picture gets its
+ * own copy of a TV painting with that picture composited onto the glass (scripts/tv-composite.py).
+ * 1984 the Joint Declaration handshake, 1985 the first Legislative Council vote, 1986 the Queen's visit
+ * (「女皇嚟咗。」) on the TV room set; 1988 an airport farewell (emigration) on the nap set. 1996 has its
+ * own home painting with the handover countdown (fifteenPlate).
+ */
+export const ERA_TV: Record<number, readonly string[]> = { 1984: ["tv"], 1985: ["tv"], 1986: ["tv"], 1988: ["rest"] };
+
+/** The 1996 fifteen page: the new home painting, the TV showing the handover countdown (no readable numbers). */
+export function fifteenPlate(gender: Gender | null) {
+  return painted("home1996", gender);
+}
+
+/** "/art/q/tv-boy.webp" in 1986 -> "/art/q/tv1986-boy.webp". Any other picture or year is unchanged. */
+export function eraPlate(src: string, year: number | null | undefined): string {
+  if (!year || !ERA_TV[year]) return src;
+  return src.replace(/\/q\/([a-z]+)-(boy|girl)\.(\w+)$/, (whole, name: string, who: string, ext: string) => (ERA_TV[year].includes(name) ? `/q/${name}${year}-${who}.${ext}` : whole));
 }
 
 export function scenePlate(scene: SceneId, gender: Gender | null) {
@@ -69,6 +102,25 @@ export function slicePlate(input: { year: number; scene: SceneId; gender: Gender
   if (input.battle === "pressure" || input.battle === "inside") return painted(input.battle, input.gender);
   if (input.battle === "door") return scenePlate("kindy", input.gender);
   return scenePlate(input.scene, input.gender);
+}
+
+/** Events whose TV shows its own painted programme, not the year's news picture. */
+export const PLAIN_TV_EVENTS: ReadonlySet<string> = new Set(["MINI_86_TV"]);
+
+/**
+ * The home picture behind a year's activity list and year-end page, matched to the child's age:
+ * 1984 the dinner (calendar 1984, age 3); 1985 the doorway at home (age 4); 1986 the TV room (age 5);
+ * 1988 the classroom desk (age 7, school uniform). Never the 1984 dinner after 1984.
+ */
+const HOME_BY_YEAR: Record<number, string> = { 1984: "home", 1985: "bag", 1986: "tv", 1988: "study" };
+
+export function homePlate(year: number, gender: Gender | null) {
+  return painted(HOME_BY_YEAR[year] ?? "home", gender);
+}
+
+/** The ending 十年後 · 同一個屋邨: the grown-up protagonist alone on the same estate podium. */
+export function endingPlate(gender: Gender | null) {
+  return painted("ending", gender);
 }
 
 /** One painted dinner. People are already in the picture, so do not paste sprites on it. */
@@ -204,12 +256,16 @@ export function imageManifest(): string[] {
     }
     for (const battle of ["door", "pressure", "inside"] as const) add(slicePlate({ year: 1985, scene: "kindy", gender, battle }));
     for (const id of Object.keys(EVENT_PLATE)) add(eventPlate(id, gender));
+    add(fifteenPlate(gender));
+    for (const [year, names] of Object.entries(ERA_TV)) for (const name of names) add(eraPlate(painted(name, gender), +year));
     add(eventPlate("EVT_1985_FRIEND_04", gender, "kindy"));
     add(eventPlate("MINI_QUIET", gender, "estate"));
     for (const beat of Object.keys(BEAT_PLATE)) add(beatPlate(beat, gender));
     for (const year of [1984, 1985, 1986, 1988]) add(yearPlate(year, gender));
     for (const id of ["ACT_DRAW", "ACT_PLAY", "ACT_REST"]) add(afternoonPlate(id, gender));
     add(dinnerPlate(gender));
+    add(endingPlate(gender));
+    for (const year of [1984, 1985, 1986, 1988]) add(homePlate(year, gender));
     for (const age of PORTRAIT_AGES) add(protagonistPortrait(BIRTH_YEAR + age, gender));
     for (const id of PEOPLE) {
       for (const mood of ["idle", "think"] as const) {

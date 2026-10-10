@@ -30,6 +30,9 @@ import { chainEcho, knowsKit, missed1986, missedLine } from "./freedom.ts";
 import { beat1985 } from "./story.ts";
 import { freshState, mergeDeltas, reducer } from "./engine.ts";
 import { lineText, placeLabel } from "./scene.ts";
+import { SPOKEN_IN_NARRATION, expandSpokenNarration, splitSpokenNarration } from "./narrationSpeech.ts";
+import { ACTION_LOCK_MS } from "./reveal.ts";
+import { existsSync } from "node:fs";
 import { picked, selectSpoken } from "./speak.ts";
 import { KINDY_DOOR, PRIMARY_EXAM, playtestTools } from "./battleSpec.ts";
 import { CANTONESE_TO_WRITTEN, cantoneseHits, dialogueWarnings, quotedSpeaker } from "./wording.ts";
@@ -37,7 +40,7 @@ import { scanSources } from "../../scripts/voice-scan.ts";
 import type { Gender, State } from "./types.ts";
 import { isDone, lineAt, skipReveal, startReveal, stepReveal } from "./reveal.ts";
 import { SCENE_ANCHORS, SPEAKER_ACCENT, isOffscreen, plateName } from "./sceneAnchors.ts";
-import { beatPlate, eventPlate, scenePlate } from "./art.ts";
+import { beatPlate, eraPlate, eventPlate, fifteenPlate, imageManifest, scenePlate, yearPlate } from "./art.ts";
 import { say, type SceneLine } from "./scene.ts";
 
 type Page = { year: number; phase: string; known: boolean; text: string; state: State };
@@ -236,7 +239,7 @@ describe("playtest fixes v3.3 — P0", () => {
       if (!walked) continue;
       for (const page of life.pages) {
         if ((page.year === 1986 && page.phase === "year-end") || (page.year === 1988 && page.phase === "year")) {
-          assert.equal(page.text.includes("沒有上平台"), false, page.text);
+          assert.equal(page.text.includes("沒有到平台"), false, page.text);
         }
       }
     }
@@ -249,9 +252,9 @@ describe("playtest fixes v3.3 — P0", () => {
 describe("playtest fixes v3.3 — P1", () => {
   it("timeline: school starts on Monday, and 1986 does not call 1984 last year", () => {
     const open = beat1985("open", freshState()).sequence.map(lineText).join("");
-    assert.ok(open.includes("星期一開始上學"));
+    assert.ok(open.includes("禮拜一開始返學"));
     assert.equal(open.includes("明天開始上學"), false);
-    const wrong = ["去年你自己收過玩具", "去年你站過去聽", "去年「九七」", "去年你也是這樣坐", "去年你跟著吃飯"];
+    const wrong = ["去年你自己收過玩具", "去年你走過去聽", "去年「九七」", "去年你也是這樣坐", "去年你跟著吃飯"];
     for (const page of pagesOf(1986)) for (const bit of wrong) assert.equal(page.text.includes(bit), false, page.text);
     for (const page of pagesOf(1985, "story")) {
       if (page.state.note !== "monday") continue;
@@ -297,7 +300,7 @@ describe("playtest fixes v3.3 — P1", () => {
   it("a named child is called by name, and nobody is called 女孩子 or 男孩子", () => {
     for (const life of LIVES) for (const page of life.pages) assert.equal(/女孩子|男孩子/.test(page.text), false, page.text);
     const named = drive({ seed: 19860, name: "嘉欣", acts: MARKET });
-    assert.ok(named.pages.some((page) => page.text.includes("你自己想怎樣，嘉欣？")));
+    assert.ok(named.pages.some((page) => page.text.includes("你自己想點呀，嘉欣？")));
   });
 
   it("the year-end and ending sentences follow what the child did", () => {
@@ -363,8 +366,8 @@ describe("playtest fixes v3.3 — P1", () => {
     const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
     assert.ok(app.includes('kicker="之後" title="你選了" dialogue={[narrate(state.result.text)]}'));
     assert.equal(app.includes("你下平台的次數還不夠"), false);
-    assert.ok(exploreOfferCopy({ counter: { ...freshState().counter, COUNTER_EXPLORE: 0 } }).includes("沒有下過平台"));
-    assert.ok(exploreOfferCopy({ counter: { ...freshState().counter, COUNTER_EXPLORE: 1 } }).includes("下過一次"));
+    assert.ok(exploreOfferCopy({ counter: { ...freshState().counter, COUNTER_EXPLORE: 0 } }).includes("沒有到過平台"));
+    assert.ok(exploreOfferCopy({ counter: { ...freshState().counter, COUNTER_EXPLORE: 1 } }).includes("到過一次"));
     const never = { counter: { ...freshState().counter, COUNTER_EXPLORE: 0 } };
     assert.ok(!exploreOfferTitle(never).includes("再") && !exploreOfferGo(never).includes("再"), "never went down: no 再 in title/button");
     for (const life of LIVES) assert.ok(life.pages.filter((page) => page.phase === "explore-offer").length <= 1);
@@ -395,22 +398,22 @@ describe("playtest fixes v3.3 / voice v3.4 — 書面中文 in narration, HK voi
     for (const line of new Set(warnings)) t.diagnostic(`VOICE WARNING ${line}`);
     // Dialogue keeps Hong Kong words on purpose. These are the V3.3 conversions that were reverted.
     const said = scanned.dialogue.map((item) => item.text).join("\n");
-    for (const word of ["拿去用啦", "今次", "踢波", "個波", "唔使錢", "你琴日冇落嚟。", "你去年冇落嚟。"]) assert.ok(said.includes(word), `dialogue keeps ${word}`);
+    for (const word of ["攞去用啦", "今次", "踢波", "個波", "唔使錢", "你琴日冇落嚟。", "你去年冇落嚟。"]) assert.ok(said.includes(word), `dialogue keeps ${word}`);
   });
 
   it("speech quoted inside narration is dialogue, not narration", () => {
-    assert.deepEqual(cantoneseHits("他說這支是多出來的。「你拿去用啦。」筆芯有一點深。"), []);
-    assert.ok(cantoneseHits("你拿去用啦。").length > 0);
+    assert.deepEqual(cantoneseHits("他說這支是多出來的。「你攞去用啦。」寫出來的顏色有一點深。"), []);
+    assert.ok(cantoneseHits("你攞去用啦。").length > 0);
     assert.equal(quotedSpeaker("媽媽看爸爸一眼。「大人有時也會擔心。」", "大人有時也會擔心。"), "媽媽");
     assert.equal(quotedSpeaker("阿姨說：「呢個唔使錢。」", "呢個唔使錢。"), "阿姨");
     const voice = dialogueWarnings("阿傑", "這個球是我先拿到的！");
     assert.ok(voice.length > 0 && voice.every((w) => w.register === "colloquial"));
     assert.deepEqual(dialogueWarnings("老師", "不用怕，進去和其他小朋友玩。"), []);
-    assert.ok(dialogueWarnings("老師", "唔使驚。").length > 0);
+    assert.ok(dialogueWarnings("老師", "唔使驚。", "formal").length > 0);
   });
 
   it("the list itself catches what the playtest found", () => {
-    for (const bad of ["紅波", "踢波", "今次不是搶", "同阿傑一組", "一隻雀", "這個不必錢", "你拿去用啦。", "走近少少", "他還沒去沖涼", "收進雪櫃", "拎著膠袋", "車仔", "出街沒有你的份"]) {
+    for (const bad of ["紅波", "踢波", "今次不是搶", "同阿傑一組", "一隻雀", "這個不必錢", "你攞去用啦。", "走近少少", "他還沒去沖涼", "收進雪櫃", "拎著膠袋", "車仔", "出街沒有你的份"]) {
       assert.ok(cantoneseHits(bad).length > 0, bad);
     }
     for (const ok of ["一隻麻雀飛過", "不要出街口", "塑膠袋太重", "和阿傑一組", "士多", "默書"]) assert.deepEqual(cantoneseHits(ok), [], ok);
@@ -531,7 +534,10 @@ describe("ui v4 — stage, paper panel, line-by-line reveal", () => {
     assert.ok(stage.includes("下午 {afternoons}/2"));
     assert.ok(stage.includes("prefers-reduced-motion"));
     assert.equal(stage.includes("/art/"), false, "Stage.tsx builds no art path");
-    assert.ok(/<details/.test(app), "folded numbers stay");
+    assert.equal(app.includes("記下了"), false, "the result page shows no 記下了 stat list");
+    assert.equal(/result\.deltas\.map/.test(app), false, "deltas are not rendered to the player");
+    assert.ok(app.includes("學會了："), "learned skills still shown");
+    assert.ok(app.includes("result.lean"), "lean line still shown");
     // Nothing brighter than amber #c9843a: no colour with more chroma (max - min channel).
     const chroma = (hex: string) => {
       const n = hex.length === 4 ? hex.slice(1).split("").map((c) => parseInt(c + c, 16)) : [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
@@ -544,7 +550,7 @@ describe("ui v4 — stage, paper panel, line-by-line reveal", () => {
   });
 });
 
-describe("ui v4.5 — the portrait and name plate identify the speaker; nothing points into the painting", () => {
+describe("ui v4.5 — the portrait and speaker name identify the speaker; nothing points into the painting", () => {
   it("no speech bubble, head ring or pointer tail; portrait only for a dialogue line", () => {
     const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
     const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
@@ -576,10 +582,11 @@ describe("ui v4.5 — the portrait and name plate identify the speaker; nothing 
     assert.match(stage, /export function Pin\(\)[\s\S]*?<svg aria-hidden="true"/, "the pin is inline SVG");
     assert.equal(/📍/.test(app + stage), false, "no emoji pin");
     assert.match(css, /\.ui-location \{/);
-    assert.ok(app.includes("<LocationTag place={where}"), "offscreen speaker label uses the tag");
+    assert.equal(app.includes("<LocationTag place={where}"), false, "an off-screen speaker label (旁邊) is not a place: no pin");
+    assert.ok(app.includes("data-offscreen-label={where}"), "it is a plain subtle label");
     assert.ok(app.includes("<LocationTag place={current.where}"), "action place uses the tag");
     assert.ok(app.includes("<LocationTag place={turn.where}"), "回看 log shows the place with the tag too");
-    assert.equal(/>\{(current\.where|turn\.where|where)\}</.test(app), false, "no bare place text left");
+    assert.equal(/>\{(current\.where|turn\.where)\}</.test(app), false, "no bare place text left");
   });
   it("the beat title sits beside the year/time label in one heading row; the location tag is a step larger", () => {
     const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
@@ -595,5 +602,255 @@ describe("ui v4.5 — the portrait and name plate identify the speaker; nothing 
   it("every speaker has one accent", () => {
     for (const who of ["媽媽", "爸爸", "嫲嫲", "阿傑", "阿姨", "老師"] as const) assert.match(SPEAKER_ACCENT[who], /^#[0-9a-f]{6}$/);
     assert.equal(new Set(Object.values(SPEAKER_ACCENT)).size, 6);
+  });
+});
+
+describe("live playtest fixes (2026-10-09)", () => {
+  const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+  const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+  const battle = readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8");
+
+  it("P1-1 tags ignore input for a moment after they appear (fast second tap on 下一句 never picks a choice)", () => {
+    assert.ok(ACTION_LOCK_MS >= 300 && ACTION_LOCK_MS <= 600, `lock ${ACTION_LOCK_MS}ms`);
+    assert.match(app, /setTimeout\(\(\) => setLocked\(false\), ACTION_LOCK_MS\)/, "unlock after the lock time");
+    assert.match(app, /useState\(true\)[\s\S]{0,200}setLocked\(true\);\s*if \(!reveal\.done\) return;/, "locked on mount and every time the tags appear, including a typewriter finishing by itself");
+    assert.ok(app.includes("locked={reveal.done && locked}"));
+    assert.match(stage, /onClickCapture=\{swallow\}/, "clicks on locked tags are swallowed");
+    assert.match(stage, /event\.key === "Enter" \|\| event\.key === " "\) swallow\(event\)/, "and Enter/Space too");
+  });
+
+  it("P1-2 battle feedback fits: 剛才 and the other side's move side by side on desktop, and any overflow shows a cue", () => {
+    assert.match(battle, /data-battle-feedback="true" className="[^"]*md:grid-cols-2/);
+    assert.match(stage, /<ScrollCue show=\{cue\.more\} \/>/, "panel text shows 往下還有 when more is below");
+    assert.ok(stage.includes("往下還有"));
+  });
+
+  it("P1-3 從頭開始 asks first and is not next to the main tag", () => {
+    const year = app.slice(app.indexOf("function YearOpen"), app.indexOf("function StoryBeat"));
+    assert.equal(/onClick=\{onRestart\}/.test(year), false, "no one-tap restart");
+    assert.match(year, /<ConfirmLink label="從頭開始" question="[^"]+" yes="[^"]+" no="[^"]+" onConfirm=\{onRestart\} \/>/);
+    const actions = year.slice(year.indexOf("actions={"), year.indexOf("</>"));
+    assert.equal(actions.includes("從頭開始"), false, "not among the tags");
+    assert.match(stage, /export function ConfirmLink[\s\S]*useState\(false\)[\s\S]*onClick=\{onConfirm\}/);
+  });
+
+  it("P2-5 one or two tags use a narrow right column, so the text gets the width", () => {
+    assert.ok(app.includes('sideSize={actionCount <= 2 ? "narrow" : "wide"}'));
+    assert.match(stage, /sideSize === "narrow"\s*\? "ui-tags ui-tags-narrow[^"]*md:w-56/);
+  });
+
+  it("P2-6 回看 covers most of the screen and shows a scroll cue", () => {
+    const log = app.slice(app.indexOf("function LineLog"), app.indexOf("function ResultBody"));
+    assert.match(log, /role="dialog"[^>]*className="fixed inset-0/);
+    assert.match(log, /md:h-\[86dvh\]/);
+    assert.match(log, /<ScrollCue show=\{cue\.more\} \/>/);
+  });
+
+  it("P2-7 phone: the tag list is not clipped to half the panel and clears the afternoon counter", () => {
+    assert.equal(/"ui-tags[^"]*(?<!md:)max-h-\[48%\]/.test(stage), false);
+    assert.match(stage, /afternoons !== null \? "pb-8" : "pb-3"/);
+  });
+
+  it("P2-8 speech inside narration becomes dialogue with its speaker; the quoted words are unchanged", () => {
+    const sources = ["./data/events.ts", "./content.ts", "./battleSpec.ts"].map((file) => readFileSync(new URL(file, import.meta.url), "utf8")).join("\n");
+    for (const [quote, speaker] of Object.entries(SPOKEN_IN_NARRATION)) {
+      assert.ok(sources.includes(quote), `${quote} is in the data`);
+      const literal = [...sources.matchAll(/"([^"\n]*)"/g)].map((m) => m[1]).find((text) => text.includes(quote) && text !== quote);
+      assert.ok(literal, `${quote} sits inside a narration string`);
+      const lines = splitSpokenNarration(literal);
+      const said = lines.filter((line) => line.type === "dialogue");
+      assert.ok(said.some((line) => line.type === "dialogue" && line.speaker === speaker && `「${line.text}」` === quote), `${quote} → ${speaker}`);
+      for (const line of lines) if (line.type === "narration") assert.equal(line.text.includes(quote), false, `${quote} left in narration`);
+    }
+    assert.deepEqual(splitSpokenNarration("你看清楚那輛車。阿姨說：「呢個唔使錢。」你把它握在手裡。"), [
+      { type: "narration", text: "你看清楚那輛車。" },
+      { type: "dialogue", speaker: "阿姨", text: "呢個唔使錢。" },
+      { type: "narration", text: "你把它握在手裡。" },
+    ]);
+    assert.deepEqual(splitSpokenNarration("嫲嫲笑：「以前邊有咁多掣㗎。」你記住「以前」兩個字。").map((line) => line.text), ["嫲嫲笑。", "以前邊有咁多掣㗎。", "你記住「以前」兩個字。"]);
+    assert.deepEqual(splitSpokenNarration("你不知道「將來」是什麼。"), [{ type: "narration", text: "你不知道「將來」是什麼。" }], "a quoted word is not speech");
+    assert.deepEqual(expandSpokenNarration([say("媽媽", "睇完就要走。")]), [say("媽媽", "睇完就要走。")], "dialogue lines pass through");
+    assert.match(app, /sceneTurns\(expandSpokenNarration\(/, "every page splits before drawing");
+    // Nothing left: every 「 that follows a speaker's lead-in in the data is listed.
+    for (const m of sources.matchAll(/(媽媽|爸爸|嫲嫲|阿傑|老師|阿姨)[^。！？「"]{0,6}：(「[^」]+」)/g)) {
+      if (m[0].includes("say(")) continue;
+      assert.ok(SPOKEN_IN_NARRATION[m[2]], `unlisted speech in narration: ${m[0]}`);
+    }
+  });
+});
+
+describe("panel portrait without a name plate (2026-10-09)", () => {
+  it("the speaker's name shows once, above the line; the bust keeps it as its accessible name", () => {
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+    assert.equal(/ui-nameplate/.test(stage + css), false, "no name plate under the portrait");
+    const portrait = stage.slice(stage.indexOf("export function PanelPortrait"), stage.indexOf("const TYPE_MS"));
+    assert.match(portrait, /role="img" aria-label=\{name\}/);
+    assert.match(portrait, /md:h-full md:w-auto/, "the bust is sized by the fixed panel height, so it fits inside the panel");
+    // The portrait sits in its own padded slot (counted in the panel's height), never hanging below it.
+    assert.match(stage, /data-portrait-slot="true" className="flex shrink-0 self-start py-3 pl-3 md:h-full md:items-center md:self-stretch md:py-0 md:pl-5"/);
+    assert.match(stage, /ui-portrait-frame[^"]*md:h-\[82%\]/);
+    assert.equal(/ui-portrait[^"]*\bpt-4|-mb-|translate-y/.test(portrait), false, "no offset pushes the bust out");
+  });
+  it("the purple scroll-rod on the panel's left edge is gone", () => {
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+    assert.equal(/ui-scroll-end|#5b3a57|#4a2e47/.test(stage + css), false);
+  });
+});
+
+describe("TV pictures painted into the art, no text on screens (2026-10-09)", () => {
+  it("each year's TV pages show that year's news picture composited into the glass; Saturday night 1985 is switched off", () => {
+    for (const gender of ["boy", "girl"] as const) {
+      for (const year of [1984, 1985, 1986]) assert.equal(eraPlate(`/art/q/tv-${gender}.webp`, year), `/art/q/tv${year}-${gender}.webp`);
+      assert.equal(eraPlate(`/art/q/tv-${gender}.webp`, 1988), `/art/q/tv-${gender}.webp`);
+      assert.equal(eraPlate(`/art/q/rest-${gender}.webp`, 1988), `/art/q/rest1988-${gender}.webp`);
+      assert.equal(eraPlate(`/art/q/rest-${gender}.webp`, 1985), `/art/q/rest-${gender}.webp`, "1985 nap keeps the painted static");
+      assert.equal(eraPlate(`/art/q/draw-${gender}.webp`, 1988), `/art/q/draw-${gender}.webp`, "draw keeps its painted picture");
+      assert.equal(beatPlate("sat-night", gender), `/art/q/tvoff-${gender}.webp`);
+      assert.equal(eraPlate(`/art/q/tvoff-${gender}.webp`, 1985), `/art/q/tvoff-${gender}.webp`);
+      assert.equal(fifteenPlate(gender), `/art/q/home1996-${gender}.webp`);
+      for (const name of ["tv1984", "tv1985", "tv1986", "tvoff", "rest1988", "home1996"]) {
+        const path = `/art/q/${name}-${gender}.webp`;
+        assert.ok(existsSync(new URL(`../../public${path}`, import.meta.url)), path);
+        assert.ok(imageManifest().includes(path), `${path} in the manifest`);
+      }
+      assert.equal(yearPlate(1984, gender), `/art/q/tv-${gender}.webp`);
+      assert.equal(eventPlate("EVT_1984_NEWS_01", gender), `/art/q/tv-${gender}.webp`);
+      assert.equal(eventPlate("MINI_85_TV", gender), `/art/q/draw-${gender}.webp`);
+    }
+    assert.equal(eraPlate("/art/q/home-girl.webp", 1986), "/art/q/home-girl.webp", "only TV paintings swap");
+    assert.equal(plateName("/art/q/tv1986-boy.webp"), "tv", "speaker anchors still apply");
+    assert.equal(plateName("/art/q/tvoff-girl.webp"), "tv");
+    assert.equal(plateName("/art/q/home1996-boy.webp"), "home1996", "the new 1996 painting does not borrow the 1984 dinner's people");
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    assert.ok(app.includes("plate={fifteenPlate(state.gender)}"));
+  });
+  it("the code headline overlay is gone", () => {
+    const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+    assert.equal(/TvNews|data-tv-news|newsHeadline|ui-tv-/.test(stage + app + css), false);
+    assert.equal(existsSync(new URL("./tvNews.ts", import.meta.url)), false);
+    assert.ok(app.includes("picture={plainTv ? picture : eraPlate(picture, storyYear)}"));
+  });
+});
+
+describe("full review batch 1: art follows the text (no new art)", async () => {
+  const art = await import("./art.ts");
+  const { YEARS } = await import("./content.ts");
+  const { splitSpokenNarration } = await import("./narrationSpeech.ts");
+  const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+  it("activity and year-end pages never reuse the 1984 dinner after 1984", () => {
+    assert.equal(art.homePlate(1984, "boy"), "/art/q/home-boy.webp");
+    assert.equal(art.homePlate(1985, "girl"), "/art/q/bag-girl.webp");
+    assert.equal(art.homePlate(1986, "boy"), "/art/q/tv-boy.webp");
+    assert.equal(art.homePlate(1988, "girl"), "/art/q/study-girl.webp");
+    assert.ok(!app.includes('scenePlate("home", state.gender)'));
+    assert.ok(app.includes("plate={homePlate(year.year, state.gender)}"));
+  });
+  it("MINI_85_TV shows the child alone with the set on; MINI_QUIET 沒有人在 shows the empty podium", () => {
+    assert.equal(art.eventPlate("MINI_85_TV", "boy"), "/art/q/draw-boy.webp");
+    assert.equal(art.eventPlate("MINI_QUIET", "girl", "market", "沒有人在"), "/art/q/rainempty-girl.webp");
+    assert.equal(art.eventPlate("MINI_QUIET", "girl", "home", "沒有人在"), "/art/q/rainempty-girl.webp");
+    assert.equal(art.eventPlate("MINI_QUIET", "boy", "market", "走了一圈"), null);
+  });
+  it("MINI_86_TV keeps the TV room's own painted screen (singing), not the Queen picture", () => {
+    assert.ok(art.PLAIN_TV_EVENTS.has("MINI_86_TV"));
+    assert.equal(art.eventPlate("MINI_86_TV", "boy"), "/art/q/tvsing-boy.webp");
+    assert.ok(app.includes('plainTv={PLAIN_TV_EVENTS.has(state.eventId ?? "")}'));
+  });
+  it("1986 opening is titled 電視; Monday walk is tagged 幼稚園門口", () => {
+    assert.equal(YEARS.find((y: { year: number }) => y.year === 1986)?.title, "電視");
+    const story = readFileSync(new URL("./story.ts", import.meta.url), "utf8");
+    assert.ok(!story.includes('"屋邨路"'));
+  });
+  it("the exam's 老師說：「還有五分鐘。」 is the teacher's line; the 1996 memory quote stays narration", () => {
+    assert.deepEqual(splitSpokenNarration("老師說：「還有五分鐘。」"), [{ type: "dialogue", speaker: "老師", text: "還有五分鐘。" }]);
+    assert.equal(splitSpokenNarration("「最要緊是一家人安穩。」他只說過一次，之後就一直做。")[0].type, "narration");
+    assert.ok(readFileSync(new URL("../components/life/Battle.tsx", import.meta.url), "utf8").includes("splitSpokenNarration(lead)"));
+  });
+});
+
+describe("ending art: the grown-up protagonist at the same estate", async () => {
+  const art = await import("./art.ts");
+  const { anchorFor } = await import("./sceneAnchors.ts");
+  const { existsSync } = await import("node:fs");
+  it("the 十年後 page uses ending-boy/girl.webp, in the manifest, with a child anchor", () => {
+    for (const g of ["boy", "girl"] as const) {
+      assert.equal(art.endingPlate(g), `/art/q/ending-${g}.webp`);
+      assert.ok(existsSync(new URL(`../../public/art/q/ending-${g}.webp`, import.meta.url)));
+      assert.ok(art.imageManifest().includes(`/art/q/ending-${g}.webp`));
+      assert.ok(anchorFor(`/art/q/ending-${g}.webp`, "child"));
+    }
+    const app = readFileSync(new URL("../components/life/LifeApp.tsx", import.meta.url), "utf8");
+    assert.ok(app.includes('plate={endingPlate(state.gender)} kicker="十年後"'));
+  });
+  it("the art bible fixes the girl standard as bob + grey tee", () => {
+    const bible = readFileSync(new URL("../../docs/ART_BIBLE.md", import.meta.url), "utf8");
+    assert.match(bible, /冬菇頭（bob，齊瀏海）＋灰色 T 恤/);
+  });
+});
+
+describe("HK-accurate redraws: routing for the new paintings", async () => {
+  const art = await import("./art.ts");
+  const { existsSync } = await import("node:fs");
+  const { SCENE_ANCHORS } = await import("./sceneAnchors.ts");
+  it("沒有人在 uses the empty podium; heavy rain keeps the bottle-cap child", () => {
+    for (const g of ["boy", "girl"] as const) {
+      assert.equal(art.eventPlate("MINI_QUIET", g, "estate"), `/art/q/rainempty-${g}.webp`);
+      assert.equal(art.eventPlate("MINI_85_RAIN", g), `/art/q/rain-${g}.webp`);
+      assert.equal(art.eventPlate("MINI_85_ALONE_PODIUM", g), `/art/q/rain-${g}.webp`);
+    }
+  });
+  it("1988 signing uses the age-7 uniform doorway; 1985/86 dad pages keep the age-4 doorway", () => {
+    for (const g of ["boy", "girl"] as const) {
+      assert.equal(art.eventPlate("EVT_1988_DAD_SIGN", g), `/art/q/shoes1988-${g}.webp`);
+      assert.equal(art.eventPlate("MINI_85_DAD", g), `/art/q/shoes-${g}.webp`);
+      assert.equal(art.eventPlate("EVT_1986_DAD_NIGHT", g), `/art/q/shoes-${g}.webp`);
+    }
+  });
+  it("new paintings exist, are in the manifest, and have anchors", () => {
+    const manifest = art.imageManifest();
+    for (const name of ["rainempty", "shoes1988", "tvsing"]) {
+      assert.ok(SCENE_ANCHORS[name]?.child, `${name} child anchor`);
+      for (const g of ["boy", "girl"]) {
+        assert.ok(existsSync(new URL(`../../public/art/q/${name}-${g}.webp`, import.meta.url)), `${name}-${g}`);
+        assert.ok(manifest.includes(`/art/q/${name}-${g}.webp`), `${name}-${g} in manifest`);
+      }
+    }
+  });
+  it("the art bible records the HK era rules and the new style baseline", () => {
+    const bible = readFileSync(new URL("../../docs/ART_BIBLE.md", import.meta.url), "utf8");
+    for (const word of ["鐵閘", "紅白格", "鐵窗", "屋邨商場", "水泥平台", "綠色欄杆", "shoes1988"]) assert.ok(bible.includes(word), word);
+  });
+});
+
+describe("fill-in redraws: estate with 阿傑, bag with both parents, tvsing", async () => {
+  const { SCENE_ANCHORS, isOffscreen } = await import("./sceneAnchors.ts");
+  const art = await import("./art.ts");
+  it("bag shows mum and dad in the painting (no 旁邊), estate points 阿傑 at the striped-tee boy", () => {
+    assert.equal(isOffscreen(SCENE_ANCHORS.bag.媽媽), false);
+    assert.equal(isOffscreen(SCENE_ANCHORS.bag.爸爸), false);
+    assert.ok(SCENE_ANCHORS.estate.阿傑 && !isOffscreen(SCENE_ANCHORS.estate.阿傑));
+  });
+  it("有人唱歌 uses the TV room with the singer painted on the set", () => {
+    for (const g of ["boy", "girl"] as const) assert.equal(art.eventPlate("MINI_86_TV", g), `/art/q/tvsing-${g}.webp`);
+  });
+});
+
+describe("the dialogue panel is ONE fixed size in every state", () => {
+  const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+  it("desktop: fixed height share of the stage, not a max-height that grows with content", () => {
+    assert.match(stage, /md:h-\[var\(--panel-h\)\]/);
+    assert.equal(stage.includes("md:max-h-[48%]"), false);
+    assert.match(css, /--panel-h: 34%;/);
+    assert.match(stage, /className="ui-panel flex h-full min-h-0 rounded-md"/);
+  });
+  it("choices fit in two columns inside the box: no scrolling tag list", () => {
+    assert.match(css, /\.ui-tags\.ui-tags-wide \{\s*grid-template-columns: 1fr 1fr;/);
+    assert.equal(/ui-tags-wide[^"]*overflow-y-auto/.test(stage), false);
+    assert.match(stage, /ui-tags ui-tags-wide[^"]*md:overflow-hidden/);
   });
 });
