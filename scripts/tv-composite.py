@@ -5,6 +5,8 @@ around cropcx (fraction of width), rounded like a CRT, softened, scanlined, vign
 into the glass, and the original glass highlight is screened back over it.
 
 Measured glass quads (1280x720 sources, boy = girl):
+  2026-10 HK redraws (current): tv 765,315,877,315,878,414,765,406 (tv1984/1985/1986/tvoff); rest1988 base 104,319,250,319,251,434,104,439; home1996 42,249,209,249,209,379,43,381
+  (older quads below are for the previous paintings)
   tv   1018,314,1100,310,1100,444,1018,434   (1986 -> tv1986-*.webp, picture centred at 0.52)
   bag  1069,171,1171,173,1170,313,1071,306
   rest 1052,154,1191,151,1192,291,1052,293   (rest-girl redraw; boy same spot)

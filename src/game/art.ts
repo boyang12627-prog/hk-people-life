@@ -19,7 +19,8 @@ const EVENT_PLATE: Record<string, string> = {
   EVT_1986_ECHO_08: "corridor",
   MINI_85_ALONE_PODIUM: "rain",
   EVT_1986_DAD_NIGHT: "shoes",
-  EVT_1988_DAD_SIGN: "shoes",
+  // 1988: the boy/girl is 7 and in school uniform, holding the paper to sign (the 1988 doorway style standard).
+  EVT_1988_DAD_SIGN: "shoes1988",
 };
 
 const BEAT_PLATE: Record<string, string> = {
@@ -48,8 +49,9 @@ function painted(name: string, gender: Gender | null) {
 
 export function eventPlate(eventId: string | null, gender: Gender | null, scene?: string | null, title?: string | null) {
   if (eventId === "EVT_1985_FRIEND_04" && scene === "kindy") return painted("inside", gender);
-  // 沒有人在 (你去的地方沒有人): the empty wet podium, whichever place was empty. 走了一圈 (with mum at the market) keeps the market.
-  if (eventId === "MINI_QUIET" && (scene === "estate" || title === "沒有人在")) return painted("rain", gender);
+  // 沒有人在 (你去的地方沒有人): the EMPTY wet podium (rainempty: nobody else), whichever place was empty. `rain` has the
+  // bottle-cap child for heavy rain and the podium without 阿傑. 走了一圈 (with mum at the market) keeps the market.
+  if (eventId === "MINI_QUIET" && (scene === "estate" || title === "沒有人在")) return painted("rainempty", gender);
   const name = eventId ? EVENT_PLATE[eventId] : null;
   return name ? painted(name, gender) : null;
 }

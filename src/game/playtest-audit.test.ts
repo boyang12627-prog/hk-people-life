@@ -750,8 +750,8 @@ describe("full review batch 1: art follows the text (no new art)", async () => {
   });
   it("MINI_85_TV shows the child alone with the set on; MINI_QUIET 沒有人在 shows the empty podium", () => {
     assert.equal(art.eventPlate("MINI_85_TV", "boy"), "/art/q/draw-boy.webp");
-    assert.equal(art.eventPlate("MINI_QUIET", "girl", "market", "沒有人在"), "/art/q/rain-girl.webp");
-    assert.equal(art.eventPlate("MINI_QUIET", "girl", "home", "沒有人在"), "/art/q/rain-girl.webp");
+    assert.equal(art.eventPlate("MINI_QUIET", "girl", "market", "沒有人在"), "/art/q/rainempty-girl.webp");
+    assert.equal(art.eventPlate("MINI_QUIET", "girl", "home", "沒有人在"), "/art/q/rainempty-girl.webp");
     assert.equal(art.eventPlate("MINI_QUIET", "boy", "market", "走了一圈"), null);
   });
   it("MINI_86_TV keeps the TV room's own painted screen (singing), not the Queen picture", () => {
@@ -788,5 +788,39 @@ describe("ending art: the grown-up protagonist at the same estate", async () => 
   it("the art bible fixes the girl standard as bob + grey tee", () => {
     const bible = readFileSync(new URL("../../docs/ART_BIBLE.md", import.meta.url), "utf8");
     assert.match(bible, /冬菇頭（bob，齊瀏海）＋灰色 T 恤/);
+  });
+});
+
+describe("HK-accurate redraws: routing for the new paintings", async () => {
+  const art = await import("./art.ts");
+  const { existsSync } = await import("node:fs");
+  const { SCENE_ANCHORS } = await import("./sceneAnchors.ts");
+  it("沒有人在 uses the empty podium; heavy rain keeps the bottle-cap child", () => {
+    for (const g of ["boy", "girl"] as const) {
+      assert.equal(art.eventPlate("MINI_QUIET", g, "estate"), `/art/q/rainempty-${g}.webp`);
+      assert.equal(art.eventPlate("MINI_85_RAIN", g), `/art/q/rain-${g}.webp`);
+      assert.equal(art.eventPlate("MINI_85_ALONE_PODIUM", g), `/art/q/rain-${g}.webp`);
+    }
+  });
+  it("1988 signing uses the age-7 uniform doorway; 1985/86 dad pages keep the age-4 doorway", () => {
+    for (const g of ["boy", "girl"] as const) {
+      assert.equal(art.eventPlate("EVT_1988_DAD_SIGN", g), `/art/q/shoes1988-${g}.webp`);
+      assert.equal(art.eventPlate("MINI_85_DAD", g), `/art/q/shoes-${g}.webp`);
+      assert.equal(art.eventPlate("EVT_1986_DAD_NIGHT", g), `/art/q/shoes-${g}.webp`);
+    }
+  });
+  it("new paintings exist, are in the manifest, and have anchors", () => {
+    const manifest = art.imageManifest();
+    for (const name of ["rainempty", "shoes1988"]) {
+      assert.ok(SCENE_ANCHORS[name]?.child, `${name} child anchor`);
+      for (const g of ["boy", "girl"]) {
+        assert.ok(existsSync(new URL(`../../public/art/q/${name}-${g}.webp`, import.meta.url)), `${name}-${g}`);
+        assert.ok(manifest.includes(`/art/q/${name}-${g}.webp`), `${name}-${g} in manifest`);
+      }
+    }
+  });
+  it("the art bible records the HK era rules and the new style baseline", () => {
+    const bible = readFileSync(new URL("../../docs/ART_BIBLE.md", import.meta.url), "utf8");
+    for (const word of ["鐵閘", "紅白格", "鐵窗", "屋邨商場", "水泥平台", "綠色欄杆", "shoes1988"]) assert.ok(bible.includes(word), word);
   });
 });
