@@ -79,7 +79,9 @@ export function yearPlate(year: number, gender: Gender | null): string | null {
  * (「女皇嚟咗。」) on the TV room set; 1988 an airport farewell (emigration) on the nap set. 1996 has its
  * own home painting with the handover countdown (fifteenPlate).
  */
-export const ERA_TV: Record<number, readonly string[]> = { 1984: ["tv"], 1985: ["tv"], 1986: ["tv"], 1988: ["rest"] };
+export const ERA_TV: Record<number, readonly string[]> = { 1984: ["tv"], 1985: ["tv"], 1986: ["tv"], 1988: ["rest", "stair"] };
+// 1988 (age 7) also has its own stairwell painting: stair1988 (protagonist and 阿傑 in primary-school uniform).
+// Any stair picture shown in a 1988 page goes through eraPlate -> stair1988 (no 1988 stair page exists yet; it is in the manifest).
 
 /** The 1996 fifteen page: the new home painting, the TV showing the handover countdown (no readable numbers). */
 export function fifteenPlate(gender: Gender | null) {
