@@ -17,12 +17,12 @@ export type SceneAnchors = Partial<Record<Who, HeadAnchor | Offscreen>>;
 const a = (x: number, y: number, r: number): HeadAnchor => ({ x, y, r });
 
 export const SCENE_ANCHORS: Record<string, SceneAnchors> = {
-  bag: { 媽媽: { offscreen: "left", label: "旁邊" }, 爸爸: { offscreen: "right", label: "旁邊" }, child: a(0.42, 0.3, 0.08) },
+  bag: { 媽媽: a(0.29, 0.32, 0.07), 爸爸: a(0.63, 0.28, 0.07), child: a(0.45, 0.34, 0.07) },
   bags: { 媽媽: a(0.65, 0.15, 0.08), child: a(0.42, 0.52, 0.07) },
   corridor: { 媽媽: a(0.78, 0.18, 0.09), 阿傑: a(0.6, 0.35, 0.05), child: a(0.48, 0.48, 0.07) },
   draw: { child: a(0.44, 0.58, 0.08) },
   ending: { child: a(0.3, 0.47, 0.05) },
-  estate: { 阿傑: a(0.68, 0.57, 0.03), child: a(0.36, 0.45, 0.07) },
+  estate: { 阿傑: a(0.42, 0.39, 0.07), child: a(0.29, 0.45, 0.07) },
   home1996: { child: a(0.57, 0.18, 0.07) },
   home: { 爸爸: a(0.45, 0.35, 0.06), 媽媽: a(0.7, 0.4, 0.06), child: a(0.58, 0.48, 0.05) },
   inside: { 阿傑: a(0.6, 0.3, 0.1), 老師: a(0.74, 0.18, 0.06), child: a(0.4, 0.38, 0.1) },
@@ -49,6 +49,7 @@ export const SCENE_ANCHORS: Record<string, SceneAnchors> = {
   stair: { 媽媽: a(0.69, 0.17, 0.09), 阿傑: a(0.53, 0.25, 0.04), child: a(0.45, 0.47, 0.09) },
   study: { 老師: a(0.64, 0.32, 0.05), child: a(0.32, 0.48, 0.12) },
   toy: { 媽媽: a(0.6, 0.3, 0.05), child: a(0.37, 0.4, 0.08) },
+  tvsing: { 爸爸: a(0.32, 0.36, 0.07), 媽媽: a(0.19, 0.38, 0.07), child: a(0.43, 0.55, 0.07) },
   tv: { 爸爸: a(0.33, 0.35, 0.07), 媽媽: a(0.17, 0.38, 0.07), child: a(0.43, 0.58, 0.07) },
 };
 

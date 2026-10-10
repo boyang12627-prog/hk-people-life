@@ -9,7 +9,7 @@ const EVENT_PLATE: Record<string, string> = {
   // 你留在家。電視開著，沒有人在看: the child alone in the room with the set on (no adults watching).
   MINI_85_TV: "draw",
   // 電視裡有人唱歌: the TV room with its own painted screen (a singer), not the 1986 Queen picture (see PLAIN_TV_EVENTS).
-  MINI_86_TV: "tv",
+  MINI_86_TV: "tvsing",
   MINI_85_ORANGE: "orange",
   MINI_86_HELP: "bags",
   EVT_1988_PEN_01: "pen",

@@ -756,7 +756,7 @@ describe("full review batch 1: art follows the text (no new art)", async () => {
   });
   it("MINI_86_TV keeps the TV room's own painted screen (singing), not the Queen picture", () => {
     assert.ok(art.PLAIN_TV_EVENTS.has("MINI_86_TV"));
-    assert.equal(art.eventPlate("MINI_86_TV", "boy"), "/art/q/tv-boy.webp");
+    assert.equal(art.eventPlate("MINI_86_TV", "boy"), "/art/q/tvsing-boy.webp");
     assert.ok(app.includes('plainTv={PLAIN_TV_EVENTS.has(state.eventId ?? "")}'));
   });
   it("1986 opening is titled 電視; Monday walk is tagged 幼稚園門口", () => {
@@ -811,7 +811,7 @@ describe("HK-accurate redraws: routing for the new paintings", async () => {
   });
   it("new paintings exist, are in the manifest, and have anchors", () => {
     const manifest = art.imageManifest();
-    for (const name of ["rainempty", "shoes1988"]) {
+    for (const name of ["rainempty", "shoes1988", "tvsing"]) {
       assert.ok(SCENE_ANCHORS[name]?.child, `${name} child anchor`);
       for (const g of ["boy", "girl"]) {
         assert.ok(existsSync(new URL(`../../public/art/q/${name}-${g}.webp`, import.meta.url)), `${name}-${g}`);
@@ -822,5 +822,18 @@ describe("HK-accurate redraws: routing for the new paintings", async () => {
   it("the art bible records the HK era rules and the new style baseline", () => {
     const bible = readFileSync(new URL("../../docs/ART_BIBLE.md", import.meta.url), "utf8");
     for (const word of ["鐵閘", "紅白格", "鐵窗", "屋邨商場", "水泥平台", "綠色欄杆", "shoes1988"]) assert.ok(bible.includes(word), word);
+  });
+});
+
+describe("fill-in redraws: estate with 阿傑, bag with both parents, tvsing", async () => {
+  const { SCENE_ANCHORS, isOffscreen } = await import("./sceneAnchors.ts");
+  const art = await import("./art.ts");
+  it("bag shows mum and dad in the painting (no 旁邊), estate points 阿傑 at the striped-tee boy", () => {
+    assert.equal(isOffscreen(SCENE_ANCHORS.bag.媽媽), false);
+    assert.equal(isOffscreen(SCENE_ANCHORS.bag.爸爸), false);
+    assert.ok(SCENE_ANCHORS.estate.阿傑 && !isOffscreen(SCENE_ANCHORS.estate.阿傑));
+  });
+  it("有人唱歌 uses the TV room with the singer painted on the set", () => {
+    for (const g of ["boy", "girl"] as const) assert.equal(art.eventPlate("MINI_86_TV", g), `/art/q/tvsing-${g}.webp`);
   });
 });
