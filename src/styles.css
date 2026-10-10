@@ -15,6 +15,8 @@
 
 @layer base {
   html {
+  /* The dialogue panel is ONE fixed size on desktop: a share of the 16:9 stage height, in every state. */
+  --panel-h: 34%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -167,6 +169,21 @@ main {
   .ui-tags {
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   }
+  /* Many tags: always two columns inside the fixed panel, compact tags, no scroll, the panel never grows. */
+  .ui-tags.ui-tags-wide {
+    grid-template-columns: 1fr 1fr;
+    align-content: center;
+  }
+  .ui-tags.ui-tags-wide .ui-tag {
+    margin-top: 0.625rem;
+    min-height: 2.25rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.3125rem;
+  }
+  .ui-tags.ui-tags-wide .ui-tag::before { top: -0.625rem; height: 0.625rem; }
+  .ui-tags.ui-tags-wide .ui-tag > span:first-child > span:first-child { font-size: 0.9375rem; line-height: 1.3; }
+  .ui-tags.ui-tags-wide .ui-tag > span + span { font-size: 0.75rem; line-height: 1.25; }
+  .ui-tags.ui-tags-wide:has(> :nth-child(5)) .ui-tag > span:first-child > span:first-child { font-size: 0.875rem; }
   /* One or two tags: a single narrow column at the right edge, like 下一句. */
   .ui-tags.ui-tags-narrow {
     grid-template-columns: 1fr;

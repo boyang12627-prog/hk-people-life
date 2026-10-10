@@ -837,3 +837,19 @@ describe("fill-in redraws: estate with 阿傑, bag with both parents, tvsing", a
     for (const g of ["boy", "girl"] as const) assert.equal(art.eventPlate("MINI_86_TV", g), `/art/q/tvsing-${g}.webp`);
   });
 });
+
+describe("the dialogue panel is ONE fixed size in every state", () => {
+  const stage = readFileSync(new URL("../components/life/Stage.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+  it("desktop: fixed height share of the stage, not a max-height that grows with content", () => {
+    assert.match(stage, /md:h-\[var\(--panel-h\)\]/);
+    assert.equal(stage.includes("md:max-h-[48%]"), false);
+    assert.match(css, /--panel-h: 34%;/);
+    assert.match(stage, /className="ui-panel flex h-full min-h-0 rounded-md"/);
+  });
+  it("choices fit in two columns inside the box: no scrolling tag list", () => {
+    assert.match(css, /\.ui-tags\.ui-tags-wide \{\s*grid-template-columns: 1fr 1fr;/);
+    assert.equal(/ui-tags-wide[^"]*overflow-y-auto/.test(stage), false);
+    assert.match(stage, /ui-tags ui-tags-wide[^"]*md:overflow-hidden/);
+  });
+});

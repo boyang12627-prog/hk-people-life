@@ -24,7 +24,7 @@ export function Frame({ picture, overlay, stage, panel, onStageClick, label }: {
         <StatusFrame />
         {stage}
       </div>
-      <div className="relative flex min-h-0 flex-1 flex-col px-1.5 pb-1.5 pt-2 md:absolute md:inset-x-[2%] md:bottom-[2.5%] md:max-h-[48%] md:flex-none md:p-0">{panel}</div>
+      <div className="relative flex min-h-0 flex-1 flex-col px-1.5 pb-1.5 pt-2 md:absolute md:inset-x-[2%] md:bottom-[2.5%] md:h-[var(--panel-h)] md:flex-none md:p-0" data-panel-box="true">{panel}</div>
     </section>
   );
 }
@@ -102,7 +102,7 @@ export function PaperPanel({ heading, children, side, next, live, portrait, log,
     event.stopPropagation();
   };
   return (
-    <div className="ui-panel flex h-full min-h-0 rounded-md md:h-auto">
+    <div className="ui-panel flex h-full min-h-0 rounded-md">
       {log}
       {portrait ? <div data-portrait-slot="true" className="shrink-0 self-start py-3 pl-3 md:py-4 md:pl-5">{portrait}</div> : null}
       <div className={`flex min-h-0 flex-1 flex-col gap-1 pl-3 pr-3 pt-4 md:flex-row md:gap-5 md:pb-7 md:pl-4 md:pr-4 ${afternoons !== null ? "pb-8" : "pb-3"}`}>
@@ -129,7 +129,7 @@ export function PaperPanel({ heading, children, side, next, live, portrait, log,
             className={
               sideSize === "narrow"
                 ? "ui-tags ui-tags-narrow shrink-0 px-1 pb-1 md:w-56 md:self-center md:pb-3"
-                : "ui-tags shrink-0 px-1 pb-1 md:max-h-none md:w-[42%] md:max-w-xl md:overflow-y-auto"
+                : "ui-tags ui-tags-wide shrink-0 px-1 pb-1 md:w-[48%] md:self-center md:overflow-hidden md:pb-2"
             }
           >
             {side}
