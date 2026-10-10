@@ -705,12 +705,14 @@ describe("TV pictures painted into the art, no text on screens (2026-10-09)", ()
       for (const year of [1984, 1985, 1986]) assert.equal(eraPlate(`/art/q/tv-${gender}.webp`, year), `/art/q/tv${year}-${gender}.webp`);
       assert.equal(eraPlate(`/art/q/tv-${gender}.webp`, 1988), `/art/q/tv-${gender}.webp`);
       assert.equal(eraPlate(`/art/q/rest-${gender}.webp`, 1988), `/art/q/rest1988-${gender}.webp`);
+      assert.equal(eraPlate(`/art/q/stair-${gender}.webp`, 1988), `/art/q/stair1988-${gender}.webp`, "1988 stairwell: primary-school uniforms");
+      assert.equal(eraPlate(`/art/q/stair-${gender}.webp`, 1985), `/art/q/stair-${gender}.webp`, "1985 stairwell unchanged");
       assert.equal(eraPlate(`/art/q/rest-${gender}.webp`, 1985), `/art/q/rest-${gender}.webp`, "1985 nap keeps the painted static");
       assert.equal(eraPlate(`/art/q/draw-${gender}.webp`, 1988), `/art/q/draw-${gender}.webp`, "draw keeps its painted picture");
       assert.equal(beatPlate("sat-night", gender), `/art/q/tvoff-${gender}.webp`);
       assert.equal(eraPlate(`/art/q/tvoff-${gender}.webp`, 1985), `/art/q/tvoff-${gender}.webp`);
       assert.equal(fifteenPlate(gender), `/art/q/home1996-${gender}.webp`);
-      for (const name of ["tv1984", "tv1985", "tv1986", "tvoff", "rest1988", "home1996"]) {
+      for (const name of ["tv1984", "tv1985", "tv1986", "tvoff", "rest1988", "stair1988", "home1996"]) {
         const path = `/art/q/${name}-${gender}.webp`;
         assert.ok(existsSync(new URL(`../../public${path}`, import.meta.url)), path);
         assert.ok(imageManifest().includes(path), `${path} in the manifest`);
