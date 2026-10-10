@@ -111,6 +111,13 @@ main {
 }
 
 /* (V4.3) speech bubble removed; dialogue lives in the panel. */
+/* Speaker portrait at the panel's left edge: an arched wooden frame, ~82% of the fixed panel height. */
+.ui-portrait-frame {
+  background:
+    repeating-linear-gradient(100deg, #6e4524 0 0.5rem, #7d5229 0.5rem 0.8rem, #5c3a1e 0.8rem 1.2rem),
+    #6e4524;
+  box-shadow: 0 0.25rem 0.625rem rgb(20 12 6 / 0.5), inset 0 0 0 0.125rem rgb(40 24 12 / 0.6), inset 0 0 0 0.25rem rgb(201 132 58 / 0.25);
+}
 /* Speaker portrait at the panel's left edge. */
 .ui-bust {
   background: radial-gradient(circle at 50% 30%, #f3ead7, #d9c7a2);

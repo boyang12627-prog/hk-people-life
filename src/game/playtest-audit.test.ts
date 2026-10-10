@@ -688,7 +688,8 @@ describe("panel portrait without a name plate (2026-10-09)", () => {
     assert.match(portrait, /role="img" aria-label=\{name\}/);
     assert.match(portrait, /md:w-\[6\.75rem\]/, "the bust is sized to fit inside the panel");
     // The portrait sits in its own padded slot (counted in the panel's height), never hanging below it.
-    assert.match(stage, /data-portrait-slot="true" className="shrink-0 self-start py-3 pl-3 md:py-4 md:pl-5"/);
+    assert.match(stage, /data-portrait-slot="true" className="flex shrink-0 self-start py-3 pl-3 md:h-full md:items-center md:self-stretch md:py-0 md:pl-5"/);
+    assert.match(stage, /ui-portrait-frame[^"]*md:h-\[82%\]/);
     assert.equal(/ui-portrait[^"]*\bpt-4|-mb-|translate-y/.test(portrait), false, "no offset pushes the bust out");
   });
   it("the purple scroll-rod on the panel's left edge is gone", () => {
